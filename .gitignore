@@ -1,0 +1,28 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente (NUNCA commitar)
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+*.swp
+*.swo
+nano.*.save
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads de usuário
+backend/uploads/

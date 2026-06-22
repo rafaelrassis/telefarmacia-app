@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PACIENTE
+  FARMACEUTICO
+}
+
+enum AppointmentStatus {
+  PENDENTE_PAGAMENTO
+  AGENDADO
+  CONCLUIDO
+  CANCELADO
+  EXPIRADA
+}
+
+model User {
+  id                          String             @id @default(uuid())
+  email                       String             @unique
+  name                        String
+  role                        UserRole
+  googleId                    String?            @unique
+  password                    String?
+  createdAt                   DateTime           @default(now())
+  pharmacistProfile           PharmacistProfile?
+  pacienteProfile             PacienteProfile?
+  pagamentos                  Pagamento[]        @relation("PacientePagamentos")
+  carteira                    Carteira?          @relation("PacienteCarteira")
+  appointmentsAsPatient       Appointment[]      @relation("PatientAppointments")
+  appointmentsAsPharmacist    Appointment[]      @relation("PharmacistAppointments")
+  availabilities              Availability[]     @relation("PharmacistAvailability")
+  weeklySchedule              WeeklySchedule[]   @relation("PharmacistWeeklySchedule")
+  avaliacoesComoFarmaceutico   Avaliacao[]         @relation("FarmaceuticoAvaliacoes")
+  avaliacoesComoPaciente       Avaliacao[]         @relation("PacienteAvaliacoes")
+  filaAgendadaComoPaciente     FilaAgendada[]      @relation("PacienteFilaAgendada")
+  filaAgendadaComoFarmaceutico FilaAgendada[]      @relation("FarmaceuticoFilaAgendada")
+  filaUrgenteComoPaciente      FilaUrgente[]       @relation("PacienteFilaUrgente")
+  filaUrgenteComoFarmaceutico  FilaUrgente[]       @relation("FarmaceuticoFilaUrgente")
+  farmaceuticoStatus           FarmaceuticoStatus?
+}
+
+model PacienteProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nomeCompleto   String
+  dataNascimento DateTime
+  genero         String
+  cpf            String   @unique
+  telefone       String?
+  cep            String?
+  logradouro     String?
+  numero         String?
+  complemento    String?
+  bairro         String?
+  cidade         String?
+  estado         String?
+  aceiteTermos   Boolean
+  dataAceite     DateTime
+  versaoTermos   String
+}
+
+model PharmacistProfile {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crfNumber         String
+  crfUF             String
+  bio               String
+  tags              String[]
+  isApproved        Boolean   @default(false)
+  isOnline          Boolean   @default(false)
+  calendarEmbedUrl  String?
+  urlDocIdentidade  String?
+  urlDocCrf         String?
+  dataEnvioDoc      DateTime?
+  precoConsulta     Decimal?  @db.Decimal(10, 2)
+}
+
+model Pagamento {
+  id          String    @id @default(uuid())
+  pacienteId  String
+  paciente    User      @relation("PacientePagamentos", fields: [pacienteId], references: [id], onDelete: Cascade)
+  valor       Decimal   @db.Decimal(10, 2)
+  status      String    @default("Pendente")
+  qrCodeMock  String
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+}
+
+model Carteira {
+  id         String   @id @default(uuid())
+  pacienteId String   @unique
+  paciente   User     @relation("PacienteCarteira", fields: [pacienteId], references: [id], onDelete: Cascade)
+  saldo      Decimal  @default(0.00) @db.Decimal(10, 2)
+  updatedAt  DateTime @updatedAt
+}
+
+model WeeklySchedule {
+  id           String  @id @default(uuid())
+  pharmacistId String
+  pharmacist   User    @relation("PharmacistWeeklySchedule", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  isActive     Boolean @default(true)
+  @@unique([pharmacistId, dayOfWeek])
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  patientId       String
+  patient         User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  pharmacistId    String
+  pharmacist      User              @relation("PharmacistAppointments", fields: [pharmacistId], references: [id])
+  dateTime        DateTime
+  durationMinutes Int
+  status          AppointmentStatus @default(PENDENTE_PAGAMENTO)
+  googleMeetLink  String?
+  googleEventId   String?
+  pixId           String?
+  recommendations String?           @db.Text
+  createdAt       DateTime          @default(now())
+  avaliacao       Avaliacao?
+}
+
+model Avaliacao {
+  id            String      @id @default(uuid())
+  pacienteId    String
+  paciente      User        @relation("PacienteAvaliacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
+  pharmacistId  String
+  pharmacist    User        @relation("FarmaceuticoAvaliacoes", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  nota          Int
+  comentario    String?
+  createdAt     DateTime    @default(now())
+}
+
+model Availability {
+  id           String   @id @default(uuid())
+  pharmacistId String
+  pharmacist   User     @relation("PharmacistAvailability", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  dateTime     DateTime
+  isBooked     Boolean  @default(false)
+}
+
+model SystemConfig {
+  key   String @id
+  value String
+}
+
+model SistemaHorario {
+  id         String  @id @default(uuid())
+  diaSemana  Int     @unique
+  horaInicio String
+  horaFim    String
+  ativo      Boolean @default(true)
+}
+
+model FilaAgendada {
+  id              String   @id @default(uuid())
+  pacienteId      String
+  paciente        User     @relation("PacienteFilaAgendada", fields: [pacienteId], references: [id], onDelete: Cascade)
+  dataHora        DateTime
+  status          String   @default("aguardando")
+  farmaceuticoId  String?
+  farmaceutico    User?    @relation("FarmaceuticoFilaAgendada", fields: [farmaceuticoId], references: [id])
+  creditoDebitado Decimal  @db.Decimal(10, 2)
+  criadoEm       DateTime @default(now())
+}
+
+model FilaUrgente {
+  id              String    @id @default(uuid())
+  pacienteId      String
+  paciente        User      @relation("PacienteFilaUrgente", fields: [pacienteId], references: [id], onDelete: Cascade)
+  status          String    @default("aguardando")
+  farmaceuticoId  String?
+  farmaceutico    User?     @relation("FarmaceuticoFilaUrgente", fields: [farmaceuticoId], references: [id])
+  creditoDebitado Decimal   @db.Decimal(10, 2)
+  criadoEm       DateTime  @default(now())
+  aceitoEm       DateTime?
+}
+
+model FarmaceuticoStatus {
+  farmaceuticoId String   @id
+  farmaceutico   User     @relation(fields: [farmaceuticoId], references: [id], onDelete: Cascade)
+  online         Boolean  @default(false)
+  ultimoPing     DateTime @default(now())
+}

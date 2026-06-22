@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #faf5ff;
+  color: #1f2937;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* Carousel */
+.carousel-slide {
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Accordion animation */
+.faq-content {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
