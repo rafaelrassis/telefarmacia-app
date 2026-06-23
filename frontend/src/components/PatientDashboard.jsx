@@ -6,7 +6,8 @@ import PatientProfileForm from './PatientProfileForm';
 import AgendarModal from './AgendarModal';
 import AgendamentoComDataModal from './AgendamentoComDataModal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const PRECO_CONSULTA = 50;
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600',
@@ -109,9 +110,12 @@ const PatientDashboard = () => {
   const [walletBalance, setWalletBalance] = useState(null);
   const [bookedSuccess, setBookedSuccess] = useState(false);
   const [sistemaAberto, setSistemaAberto] = useState(null);
+  const [sistemaAbertoLoading, setSistemaAbertoLoading] = useState(false);
   const [passarAgoraLoading, setPassarAgoraLoading] = useState(false);
   const [passarAgoraMsg, setPassarAgoraMsg] = useState(null); // { type: 'waiting'|'success'|'unavailable'|'error'|'credits', ... }
   const urgentIdRef = useRef(null);
+  const [addingCredito, setAddingCredito] = useState(false);
+  const [creditoToast, setCreditoToast]   = useState(null);
 
   const hasProfile = Boolean(user?.pacienteProfile);
 
@@ -142,14 +146,59 @@ const PatientDashboard = () => {
     }
   }, []);
 
-  useEffect(() => { fetchPharmacists(filter); }, [filter, fetchPharmacists]);
-  useEffect(() => { fetchWalletBalance(); }, [fetchWalletBalance]);
-  useEffect(() => {
-    fetch(`${API_URL}/api/sistema/aberto`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setSistemaAberto(d.aberto); })
-      .catch(() => setSistemaAberto(true)); // default aberto em caso de erro
+  const fetchSistemaAberto = useCallback(async () => {
+    setSistemaAbertoLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sistema/aberto`);
+      const d   = res.ok ? await res.json() : null;
+      if (d) setSistemaAberto(d.aberto);
+    } catch {
+      setSistemaAberto(true);
+    } finally {
+      setSistemaAbertoLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchPharmacists(filter); }, [filter, fetchPharmacists]);
+  useEffect(() => { fetchWalletBalance(); },    [fetchWalletBalance]);
+  useEffect(() => { fetchSistemaAberto(); },    [fetchSistemaAberto]);
+
+  // Polling leve a cada 60s para detectar mudanças de status do sistema
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/sistema/aberto`);
+        if (res.ok) {
+          const d = await res.json();
+          setSistemaAberto((prev) => (prev !== d.aberto ? d.aberto : prev));
+        }
+      } catch {}
+    }, 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Restaura estado de urgência ativa após reload de página
+  useEffect(() => {
+    if (!token) return;
+    const check = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/fila/urgente/ativa`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.urgente) {
+          urgentIdRef.current = data.urgente.id;
+          if (data.urgente.status === 'aguardando') {
+            setPassarAgoraMsg({ type: 'waiting' });
+          } else if (data.urgente.status === 'aceito') {
+            setPassarAgoraMsg({ type: 'success', farmaceutico: data.urgente.farmaceutico });
+          }
+        }
+      } catch {}
+    };
+    check();
+  }, [token]);
 
   // MANDATORY: profile completion blocks dashboard access until filled
   if (!hasProfile) {
@@ -188,6 +237,40 @@ const PatientDashboard = () => {
       </div>
     );
   }
+
+  const handleAdicionarCredito = async () => {
+    setAddingCredito(true);
+    try {
+      const res = await fetch(`${API_URL}/api/creditos/adicionar-teste`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ valor: 50 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setWalletBalance(data.novo_saldo);
+        setCreditoToast('R$ 50,00 adicionados!');
+        setTimeout(() => setCreditoToast(null), 3000);
+      }
+    } catch {}
+    finally { setAddingCredito(false); }
+  };
+
+  const handleCancelarUrgente = async () => {
+    const id = urgentIdRef.current;
+    if (!id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/fila/urgente/${id}/cancelar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        urgentIdRef.current = null;
+        setPassarAgoraMsg(null);
+        fetchWalletBalance();
+      }
+    } catch {}
+  };
 
   const handlePassarAgora = async () => {
     setPassarAgoraLoading(true);
@@ -242,6 +325,11 @@ const PatientDashboard = () => {
             type: 'unavailable',
             mensagem: 'Nenhum farmacêutico disponível no momento. Seus créditos foram devolvidos.',
           });
+          fetchWalletBalance();
+        } else if (data.status === 'cancelado') {
+          urgentIdRef.current = null;
+          setPassarAgoraMsg(null);
+          fetchWalletBalance();
         }
       } catch {}
     };
@@ -272,56 +360,107 @@ const PatientDashboard = () => {
         </div>
       )}
 
-      {/* Sistema fechado */}
+      {/* Banner de status do sistema */}
       {sistemaAberto === false && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 flex items-center gap-3">
-          <span className="text-red-500 text-xl shrink-0">🔒</span>
-          <div>
-            <p className="text-sm font-semibold text-red-800">Agendamentos temporariamente suspensos</p>
-            <p className="text-xs text-red-600 mt-0.5">O sistema está fechado no momento. Tente novamente mais tarde.</p>
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-red-500 text-xl shrink-0">🔒</span>
+            <div>
+              <p className="text-sm font-semibold text-red-800">Agendamentos temporariamente suspensos</p>
+              <p className="text-xs text-red-600 mt-0.5">O sistema está fechado no momento. Tente novamente mais tarde.</p>
+            </div>
           </div>
+          <button
+            onClick={fetchSistemaAberto}
+            disabled={sistemaAbertoLoading}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-100 hover:bg-red-200 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
+          >
+            {sistemaAbertoLoading
+              ? <span className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+              : '🔄'}
+            Atualizar
+          </button>
+        </div>
+      )}
+      {sistemaAberto === true && (
+        <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full shrink-0" />
+            <p className="text-xs text-green-700 font-medium">Sistema aberto para agendamentos</p>
+          </div>
+          <button
+            onClick={fetchSistemaAberto}
+            disabled={sistemaAbertoLoading}
+            className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
+          >
+            {sistemaAbertoLoading
+              ? <span className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+              : '🔄'}
+            Atualizar
+          </button>
         </div>
       )}
 
       {/* Dois botões de agendamento */}
       {sistemaAberto !== false && (
         <>
-          <div style={{ display: 'flex', gap: '12px', margin: '16px 0' }}>
-            <button
-              onClick={() => setShowDataModal(true)}
-              style={{
-                flex: 1,
-                background: '#2563eb',
-                color: 'white',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '15px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
-            >
-              📅 Agendar Consulta
-            </button>
-            <button
-              onClick={handlePassarAgora}
-              disabled={passarAgoraLoading}
-              style={{
-                flex: 1,
-                background: 'white',
-                color: '#2563eb',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: '2px solid #2563eb',
-                fontSize: '15px',
-                fontWeight: 'bold',
-                cursor: passarAgoraLoading ? 'not-allowed' : 'pointer',
-                opacity: passarAgoraLoading ? 0.6 : 1,
-              }}
-            >
-              {passarAgoraLoading ? '...' : '⚡ Quero Passar Agora'}
-            </button>
-          </div>
+          {(() => {
+            const saldoInsuficiente = walletBalance !== null && walletBalance < PRECO_CONSULTA;
+            const urgenteBloqueado  = passarAgoraMsg?.type === 'waiting';
+            return (
+              <>
+                <div style={{ display: 'flex', gap: '12px', margin: '16px 0' }}>
+                  <button
+                    onClick={() => setShowDataModal(true)}
+                    disabled={saldoInsuficiente}
+                    title={saldoInsuficiente ? 'Saldo insuficiente — adicione créditos para continuar' : undefined}
+                    style={{
+                      flex: 1,
+                      background: '#2563eb',
+                      color: 'white',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '15px',
+                      fontWeight: 'bold',
+                      cursor: saldoInsuficiente ? 'not-allowed' : 'pointer',
+                      opacity: saldoInsuficiente ? 0.55 : 1,
+                    }}
+                  >
+                    📅 Agendar Consulta
+                  </button>
+                  <button
+                    onClick={handlePassarAgora}
+                    disabled={passarAgoraLoading || saldoInsuficiente || urgenteBloqueado}
+                    title={
+                      urgenteBloqueado  ? 'Você já tem um atendimento urgente em andamento' :
+                      saldoInsuficiente ? 'Saldo insuficiente — adicione créditos para continuar' :
+                      undefined
+                    }
+                    style={{
+                      flex: 1,
+                      background: 'white',
+                      color: '#2563eb',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: '2px solid #2563eb',
+                      fontSize: '15px',
+                      fontWeight: 'bold',
+                      cursor: (passarAgoraLoading || saldoInsuficiente || urgenteBloqueado) ? 'not-allowed' : 'pointer',
+                      opacity: (passarAgoraLoading || saldoInsuficiente || urgenteBloqueado) ? 0.55 : 1,
+                    }}
+                  >
+                    {passarAgoraLoading ? '...' : '⚡ Quero Passar Agora'}
+                  </button>
+                </div>
+                {saldoInsuficiente && (
+                  <p style={{ fontSize: '13px', color: '#dc2626', textAlign: 'center', marginTop: '-8px', marginBottom: '4px' }}>
+                    Saldo insuficiente — adicione créditos para continuar
+                  </p>
+                )}
+              </>
+            );
+          })()}
 
           {/* Resultado inline do "Quero Passar Agora" */}
           {passarAgoraMsg && (
@@ -349,9 +488,19 @@ const PatientDashboard = () => {
                       border: '2px solid #2563eb', borderTopColor: 'transparent',
                       animation: 'spin 0.8s linear infinite', flexShrink: 0,
                     }} />
-                    <p style={{ fontSize: '14px', color: '#1d4ed8', margin: 0 }}>
+                    <p style={{ fontSize: '14px', color: '#1d4ed8', margin: 0, flex: 1 }}>
                       Aguardando farmacêutico... (verificando a cada 5s)
                     </p>
+                    <button
+                      onClick={handleCancelarUrgente}
+                      style={{
+                        fontSize: '13px', color: '#6b7280', background: 'white',
+                        border: '1px solid #d1d5db', borderRadius: '6px',
+                        padding: '4px 12px', cursor: 'pointer', flexShrink: 0,
+                      }}
+                    >
+                      Cancelar
+                    </button>
                   </div>
                 )}
                 {passarAgoraMsg.type === 'success' && (
@@ -394,6 +543,7 @@ const PatientDashboard = () => {
         </>
       )}
 
+
       {/* Carteira de créditos */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -409,13 +559,17 @@ const PatientDashboard = () => {
                 ? '...'
                 : `R$ ${walletBalance.toFixed(2).replace('.', ',')}`}
             </p>
+            {creditoToast && (
+              <p className="text-xs text-green-600 font-semibold mt-0.5">{creditoToast}</p>
+            )}
           </div>
         </div>
         <button
-          onClick={() => setShowWalletTopup(true)}
-          className="shrink-0 text-xs font-bold bg-violet-100 hover:bg-violet-200 text-violet-700 px-4 py-2 rounded-lg transition"
+          onClick={handleAdicionarCredito}
+          disabled={addingCredito}
+          className="shrink-0 text-xs font-bold bg-violet-100 hover:bg-violet-200 disabled:opacity-50 text-violet-700 px-4 py-2 rounded-lg transition"
         >
-          + Adicionar créditos
+          {addingCredito ? '...' : '+ Adicionar créditos'}
         </button>
       </div>
 
@@ -434,7 +588,7 @@ const PatientDashboard = () => {
       {/* My appointments */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h3 className="font-semibold text-gray-800 text-sm mb-4">Minhas consultas</h3>
-        <MyAppointments />
+        <MyAppointments onCancelled={fetchWalletBalance} />
       </div>
     </div>
   );

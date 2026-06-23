@@ -13,6 +13,7 @@ function timeStr(date) {
 // ── GET /api/admin/horarios ──────────────────────────────────────────────────
 
 export const getHorarios = async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache');
   try {
     const horarios = await prisma.sistemaHorario.findMany({ orderBy: { diaSemana: 'asc' } });
     return res.status(200).json(horarios);
@@ -40,7 +41,13 @@ export const saveHorarios = async (req, res) => {
         })
       )
     );
-    return res.status(200).json({ success: true, horarios: results });
+    const now = new Date().toISOString();
+    await prisma.systemConfig.upsert({
+      where:  { key: 'ultima_atualizacao' },
+      update: { value: now },
+      create: { key: 'ultima_atualizacao', value: now },
+    });
+    return res.status(200).json({ salvo: true, ultima_atualizacao: now, horarios: results });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao salvar horários.' });
@@ -50,6 +57,7 @@ export const saveHorarios = async (req, res) => {
 // ── GET /api/sistema/aberto ──────────────────────────────────────────────────
 
 export const isSistemaAberto = async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache');
   try {
     const br  = nowInBR();
     const dow = br.getDay();
@@ -77,6 +85,7 @@ export const isSistemaAberto = async (req, res) => {
 // ── GET /api/disponibilidade?data=YYYY-MM-DD ─────────────────────────────────
 
 export const getDisponibilidade = async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache');
   const { data } = req.query;
   if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data)) {
     return res.status(400).json({ error: 'Parâmetro "data" obrigatório no formato YYYY-MM-DD.' });

@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CompleteAppointmentModal from './CompleteAppointmentModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// ── Status labels ─────────────────────────────────────────────────────────────
+// ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  // Legado (Appointment)
-  PENDENTE_PAGAMENTO: { label: 'Aguardando pagamento', cls: 'text-orange-500' },
-  AGENDADO:           { label: 'Confirmado',           cls: 'text-green-600' },
-  CONCLUIDO:          { label: 'Concluído',            cls: 'text-blue-600' },
-  CANCELADO:          { label: 'Cancelado',            cls: 'text-red-500' },
-  EXPIRADA:           { label: 'Expirada',             cls: 'text-gray-400' },
-  // Fila nova
-  aguardando:         { label: 'Aguardando farmacêutico', cls: 'text-amber-500' },
-  aceito:             { label: 'Em atendimento',          cls: 'text-green-600' },
-  concluido:          { label: 'Concluído',               cls: 'text-blue-600' },
-  cancelado:          { label: 'Cancelado',               cls: 'text-red-500' },
-  expirado:           { label: 'Expirado (reembolsado)',  cls: 'text-gray-400' },
+  // Legado (Appointment) — uppercase
+  PENDENTE_PAGAMENTO: { label: 'Aguardando pagamento', cls: 'text-orange-500', dot: 'bg-orange-400' },
+  AGENDADO:           { label: 'Confirmado',            cls: 'text-green-600',  dot: 'bg-green-500' },
+  CONCLUIDO:          { label: 'Concluído',             cls: 'text-violet-600', dot: 'bg-violet-500' },
+  CANCELADO:          { label: 'Cancelado',             cls: 'text-red-500',    dot: 'bg-red-400' },
+  EXPIRADA:           { label: 'Expirada',              cls: 'text-gray-400',   dot: 'bg-gray-300' },
+  // Fila nova — lowercase
+  aguardando:         { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
+  aceito:             { label: 'Confirmado',              cls: 'text-blue-600',    dot: 'bg-blue-500' },
+  em_atendimento:     { label: 'Em atendimento',          cls: 'text-green-600',   dot: 'bg-green-500' },
+  concluido:          { label: 'Concluído',               cls: 'text-violet-600',  dot: 'bg-violet-500' },
+  cancelado:          { label: 'Cancelado',               cls: 'text-red-500',     dot: 'bg-red-400' },
+  expirado:           { label: 'Expirado',                cls: 'text-gray-400',    dot: 'bg-gray-300' },
 };
 
 const TIPO_BADGE = {
@@ -27,7 +28,16 @@ const TIPO_BADGE = {
   appointment: { label: 'Consulta',   cls: 'bg-gray-100 text-gray-600' },
 };
 
-// ── Affiliate links (mantido intacto) ────────────────────────────────────────
+// Status efetivo: "aceito" em agendada futura ≠ "em atendimento" (item 4)
+const getEffectiveStatus = (app) => {
+  if (app.tipo === 'urgente' && app.status === 'aceito') return 'em_atendimento';
+  if (app.tipo === 'agendada' && app.status === 'aceito') {
+    return new Date(app.dataHora) <= new Date() ? 'em_atendimento' : 'aceito';
+  }
+  return app.status;
+};
+
+// ── Affiliate links (intacto) ─────────────────────────────────────────────────
 
 const AFFILIATE_TERMS = [
   { key: 'dipirona',    link: 'https://drogaraia.com.br/busca?w=dipirona&ref=telefarmacia' },
@@ -69,48 +79,127 @@ const Stars = ({ value, onChange, readonly = false, size = 'text-xl' }) => (
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-const MyAppointments = () => {
+const MyAppointments = ({ onCancelled }) => {
   const { token, user } = useAuth();
   const isPharmacist = user?.role === 'FARMACEUTICO';
 
+  // Estado compartilhado
   const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading]           = useState(true);
+
+  // Filtros e paginação (farmacêutico e paciente)
+  const [filterDe,     setFilterDe]     = useState('');
+  const [filterAte,    setFilterAte]    = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [page,         setPage]         = useState(1);
+  const [hasMore,      setHasMore]      = useState(false);
+  const [total,        setTotal]        = useState(0);
+  const [loadingMore,  setLoadingMore]  = useState(false);
+
+  // Cancelar item de fila (paciente)
+  const [confirmCancelFila, setConfirmCancelFila] = useState(null);
+  const [cancellingFilaId,  setCancellingFilaId]  = useState(null);
+
+  // Estado legado
   const [completingAppointment, setCompletingAppointment] = useState(null);
-  const [cancellingId, setCancellingId]   = useState(null);
-  const [confirmCancel, setConfirmCancel] = useState(null);
+  const [cancellingId,   setCancellingId]   = useState(null);
+  const [confirmCancel,  setConfirmCancel]  = useState(null);
+  const [ratingForm,       setRatingForm]       = useState(null);
+  const [ratingNota,       setRatingNota]       = useState(0);
+  const [ratingComentario, setRatingComentario] = useState('');
+  const [ratingLoading,    setRatingLoading]    = useState(false);
+  const [ratingError,      setRatingError]      = useState('');
 
-  const [ratingForm, setRatingForm]               = useState(null);
-  const [ratingNota, setRatingNota]               = useState(0);
-  const [ratingComentario, setRatingComentario]   = useState('');
-  const [ratingLoading, setRatingLoading]         = useState(false);
-  const [ratingError, setRatingError]             = useState('');
+  // ── Fetch farmacêutico com filtros e paginação ───────────────────────────
+  useEffect(() => {
+    if (!isPharmacist) return;
+    let cancelled = false;
 
-  const fetchAppointments = useCallback(async () => {
-    // Paciente: endpoint unificado (Appointment + FilaAgendada + FilaUrgente)
-    // Farmacêutico: endpoint legado (Appointment apenas)
-    const url = isPharmacist
-      ? `${API_URL}/api/appointments`
-      : `${API_URL}/api/paciente/historico`;
+    const params = new URLSearchParams({ page: '1', limit: '10' });
+    if (filterDe)     params.set('de',     filterDe);
+    if (filterAte)    params.set('ate',    filterAte);
+    if (filterStatus) params.set('status', filterStatus);
 
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
-      const data = await res.json();
-      if (isPharmacist) {
-        // Normaliza formato legado para ter campo `tipo`
-        setAppointments(data.map((a) => ({ ...a, tipo: 'appointment', dataHora: a.dateTime, farmaceutico: a.pharmacist })));
-      } else {
-        setAppointments(data);
+    setLoading(true);
+    setPage(1);
+
+    fetch(`${API_URL}/api/farmaceutico/consultas?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setAppointments(data.items);
+        setHasMore(data.hasMore);
+        setTotal(data.total);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    return () => { cancelled = true; };
+  }, [isPharmacist, token, filterDe, filterAte, filterStatus]);
+
+  // ── Fetch paciente com filtros (reinicia ao mudar filtro) ─────────────────
+  useEffect(() => {
+    if (isPharmacist) return;
+    let cancelled = false;
+
+    const params = new URLSearchParams({ page: '1', limit: '10' });
+    if (filterDe)     params.set('de',     filterDe);
+    if (filterAte)    params.set('ate',    filterAte);
+    if (filterStatus) params.set('status', filterStatus);
+
+    setLoading(true);
+    setPage(1);
+
+    fetch(`${API_URL}/api/paciente/agendamentos?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setAppointments(data.items);
+        setHasMore(data.hasMore);
+        setTotal(data.total);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    return () => { cancelled = true; };
+  }, [isPharmacist, token, filterDe, filterAte, filterStatus]);
+
+  const handleLoadMore = async () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    const params = new URLSearchParams({ page: String(nextPage), limit: '10' });
+    if (filterDe)     params.set('de',     filterDe);
+    if (filterAte)    params.set('ate',    filterAte);
+    if (filterStatus) params.set('status', filterStatus);
+    const loadMoreUrl = isPharmacist
+      ? `${API_URL}/api/farmaceutico/consultas?${params}`
+      : `${API_URL}/api/paciente/agendamentos?${params}`;
+    try {
+      const res = await fetch(loadMoreUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAppointments((prev) => [...prev, ...data.items]);
+        setHasMore(data.hasMore);
+        setPage(nextPage);
       }
+    } finally {
+      setLoadingMore(false);
     }
-  }, [token, isPharmacist]);
+  };
 
-  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
-
+  // ── Handlers legados ──────────────────────────────────────────────────────
   const handleCompleted = (updated) => {
     setAppointments((prev) => prev.map((a) => a.id === updated.id ? { ...a, ...updated } : a));
     setCompletingAppointment(null);
   };
 
-  const handleCancel = async (id) => {
+  const handleCancelLegacy = async (id) => {
     setCancellingId(id);
     try {
       const res = await fetch(`${API_URL}/api/appointments/${id}/cancel`, {
@@ -155,10 +244,34 @@ const MyAppointments = () => {
     finally  { setRatingLoading(false); }
   };
 
+  // ── Handler cancelamento de fila ──────────────────────────────────────────
+  const handleCancelFila = async () => {
+    if (!confirmCancelFila) return;
+    const { id, tipo } = confirmCancelFila;
+    setCancellingFilaId(id);
+    try {
+      const endpoint = tipo === 'urgente'
+        ? `${API_URL}/api/fila/urgente/${id}/cancelar`
+        : `${API_URL}/api/fila/agendadas/${id}/cancelar`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: 'cancelado' } : a));
+        onCancelled?.();
+      }
+    } finally {
+      setCancellingFilaId(null);
+      setConfirmCancelFila(null);
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full mt-8">
 
-      {/* Modal: confirmar cancelamento */}
+      {/* Modal: confirmar cancelamento legado */}
       {confirmCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmCancel(null)} />
@@ -177,10 +290,42 @@ const MyAppointments = () => {
                 className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
                 Manter
               </button>
-              <button onClick={() => handleCancel(confirmCancel.id)}
+              <button onClick={() => handleCancelLegacy(confirmCancel.id)}
                 disabled={cancellingId === confirmCancel.id}
                 className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 transition">
                 {cancellingId === confirmCancel.id ? 'Cancelando...' : 'Cancelar consulta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: confirmar cancelamento de fila (com reembolso) */}
+      {confirmCancelFila && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmCancelFila(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="font-bold text-gray-900 mb-2">Cancelar consulta?</h3>
+            <p className="text-sm text-gray-600 mb-1">
+              {confirmCancelFila.tipo === 'urgente'
+                ? 'Atendimento urgente'
+                : new Date(confirmCancelFila.dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+            </p>
+            <p className="text-sm text-gray-700 mb-1">
+              O valor de{' '}
+              <strong>R$ {(confirmCancelFila.creditoDebitado ?? 50).toFixed(2).replace('.', ',')}</strong>{' '}
+              será devolvido ao seu saldo.
+            </p>
+            <p className="text-xs text-gray-400 mb-6">Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmCancelFila(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                Voltar
+              </button>
+              <button onClick={handleCancelFila}
+                disabled={cancellingFilaId === confirmCancelFila.id}
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 transition">
+                {cancellingFilaId === confirmCancelFila.id ? 'Cancelando...' : 'Sim, cancelar'}
               </button>
             </div>
           </div>
@@ -226,124 +371,277 @@ const MyAppointments = () => {
 
       <h2 className="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Meus Agendamentos</h2>
 
-      {appointments.length === 0 ? (
+      {/* Filtros — farmacêutico */}
+      {isPharmacist && (
+        <div className="flex flex-wrap gap-3 mb-4 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">De</label>
+            <input
+              type="date"
+              value={filterDe}
+              onChange={(e) => setFilterDe(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Até</label>
+            <input
+              type="date"
+              value={filterAte}
+              onChange={(e) => setFilterAte(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none bg-white"
+            >
+              <option value="">Todos</option>
+              <option value="em_atendimento">Em atendimento</option>
+              <option value="concluido">Concluído</option>
+              <option value="cancelado">Cancelado</option>
+              <option value="expirado">Expirado</option>
+            </select>
+          </div>
+          {(filterDe || filterAte || filterStatus) && (
+            <button
+              onClick={() => { setFilterDe(''); setFilterAte(''); setFilterStatus(''); }}
+              className="text-xs text-gray-400 hover:text-gray-700 underline self-end mb-1"
+            >
+              Limpar filtros
+            </button>
+          )}
+          {!loading && (
+            <span className="text-xs text-gray-400 self-end mb-1">
+              {total} {total === 1 ? 'resultado' : 'resultados'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Filtros — paciente apenas */}
+      {!isPharmacist && (
+        <div className="flex flex-wrap gap-3 mb-4 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">De</label>
+            <input
+              type="date"
+              value={filterDe}
+              onChange={(e) => setFilterDe(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Até</label>
+            <input
+              type="date"
+              value={filterAte}
+              onChange={(e) => setFilterAte(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none bg-white"
+            >
+              <option value="">Todos</option>
+              <option value="aguardando">Aguardando</option>
+              <option value="aceito">Confirmado</option>
+              <option value="concluido">Concluído</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+          {(filterDe || filterAte || filterStatus) && (
+            <button
+              onClick={() => { setFilterDe(''); setFilterAte(''); setFilterStatus(''); }}
+              className="text-xs text-gray-400 hover:text-gray-700 underline self-end mb-1"
+            >
+              Limpar filtros
+            </button>
+          )}
+          {!loading && (
+            <span className="text-xs text-gray-400 self-end mb-1">
+              {total} {total === 1 ? 'resultado' : 'resultados'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-gray-400 text-sm italic py-4">Carregando...</p>
+      ) : appointments.length === 0 ? (
         <p className="text-gray-500 italic">Nenhum agendamento encontrado.</p>
       ) : (
-        <div className="space-y-4">
-          {appointments.map((app) => {
-            const tipo      = app.tipo ?? 'appointment';
-            const statusCfg = STATUS_CONFIG[app.status] ?? { label: app.status, cls: 'text-gray-500' };
-            const tipoBadge = TIPO_BADGE[tipo];
-            const dataHora  = app.dataHora ?? app.dateTime;
-            const nomeFarm  = app.farmaceutico?.name ?? app.pharmacist?.name;
-            const isLegacy  = tipo === 'appointment';
+        <>
+          <div className="space-y-4">
+            {appointments.map((app) => {
+              const tipo            = app.tipo ?? 'appointment';
+              const effectiveStatus = getEffectiveStatus(app);
+              const statusCfg       = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, cls: 'text-gray-500', dot: 'bg-gray-400' };
+              const tipoBadge       = TIPO_BADGE[tipo];
+              const dataHora        = app.dataHora ?? app.dateTime;
+              const nomeFarm        = app.farmaceutico?.name ?? app.pharmacist?.name;
+              const isLegacy        = tipo === 'appointment';
+              const isCancelled     = app.status === 'cancelado' || app.status === 'CANCELADO';
+              const canCancelFila   = !isPharmacist && !isLegacy && ['aguardando', 'aceito'].includes(app.status);
 
-            return (
-              <div key={app.id}
-                className="p-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex-1 min-w-0">
+              return (
+                <div
+                  key={app.id}
+                  className={`p-4 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${
+                    isCancelled ? 'border-red-100 opacity-60' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
 
-                  {/* Cabeçalho: data + badge de tipo */}
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <p className="font-bold text-gray-800">
-                      {new Date(dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                    {/* Cabeçalho: data + badge de tipo */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className={`font-bold text-gray-800 ${isCancelled ? 'line-through' : ''}`}>
+                        {new Date(dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                      {tipoBadge && (
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge.cls}`}>
+                          {tipoBadge.label}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Farmacêutico ou paciente */}
+                    {isPharmacist ? (
+                      <>
+                        <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
+                        {isLegacy && app.status === 'AGENDADO' && app.patient?.pacienteProfile?.telefone && (
+                          <p className="text-xs text-gray-400 mt-0.5">Contato: {app.patient.pacienteProfile.telefone}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-600">
+                        {nomeFarm ? `Farmacêutico(a): ${nomeFarm}` : 'Farmacêutico: aguardando atribuição'}
+                      </p>
+                    )}
+
+                    {/* Status com dot colorido */}
+                    <p className="text-sm font-semibold mt-1 flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full inline-block shrink-0 ${statusCfg.dot}`} />
+                      <span className={statusCfg.cls}>{statusCfg.label}</span>
                     </p>
-                    {tipoBadge && (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge.cls}`}>
-                        {tipoBadge.label}
-                      </span>
+
+                    {/* Crédito debitado (fila) */}
+                    {!isLegacy && app.creditoDebitado != null && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
+                      </p>
+                    )}
+
+                    {/* Recomendações (apenas appointments legados concluídos) */}
+                    {isLegacy && app.status === 'CONCLUIDO' && app.recommendations && (
+                      <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                        <p className="font-semibold text-gray-600 mb-1 text-xs uppercase tracking-wide">
+                          Recomendações do farmacêutico
+                        </p>
+                        <p className="italic">"{app.recommendations}"</p>
+                        {!isPharmacist && renderAffiliateLinks(app.recommendations)}
+                      </div>
+                    )}
+
+                    {/* Avaliação (appointments legados concluídos, paciente) */}
+                    {isLegacy && app.status === 'CONCLUIDO' && !isPharmacist && (
+                      <div className="mt-2">
+                        {app.avaliacao ? (
+                          <div className="flex items-center gap-2">
+                            <Stars value={app.avaliacao.nota} readonly size="text-base" />
+                            <span className="text-xs text-gray-400">Sua avaliação</span>
+                          </div>
+                        ) : (
+                          <button onClick={() => openRatingForm(app)}
+                            className="text-xs text-violet-600 hover:text-violet-800 font-semibold hover:underline transition">
+                            ★ Avaliar esta consulta
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 
-                  {/* Farmacêutico ou paciente */}
-                  {isPharmacist ? (
-                    <>
-                      <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
-                      {isLegacy && app.status === 'AGENDADO' && app.patient?.pacienteProfile?.telefone && (
-                        <p className="text-xs text-gray-400 mt-0.5">Contato: {app.patient.pacienteProfile.telefone}</p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      {nomeFarm ? `Farmacêutico(a): ${nomeFarm}` : 'Farmacêutico: aguardando atribuição'}
-                    </p>
-                  )}
-
-                  {/* Status */}
-                  <p className="text-sm font-semibold mt-1">
-                    Status: <span className={statusCfg.cls}>{statusCfg.label}</span>
-                  </p>
-
-                  {/* Crédito debitado (apenas para fila) */}
-                  {!isLegacy && app.creditoDebitado != null && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
-                    </p>
-                  )}
-
-                  {/* Recomendações (apenas appointments legados) */}
-                  {isLegacy && app.status === 'CONCLUIDO' && app.recommendations && (
-                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
-                      <p className="font-semibold text-gray-600 mb-1 text-xs uppercase tracking-wide">
-                        Recomendações do farmacêutico
-                      </p>
-                      <p className="italic">"{app.recommendations}"</p>
-                      {!isPharmacist && renderAffiliateLinks(app.recommendations)}
-                    </div>
-                  )}
-
-                  {/* Avaliação (apenas appointments legados concluídos) */}
-                  {isLegacy && app.status === 'CONCLUIDO' && !isPharmacist && (
-                    <div className="mt-2">
-                      {app.avaliacao ? (
-                        <div className="flex items-center gap-2">
-                          <Stars value={app.avaliacao.nota} readonly size="text-base" />
-                          <span className="text-xs text-gray-400">Sua avaliação</span>
-                        </div>
-                      ) : (
-                        <button onClick={() => openRatingForm(app)}
-                          className="text-xs text-violet-600 hover:text-violet-800 font-semibold hover:underline transition">
-                          ★ Avaliar esta consulta
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Botões de ação — apenas para appointments legados */}
-                {isLegacy && (
+                  {/* Botões de ação */}
                   <div className="flex gap-2 shrink-0 flex-wrap">
-                    {app.status === 'AGENDADO' && isPharmacist && (() => {
-                      const tel = app.patient?.pacienteProfile?.telefone;
-                      if (!tel) return null;
-                      const waNum = `55${tel.replace(/\D/g, '')}`;
-                      return (
-                        <a href={`https://wa.me/${waNum}`} target="_blank" rel="noreferrer"
-                          className="px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 transition text-sm">
-                          WhatsApp Paciente
-                        </a>
-                      );
-                    })()}
 
-                    {app.status === 'AGENDADO' && isPharmacist && (
-                      <button onClick={() => setCompletingAppointment(app)}
-                        className="px-4 py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 transition text-sm">
-                        Encerrar Consulta
-                      </button>
+                    {/* Ações legadas (farmacêutico / legacy appointment) */}
+                    {isLegacy && (
+                      <>
+                        {app.status === 'AGENDADO' && isPharmacist && (() => {
+                          const tel = app.patient?.pacienteProfile?.telefone;
+                          if (!tel) return null;
+                          const waNum = `55${tel.replace(/\D/g, '')}`;
+                          return (
+                            <a href={`https://wa.me/${waNum}`} target="_blank" rel="noreferrer"
+                              className="px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 transition text-sm">
+                              WhatsApp Paciente
+                            </a>
+                          );
+                        })()}
+
+                        {app.status === 'AGENDADO' && isPharmacist && (
+                          <button onClick={() => setCompletingAppointment(app)}
+                            className="px-4 py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 transition text-sm">
+                            Encerrar Consulta
+                          </button>
+                        )}
+
+                        {(app.status === 'AGENDADO' || app.status === 'PENDENTE_PAGAMENTO') && (
+                          <button onClick={() => setConfirmCancel(app)}
+                            className="px-4 py-2 bg-white border border-red-200 text-red-500 font-bold rounded hover:bg-red-50 transition text-sm">
+                            Cancelar
+                          </button>
+                        )}
+                      </>
                     )}
 
-                    {(app.status === 'AGENDADO' || app.status === 'PENDENTE_PAGAMENTO') && (
-                      <button onClick={() => setConfirmCancel(app)}
-                        className="px-4 py-2 bg-white border border-red-200 text-red-500 font-bold rounded hover:bg-red-50 transition text-sm">
+                    {/* Cancelar fila (paciente, aguardando ou aceito) */}
+                    {canCancelFila && (
+                      <button
+                        onClick={() => setConfirmCancelFila(app)}
+                        className="px-4 py-2 bg-white border border-red-200 text-red-500 font-bold rounded hover:bg-red-50 transition text-sm"
+                      >
                         Cancelar
                       </button>
                     )}
+
+                    {/* Ver receita (paciente, fila concluída com PDF) */}
+                    {!isPharmacist && !isLegacy && app.receitaPdfUrl && (
+                      <a
+                        href={`${API_URL}${app.receitaPdfUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 bg-violet-50 border border-violet-200 text-violet-700 font-bold rounded hover:bg-violet-100 transition text-sm"
+                      >
+                        📄 Ver receita
+                      </a>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Carregar mais */}
+          {hasMore && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="px-6 py-2.5 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition text-gray-600"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

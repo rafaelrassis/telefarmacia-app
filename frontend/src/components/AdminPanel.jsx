@@ -31,6 +31,203 @@ const StatCard = ({ value, label, sub, color = 'text-gray-900' }) => (
   </div>
 );
 
+// ── Configs de ação para a aba Logs ──────────────────────────────────────────
+
+const ACAO_CFG = {
+  aceito:    { label: 'Aceito',    cls: 'bg-blue-50 text-blue-700' },
+  iniciado:  { label: 'Iniciado',  cls: 'bg-indigo-50 text-indigo-700' },
+  concluido: { label: 'Concluído', cls: 'bg-green-50 text-green-700' },
+  cancelado: { label: 'Cancelado', cls: 'bg-red-50 text-red-700' },
+  devolvido: { label: 'Devolvido', cls: 'bg-amber-50 text-amber-700' },
+  reembolso: { label: 'Reembolso', cls: 'bg-emerald-50 text-emerald-700' },
+};
+
+const fmtDetalhes = (acao, det) => {
+  if (!det || Object.keys(det).length === 0) return '—';
+  if (acao === 'aceito')    return `Tipo: ${det.tipo ?? '—'}`;
+  if (acao === 'iniciado')  return det.tipo ? `Tipo: ${det.tipo}` : '—';
+  if (acao === 'concluido') return det.duracao_min != null ? `Duração: ${det.duracao_min}min` : 'Duração: —';
+  if (acao === 'cancelado') return `Por: ${det.cancelado_por ?? '?'}${det.motivo ? `, motivo: ${det.motivo}` : ''}`;
+  if (acao === 'devolvido') return det.motivo ? `Motivo: ${det.motivo}` : '—';
+  if (acao === 'reembolso') return det.valor != null ? `R$ ${Number(det.valor).toFixed(2).replace('.', ',')}` : '—';
+  return JSON.stringify(det).substring(0, 80);
+};
+
+const LogsPanel = ({ api }) => {
+  const [logs, setLogs]               = useState([]);
+  const [total, setTotal]             = useState(0);
+  const [page, setPage]               = useState(1);
+  const [hasMore, setHasMore]         = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filterAcao, setFilterAcao]   = useState('');
+  const [filterDe, setFilterDe]       = useState('');
+  const [filterAte, setFilterAte]     = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setPage(1);
+    const params = new URLSearchParams({ page: '1', limit: '50' });
+    if (filterAcao) params.set('acao', filterAcao);
+    if (filterDe)   params.set('de',   filterDe);
+    if (filterAte)  params.set('ate',  filterAte);
+    api(`/api/admin/logs?${params}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setLogs(data.items);
+        setTotal(data.total);
+        setHasMore(data.hasMore);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [api, filterAcao, filterDe, filterAte]);
+
+  const handleLoadMore = async () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    const params = new URLSearchParams({ page: String(nextPage), limit: '50' });
+    if (filterAcao) params.set('acao', filterAcao);
+    if (filterDe)   params.set('de',   filterDe);
+    if (filterAte)  params.set('ate',  filterAte);
+    try {
+      const res = await api(`/api/admin/logs?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setLogs((prev) => [...prev, ...data.items]);
+        setHasMore(data.hasMore);
+        setPage(nextPage);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Ação</label>
+          <select
+            value={filterAcao}
+            onChange={(e) => setFilterAcao(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+          >
+            <option value="">Todas</option>
+            <option value="aceito">Aceito</option>
+            <option value="iniciado">Iniciado</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="devolvido">Devolvido</option>
+            <option value="reembolso">Reembolso</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">De</label>
+          <input
+            type="date"
+            value={filterDe}
+            onChange={(e) => setFilterDe(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Até</label>
+          <input
+            type="date"
+            value={filterAte}
+            onChange={(e) => setFilterAte(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+          />
+        </div>
+        {(filterAcao || filterDe || filterAte) && (
+          <button
+            onClick={() => { setFilterAcao(''); setFilterDe(''); setFilterAte(''); }}
+            className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white transition"
+          >
+            Limpar
+          </button>
+        )}
+        {!loading && (
+          <span className="text-xs text-gray-400 self-end pb-1.5">
+            {total} {total === 1 ? 'registro' : 'registros'}
+          </span>
+        )}
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 text-sm">Nenhum log encontrado.</div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
+                    <th className="text-left px-4 py-3 whitespace-nowrap">Consulta</th>
+                    <th className="text-left px-4 py-3">Usuário</th>
+                    <th className="text-left px-4 py-3">Ação</th>
+                    <th className="text-left px-4 py-3">Detalhes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {logs.map((log) => {
+                    const acaoCfg = ACAO_CFG[log.acao] || { label: log.acao, cls: 'bg-gray-100 text-gray-600' };
+                    return (
+                      <tr key={log.id} className="hover:bg-gray-50 transition">
+                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                          {fmtDt(log.criadoEm)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 font-mono text-xs whitespace-nowrap">
+                          {log.consultaId ? log.consultaId.substring(0, 8) + '…' : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-gray-800 font-medium text-xs">{log.usuarioNome}</p>
+                          <p className="text-gray-400 text-xs">{log.role ?? '—'}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${acaoCfg.cls}`}>
+                            {acaoCfg.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">
+                          {fmtDetalhes(log.acao, log.detalhes)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {hasMore && (
+              <div className="px-5 py-4 border-t border-gray-100 text-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-5 py-2 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition text-gray-600"
+                >
+                  {loadingMore ? 'Carregando...' : 'Carregar mais'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const AdminPanel = () => {
   const { token } = useAuth();
   const [tab, setTab] = useState('overview');
@@ -46,6 +243,7 @@ const AdminPanel = () => {
   const [togglingSistema, setTogglingSistema] = useState(false);
   const [horarios, setHorarios] = useState(DEFAULT_HORARIOS);
   const [savingHorarios, setSavingHorarios] = useState(false);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null);
 
   const api = useCallback(
     (path, opts = {}) =>
@@ -169,7 +367,7 @@ const AdminPanel = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        showToast('success', 'Horários salvos com sucesso.');
+        setUltimaAtualizacao(data.ultima_atualizacao ?? new Date().toISOString());
       } else {
         showToast('error', data.error || 'Erro ao salvar horários.');
       }
@@ -189,6 +387,7 @@ const AdminPanel = () => {
     { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})` },
     { id: 'patients',     label: `Pacientes (${patients.length})` },
     { id: 'appointments', label: `Consultas (${appointments.length})` },
+    { id: 'logs',         label: 'Logs' },
   ];
 
   return (
@@ -336,14 +535,22 @@ const AdminPanel = () => {
                 </div>
               ))}
             </div>
-            <div className="px-5 py-4 border-t border-gray-100 flex justify-end">
+            <div className="px-5 py-4 border-t border-gray-100 flex flex-col items-end gap-2">
               <button
                 onClick={handleSaveHorarios}
                 disabled={savingHorarios}
                 className="bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition disabled:opacity-50"
               >
-                {savingHorarios ? 'Salvando...' : 'Salvar horários'}
+                {savingHorarios ? 'Salvando...' : '💾 Salvar e Publicar Horários'}
               </button>
+              {ultimaAtualizacao && !savingHorarios && (
+                <p className="text-xs text-green-600 font-medium">
+                  ✅ Publicado em {new Date(ultimaAtualizacao).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    timeZone: 'America/Sao_Paulo',
+                  })}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -406,12 +613,12 @@ const AdminPanel = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {approved ? (
                               <button
                                 onClick={() => setConfirmRevoke(p)}
                                 disabled={actionLoading[p.id + '_rev']}
-                                className="text-xs font-medium text-amber-600 hover:text-amber-800 disabled:opacity-40 transition"
+                                className="text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
                               >
                                 {actionLoading[p.id + '_rev'] ? '...' : 'Inativar'}
                               </button>
@@ -419,14 +626,14 @@ const AdminPanel = () => {
                               <button
                                 onClick={() => activate(p.id)}
                                 disabled={actionLoading[p.id]}
-                                className="text-xs font-medium text-green-600 hover:text-green-800 disabled:opacity-40 transition"
+                                className="text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
                               >
                                 {actionLoading[p.id] ? '...' : 'Ativar'}
                               </button>
                             )}
                             <button
                               onClick={() => setConfirmDelete(p)}
-                              className="text-xs font-medium text-red-500 hover:text-red-700 transition"
+                              className="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition"
                             >
                               Descadastrar
                             </button>
@@ -518,6 +725,9 @@ const AdminPanel = () => {
           )}
         </div>
       )}
+
+      {/* ── LOGS ── */}
+      {tab === 'logs' && <LogsPanel api={api} />}
 
       {/* Dialog: confirmar inativação */}
       {confirmRevoke && (

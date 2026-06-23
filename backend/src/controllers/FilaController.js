@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { logAction } from '../utils/logAction.js';
 
 const prisma = new PrismaClient();
 const PRECO = parseFloat(process.env.PRECO_CONSULTA_PADRAO || '50.00');
@@ -200,6 +201,14 @@ export const aceitarAgendada = async (req, res) => {
   const pharmacistId = req.user.id;
 
   try {
+    const [agEmAt, urEmAt] = await Promise.all([
+      prisma.filaAgendada.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
+      prisma.filaUrgente.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
+    ]);
+    if (agEmAt || urEmAt) {
+      return res.status(400).json({ error: 'Conclua o atendimento atual antes de aceitar outro.' });
+    }
+
     const result = await prisma.filaAgendada.updateMany({
       where: { id, status: 'aguardando' },
       data: { status: 'aceito', farmaceuticoId: pharmacistId },
@@ -213,6 +222,7 @@ export const aceitarAgendada = async (req, res) => {
       where: { id },
       include: { paciente: { select: { name: true, email: true } } },
     });
+    await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'aceito', detalhes: { tipo: 'agendada' } });
     return res.status(200).json({ success: true, fila });
   } catch (err) {
     console.error(err);
@@ -230,6 +240,14 @@ export const aceitarUrgente = async (req, res) => {
   const pharmacistId = req.user.id;
 
   try {
+    const [agEmAt, urEmAt] = await Promise.all([
+      prisma.filaAgendada.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
+      prisma.filaUrgente.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
+    ]);
+    if (agEmAt || urEmAt) {
+      return res.status(400).json({ error: 'Conclua o atendimento atual antes de aceitar outro.' });
+    }
+
     const result = await prisma.filaUrgente.updateMany({
       where: { id, status: 'aguardando' },
       data: { status: 'aceito', farmaceuticoId: pharmacistId, aceitoEm: new Date() },
@@ -243,9 +261,99 @@ export const aceitarUrgente = async (req, res) => {
       where: { id },
       include: { paciente: { select: { name: true, email: true } } },
     });
+    await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'aceito', detalhes: { tipo: 'urgente' } });
     return res.status(200).json({ success: true, fila });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao aceitar atendimento urgente.' });
+  }
+};
+
+// ── GET /api/fila/urgente/ativa (paciente verifica se tem urgência ativa) ────
+
+export const minhaUrgenteAtiva = async (req, res) => {
+  const patientId = req.user.id;
+  try {
+    const urgente = await prisma.filaUrgente.findFirst({
+      where: { pacienteId: patientId, status: { in: ['aguardando', 'aceito'] } },
+      include: { farmaceutico: { select: { name: true } } },
+      orderBy: { criadoEm: 'desc' },
+    });
+    return res.status(200).json({
+      urgente: urgente
+        ? { id: urgente.id, status: urgente.status, farmaceutico: urgente.farmaceutico?.name ?? null }
+        : null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao buscar urgência ativa.' });
+  }
+};
+
+// ── POST /api/fila/urgente/:id/cancelar ─────────────────────────────────────
+
+export const cancelarUrgente = async (req, res) => {
+  const { id } = req.params;
+  const patientId = req.user.id;
+
+  try {
+    const fila = await prisma.filaUrgente.findFirst({ where: { id, pacienteId: patientId } });
+    if (!fila) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+    if (fila.status === 'cancelado') return res.status(400).json({ error: 'Já cancelada.' });
+    if (fila.status === 'concluido') return res.status(400).json({ error: 'Consulta já concluída.' });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.filaUrgente.update({ where: { id }, data: { status: 'cancelado' } });
+      if (Number(fila.creditoDebitado) > 0) {
+        await tx.carteira.update({
+          where: { pacienteId: patientId },
+          data: { saldo: { increment: fila.creditoDebitado } },
+        });
+      }
+    });
+
+    const creditoDevolvido = Number(fila.creditoDebitado);
+    await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'cancelado', detalhes: { tipo: 'urgente', cancelado_por: req.user.role } });
+    if (creditoDevolvido > 0) {
+      await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'reembolso', detalhes: { tipo: 'urgente', valor: creditoDevolvido } });
+    }
+    return res.status(200).json({ success: true, creditoDevolvido });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao cancelar urgência.' });
+  }
+};
+
+// ── POST /api/fila/agendadas/:id/cancelar ───────────────────────────────────
+
+export const cancelarAgendada = async (req, res) => {
+  const { id } = req.params;
+  const patientId = req.user.id;
+
+  try {
+    const fila = await prisma.filaAgendada.findFirst({ where: { id, pacienteId: patientId } });
+    if (!fila) return res.status(404).json({ error: 'Agendamento não encontrado.' });
+    if (fila.status === 'cancelado') return res.status(400).json({ error: 'Já cancelado.' });
+    if (fila.status === 'concluido') return res.status(400).json({ error: 'Consulta já concluída.' });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.filaAgendada.update({ where: { id }, data: { status: 'cancelado' } });
+      if (Number(fila.creditoDebitado) > 0) {
+        await tx.carteira.update({
+          where: { pacienteId: patientId },
+          data: { saldo: { increment: fila.creditoDebitado } },
+        });
+      }
+    });
+
+    const creditoDevolvido = Number(fila.creditoDebitado);
+    await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'cancelado', detalhes: { tipo: 'agendada', cancelado_por: req.user.role } });
+    if (creditoDevolvido > 0) {
+      await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'reembolso', detalhes: { tipo: 'agendada', valor: creditoDevolvido } });
+    }
+    return res.status(200).json({ success: true, creditoDevolvido });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao cancelar agendamento.' });
   }
 };

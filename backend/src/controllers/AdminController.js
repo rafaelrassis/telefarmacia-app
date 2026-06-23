@@ -325,3 +325,63 @@ export const toggleSistema = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao atualizar status do sistema.' });
   }
 };
+
+export const getLogs = async (req, res) => {
+  const { acao, de, ate, page = '1', limit = '50' } = req.query;
+  const pageNum  = Math.max(1, parseInt(page));
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+  const skip     = (pageNum - 1) * limitNum;
+
+  try {
+    const conditions = ['1=1'];
+    const params     = [];
+
+    if (acao) { conditions.push(`l.acao = $${params.length + 1}`); params.push(acao); }
+    if (de)   { conditions.push(`l.criado_em >= $${params.length + 1}`); params.push(`${de}T00:00:00-03:00`); }
+    if (ate)  { conditions.push(`l.criado_em <= $${params.length + 1}`); params.push(`${ate}T23:59:59-03:00`); }
+
+    const where = 'WHERE ' + conditions.join(' AND ');
+
+    const [countRow] = await prisma.$queryRawUnsafe(
+      `SELECT COUNT(*)::int AS total FROM log_acoes l ${where}`,
+      ...params
+    );
+    const total = Number(countRow?.total ?? 0);
+
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT l.id, l.consulta_id, l.usuario_id, l.role, l.acao, l.detalhes, l.criado_em,
+              u.name AS usuario_nome
+       FROM log_acoes l
+       LEFT JOIN "User" u ON u.id::text = l.usuario_id
+       ${where}
+       ORDER BY l.criado_em DESC
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      ...params, limitNum, skip
+    );
+
+    return res.status(200).json({
+      items: rows.map((r) => ({
+        id:          r.id,
+        consultaId:  r.consulta_id,
+        usuarioId:   r.usuario_id,
+        usuarioNome: r.usuario_nome ?? '—',
+        role:        r.role,
+        acao:        r.acao,
+        detalhes:    r.detalhes ?? {},
+        criadoEm:    r.criado_em,
+      })),
+      total,
+      page: pageNum,
+      hasMore: skip + limitNum < total,
+    });
+  } catch (err) {
+    if (err.message?.includes('log_acoes') || err.message?.includes('does not exist')) {
+      return res.status(200).json({
+        items: [], total: 0, page: 1, hasMore: false,
+        warning: 'Execute a migration para habilitar logs.',
+      });
+    }
+    console.error('getLogs error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar logs.' });
+  }
+};

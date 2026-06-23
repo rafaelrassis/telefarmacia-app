@@ -10,6 +10,9 @@ import {
   saveWeeklySchedule,
   cadastroFarmaceutico,
   setDisponibilidade,
+  getCalendario,
+  getConsultasFarmaceutico,
+  getGanhosFarmaceutico,
 } from '../controllers/PharmacistController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { uploadDocs } from '../utils/multerConfig.js';
@@ -33,5 +36,14 @@ router.post('/farmaceuticos/cadastro', authMiddleware, uploadDocs, cadastroFarma
 
 // Disponibilidade online/offline
 router.patch('/farmaceuticos/me/disponibilidade', authMiddleware, setDisponibilidade);
+
+// Calendário do farmacêutico (consultas de fila aceitas)
+router.get('/farmaceutico/calendario', authMiddleware, getCalendario);
+
+// Consultas do farmacêutico com filtros e paginação
+router.get('/farmaceutico/consultas', authMiddleware, getConsultasFarmaceutico);
+
+// Relatório de ganhos do farmacêutico
+router.get('/farmaceutico/ganhos', authMiddleware, getGanhosFarmaceutico);
 
 export default router;

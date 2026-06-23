@@ -89,3 +89,23 @@ export const getSaldo = async (req, res) => {
 };
 
 export { PRECO_PADRAO };
+
+// ── POST /api/creditos/adicionar-teste ───────────────────────────────────────
+
+export const adicionarCreditoTeste = async (req, res) => {
+  try {
+    const { valor = 50 } = req.body;
+    const pacienteId = req.user.id;
+
+    const carteira = await prisma.carteira.upsert({
+      where:  { pacienteId },
+      update: { saldo: { increment: valor } },
+      create: { pacienteId, saldo: valor },
+    });
+
+    return res.status(200).json({ novo_saldo: parseFloat(carteira.saldo) });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Erro ao adicionar crédito.' });
+  }
+};

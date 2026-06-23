@@ -176,6 +176,119 @@ export const getHistorico = async (req, res) => {
   }
 };
 
+// ── GET /api/paciente/agendamentos (filtros + paginação) ─────────────────────
+
+export const getAgendamentos = async (req, res) => {
+  const patientId = req.user.id;
+  const { de, ate, status, page = '1', limit = '10' } = req.query;
+
+  const pageNum  = Math.max(1, parseInt(page));
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
+  const skip     = (pageNum - 1) * limitNum;
+
+  try {
+    const [appointments, agendadas, urgentes] = await Promise.all([
+      prisma.appointment.findMany({
+        where: { patientId },
+        include: {
+          pharmacist: { select: { name: true } },
+          avaliacao:  { select: { nota: true, comentario: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.filaAgendada.findMany({
+        where: { pacienteId: patientId },
+        include: { farmaceutico: { select: { name: true } } },
+        orderBy: { criadoEm: 'desc' },
+      }),
+      prisma.filaUrgente.findMany({
+        where: { pacienteId: patientId },
+        include: { farmaceutico: { select: { name: true } } },
+        orderBy: { criadoEm: 'desc' },
+      }),
+    ]);
+
+    // Busca receitaPdfUrl em lote para itens de fila (requer migration-receita-campos)
+    const urlMap = {};
+    try {
+      const agIds = agendadas.map((f) => f.id);
+      const urIds = urgentes.map((f) => f.id);
+      const [rowsA, rowsU] = await Promise.all([
+        agIds.length > 0
+          ? prisma.$queryRawUnsafe(
+              `SELECT id, "receita_pdf_url" FROM "FilaAgendada" WHERE id = ANY($1::text[]) AND "receita_pdf_url" IS NOT NULL`,
+              agIds
+            )
+          : Promise.resolve([]),
+        urIds.length > 0
+          ? prisma.$queryRawUnsafe(
+              `SELECT id, "receita_pdf_url" FROM "FilaUrgente" WHERE id = ANY($1::text[]) AND "receita_pdf_url" IS NOT NULL`,
+              urIds
+            )
+          : Promise.resolve([]),
+      ]);
+      [...rowsA, ...rowsU].forEach((r) => { urlMap[r.id] = r.receita_pdf_url; });
+    } catch {}
+
+    let normalized = [
+      ...appointments.map((a) => ({
+        id: a.id, tipo: 'appointment',
+        dataHora: a.dateTime, criadoEm: a.createdAt,
+        status: a.status,
+        farmaceutico:    a.pharmacist ? { name: a.pharmacist.name } : null,
+        recommendations: a.recommendations ?? null,
+        avaliacao:       a.avaliacao ?? null,
+        creditoDebitado: null,
+        receitaPdfUrl:   null,
+      })),
+      ...agendadas.map((f) => ({
+        id: f.id, tipo: 'agendada',
+        dataHora: f.dataHora, criadoEm: f.criadoEm,
+        status: f.status,
+        farmaceutico:    f.farmaceutico ? { name: f.farmaceutico.name } : null,
+        recommendations: null, avaliacao: null,
+        creditoDebitado: Number(f.creditoDebitado),
+        receitaPdfUrl:   urlMap[f.id] ?? null,
+      })),
+      ...urgentes.map((f) => ({
+        id: f.id, tipo: 'urgente',
+        dataHora: f.criadoEm, criadoEm: f.criadoEm,
+        status: f.status,
+        farmaceutico:    f.farmaceutico ? { name: f.farmaceutico.name } : null,
+        recommendations: null, avaliacao: null,
+        creditoDebitado: Number(f.creditoDebitado),
+        receitaPdfUrl:   urlMap[f.id] ?? null,
+      })),
+    ].sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
+
+    if (de) {
+      const deDate = new Date(`${de}T00:00:00-03:00`);
+      normalized = normalized.filter((a) => new Date(a.criadoEm) >= deDate);
+    }
+    if (ate) {
+      const ateDate = new Date(`${ate}T23:59:59-03:00`);
+      normalized = normalized.filter((a) => new Date(a.criadoEm) <= ateDate);
+    }
+    if (status) {
+      normalized = normalized.filter((a) => a.status.toLowerCase() === status.toLowerCase());
+    }
+
+    const total = normalized.length;
+    const items = normalized.slice(skip, skip + limitNum);
+
+    return res.status(200).json({
+      items,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum) || 1,
+      hasMore: skip + limitNum < total,
+    });
+  } catch (err) {
+    console.error('getAgendamentos error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar agendamentos.' });
+  }
+};
+
 export const updatePerfil = async (req, res) => {
   try {
     const existing = await prisma.pacienteProfile.findUnique({

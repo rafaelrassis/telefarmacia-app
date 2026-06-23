@@ -14,6 +14,7 @@ import {
   setStatus,
   getSistemaStatus,
   toggleSistema,
+  getLogs,
 } from '../controllers/AdminController.js';
 import { getHorarios, saveHorarios, isSistemaAberto, getDisponibilidade } from '../controllers/SistemaHorarioController.js';
 import { ping } from '../controllers/FarmaceuticoStatusController.js';
@@ -51,5 +52,8 @@ router.get('/disponibilidade',                       getDisponibilidade);
 
 // Ping de presença do farmacêutico
 router.post('/farmaceutico/ping',                    authMiddleware, ping);
+
+// Logs de ações
+router.get('/admin/logs',                            ...guard, getLogs);
 
 export default router;
