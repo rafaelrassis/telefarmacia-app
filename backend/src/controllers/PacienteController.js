@@ -109,6 +109,9 @@ export const getPerfil = async (req, res) => {
 // UNION das três fontes: Appointment (legado) + FilaAgendada + FilaUrgente
 
 export const getHistorico = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') {
+    return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  }
   const patientId = req.user.id;
 
   try {
@@ -179,7 +182,11 @@ export const getHistorico = async (req, res) => {
 // ── GET /api/paciente/agendamentos (filtros + paginação) ─────────────────────
 
 export const getAgendamentos = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') {
+    return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  }
   const patientId = req.user.id;
+  console.log('[getAgendamentos] userId da sessão (JWT):', patientId, '| email:', req.user.email);
   const { de, ate, status, page = '1', limit = '10' } = req.query;
 
   const pageNum  = Math.max(1, parseInt(page));
@@ -275,6 +282,11 @@ export const getAgendamentos = async (req, res) => {
 
     const total = normalized.length;
     const items = normalized.slice(skip, skip + limitNum);
+
+    console.log('[getAgendamentos] retornando', total, 'registro(s) para userId:', patientId);
+    console.log('[getAgendamentos] pacienteIds agendadas:', agendadas.map((f) => f.pacienteId));
+    console.log('[getAgendamentos] pacienteIds urgentes:', urgentes.map((f) => f.pacienteId));
+    console.log('[getAgendamentos] patientIds appointments:', appointments.map((a) => a.patientId));
 
     return res.status(200).json({
       items,
