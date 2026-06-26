@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CompleteAppointmentModal from './CompleteAppointmentModal';
+import ConsultaModal from './ConsultaModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -80,8 +81,8 @@ const Stars = ({ value, onChange, readonly = false, size = 'text-xl' }) => (
 // ── Componente principal ──────────────────────────────────────────────────────
 
 const MyAppointments = ({ onCancelled }) => {
-  const { token, user } = useAuth();
-  const isPharmacist = user?.role === 'FARMACEUTICO';
+  const { token, user, activeEnv } = useAuth();
+  const isPharmacist = activeEnv === 'pharmacist';
 
   // Estado compartilhado
   const [appointments, setAppointments] = useState([]);
@@ -109,6 +110,9 @@ const MyAppointments = ({ onCancelled }) => {
   const [ratingComentario, setRatingComentario] = useState('');
   const [ratingLoading,    setRatingLoading]    = useState(false);
   const [ratingError,      setRatingError]      = useState('');
+
+  // Ver detalhes (farmacêutico)
+  const [viewingConsulta, setViewingConsulta] = useState(null);
 
   // ── Fetch farmacêutico com filtros e paginação ───────────────────────────
   useEffect(() => {
@@ -369,6 +373,15 @@ const MyAppointments = ({ onCancelled }) => {
         />
       )}
 
+      {viewingConsulta && (
+        <ConsultaModal
+          id={viewingConsulta.id}
+          tipo={viewingConsulta.tipo}
+          modo="visualizacao"
+          onClose={() => setViewingConsulta(null)}
+        />
+      )}
+
       <h2 className="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Meus Agendamentos</h2>
 
       {/* Filtros — farmacêutico */}
@@ -600,6 +613,26 @@ const MyAppointments = ({ onCancelled }) => {
                           </button>
                         )}
                       </>
+                    )}
+
+                    {/* Ver detalhes (farmacêutico, fila) */}
+                    {isPharmacist && !isLegacy && (
+                      <button
+                        onClick={() => setViewingConsulta({ id: app.id, tipo })}
+                        style={{
+                          padding: '8px 14px',
+                          background: 'white',
+                          color: '#7c3aed',
+                          border: '1.5px solid #ddd6fe',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        👁 Ver detalhes
+                      </button>
                     )}
 
                     {/* Cancelar fila (paciente, aguardando ou aceito) */}
