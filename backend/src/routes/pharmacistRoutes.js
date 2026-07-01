@@ -13,6 +13,7 @@ import {
   getCalendario,
   getConsultasFarmaceutico,
   getGanhosFarmaceutico,
+  getUrgentesAceitas,
 } from '../controllers/PharmacistController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { uploadDocs } from '../utils/multerConfig.js';
@@ -45,5 +46,8 @@ router.get('/farmaceutico/consultas', authMiddleware, getConsultasFarmaceutico);
 
 // Relatório de ganhos do farmacêutico
 router.get('/farmaceutico/ganhos', authMiddleware, getGanhosFarmaceutico);
+
+// Urgentes aceitas pelo farmacêutico logado
+router.get('/farmaceutico/urgentes-aceitas', authMiddleware, getUrgentesAceitas);
 
 export default router;

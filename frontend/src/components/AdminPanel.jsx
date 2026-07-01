@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ConsultaModal from './ConsultaModal';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -34,88 +35,150 @@ const StatCard = ({ value, label, sub, color = 'text-gray-900' }) => (
 // ── Configs de ação para a aba Logs ──────────────────────────────────────────
 
 const ACAO_CFG = {
-  aceito:    { label: 'Aceito',    cls: 'bg-blue-50 text-blue-700' },
-  iniciado:  { label: 'Iniciado',  cls: 'bg-indigo-50 text-indigo-700' },
-  concluido: { label: 'Concluído', cls: 'bg-green-50 text-green-700' },
-  cancelado: { label: 'Cancelado', cls: 'bg-red-50 text-red-700' },
-  devolvido: { label: 'Devolvido', cls: 'bg-amber-50 text-amber-700' },
-  reembolso: { label: 'Reembolso', cls: 'bg-emerald-50 text-emerald-700' },
+  aceito:    { label: 'Aceito',    style: { background: '#eff6ff', color: '#1d4ed8' } },
+  iniciado:  { label: 'Iniciado',  style: { background: '#fff7ed', color: '#c2410c' } },
+  concluido: { label: 'Concluído', style: { background: '#f0fdf4', color: '#15803d' } },
+  cancelado: { label: 'Cancelado', style: { background: '#fef2f2', color: '#dc2626' } },
+  devolvido: { label: 'Devolvido', style: { background: '#fffbeb', color: '#b45309' } },
+  reembolso: { label: 'Reembolso', style: { background: '#faf5ff', color: '#7c3aed' } },
 };
 
-const fmtDetalhes = (acao, det) => {
-  if (!det || Object.keys(det).length === 0) return '—';
-  if (acao === 'aceito')    return `Tipo: ${det.tipo ?? '—'}`;
-  if (acao === 'iniciado')  return det.tipo ? `Tipo: ${det.tipo}` : '—';
-  if (acao === 'concluido') return det.duracao_min != null ? `Duração: ${det.duracao_min}min` : 'Duração: —';
-  if (acao === 'cancelado') return `Por: ${det.cancelado_por ?? '?'}${det.motivo ? `, motivo: ${det.motivo}` : ''}`;
-  if (acao === 'devolvido') return det.motivo ? `Motivo: ${det.motivo}` : '—';
-  if (acao === 'reembolso') return det.valor != null ? `R$ ${Number(det.valor).toFixed(2).replace('.', ',')}` : '—';
+const fmtConsultaDt = (dt) => {
+  if (!dt) return null;
+  const d = new Date(dt);
+  const dd  = String(d.getDate()).padStart(2, '0');
+  const mm  = String(d.getMonth() + 1).padStart(2, '0');
+  const hh  = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm} às ${hh}:${min}`;
+};
+
+const fmtDetalhes = (acao, det, consultaDataHora) => {
+  const dtStr = consultaDataHora ? ` · ${fmtConsultaDt(consultaDataHora)}` : '';
+  if (!det || Object.keys(det).length === 0) return dtStr.trim() || '—';
+  if (acao === 'aceito')    return `Tipo: ${det.tipo ?? '—'}${dtStr}`;
+  if (acao === 'iniciado')  return `${det.tipo ? `Tipo: ${det.tipo}` : '—'}${dtStr}`;
+  if (acao === 'concluido') return `${det.duracao_min != null ? `Duração: ${det.duracao_min}min` : 'Duração: —'}${dtStr}`;
+  if (acao === 'cancelado') return `Por: ${det.cancelado_por ?? '?'}${det.motivo ? `, motivo: ${det.motivo}` : ''}${dtStr}`;
+  if (acao === 'devolvido') return `${det.motivo ? `Motivo: ${det.motivo}` : '—'}${dtStr}`;
+  if (acao === 'reembolso') return `${det.valor != null ? `R$ ${Number(det.valor).toFixed(2).replace('.', ',')}` : '—'}${dtStr}`;
   return JSON.stringify(det).substring(0, 80);
 };
 
-const LogsPanel = ({ api }) => {
-  const [logs, setLogs]               = useState([]);
-  const [total, setTotal]             = useState(0);
-  const [page, setPage]               = useState(1);
-  const [hasMore, setHasMore]         = useState(false);
-  const [loading, setLoading]         = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [filterAcao, setFilterAcao]   = useState('');
-  const [filterDe, setFilterDe]       = useState('');
-  const [filterAte, setFilterAte]     = useState('');
+const SEL_STYLE = {
+  fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 8,
+  padding: '6px 10px', outline: 'none', background: '#fff',
+};
 
-  useEffect(() => {
-    let cancelled = false;
+const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
+  const [logs, setLogs]                   = useState([]);
+  const [total, setTotal]                 = useState(0);
+  const [page, setPage]                   = useState(1);
+  const [loading, setLoading]             = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [filterAcao, setFilterAcao]       = useState('');
+  const [filterDe, setFilterDe]           = useState('');
+  const [filterAte, setFilterAte]         = useState('');
+  const [filterFarm, setFilterFarm]       = useState('');
+  const [filterPac, setFilterPac]         = useState('');
+  const [filterTipo, setFilterTipo]       = useState('');
+  const [viewingConsulta, setViewingConsulta] = useState(null);
+
+  const LIMIT = 20;
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+  const buildParams = useCallback((pg, forExport = false) => {
+    const p = new URLSearchParams({ page: String(pg), limit: String(LIMIT) });
+    if (forExport)   p.set('export', 'csv');
+    if (filterAcao)  p.set('acao',           filterAcao);
+    if (filterDe)    p.set('de',             filterDe);
+    if (filterAte)   p.set('ate',            filterAte);
+    if (filterFarm)  p.set('farmaceuticoId', filterFarm);
+    if (filterPac)   p.set('pacienteId',     filterPac);
+    if (filterTipo)  p.set('tipo',           filterTipo);
+    return p;
+  }, [filterAcao, filterDe, filterAte, filterFarm, filterPac, filterTipo]);
+
+  const fetchLogs = useCallback(async (pg) => {
     setLoading(true);
-    setPage(1);
-    const params = new URLSearchParams({ page: '1', limit: '50' });
-    if (filterAcao) params.set('acao', filterAcao);
-    if (filterDe)   params.set('de',   filterDe);
-    if (filterAte)  params.set('ate',  filterAte);
-    api(`/api/admin/logs?${params}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        setLogs(data.items);
-        setTotal(data.total);
-        setHasMore(data.hasMore);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [api, filterAcao, filterDe, filterAte]);
-
-  const handleLoadMore = async () => {
-    const nextPage = page + 1;
-    setLoadingMore(true);
-    const params = new URLSearchParams({ page: String(nextPage), limit: '50' });
-    if (filterAcao) params.set('acao', filterAcao);
-    if (filterDe)   params.set('de',   filterDe);
-    if (filterAte)  params.set('ate',  filterAte);
     try {
-      const res = await api(`/api/admin/logs?${params}`);
+      const res = await api(`/api/admin/logs?${buildParams(pg)}`);
       if (res.ok) {
         const data = await res.json();
-        setLogs((prev) => [...prev, ...data.items]);
-        setHasMore(data.hasMore);
-        setPage(nextPage);
+        setLogs(data.items ?? []);
+        setTotal(data.total ?? 0);
       }
-    } finally {
-      setLoadingMore(false);
-    }
+    } catch (_) {}
+    finally { setLoading(false); }
+  }, [api, buildParams]);
+
+  useEffect(() => { setPage(1); fetchLogs(1); }, [fetchLogs]);
+
+  const goPage = (pg) => { setPage(pg); fetchLogs(pg); };
+
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const res = await api(`/api/admin/logs?${buildParams(1, true)}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `logs-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (_) {}
+    finally { setExportLoading(false); }
+  };
+
+  const fmtDuracao = (min) => {
+    if (min == null) return null;
+    if (min < 60)   return `${min}min`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m > 0 ? `${h}h ${m}min` : `${h}h`;
+  };
+
+  const hasAnyFilter = filterAcao || filterDe || filterAte || filterFarm || filterPac || filterTipo;
+
+  const getPageNums = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = new Set([1, totalPages, page]);
+    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages, page + 1); i++) pages.add(i);
+    return [...pages].sort((a, b) => a - b);
   };
 
   return (
     <div className="space-y-4">
+
+      {/* Header: contador + exportar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: '#9ca3af' }}>
+          {!loading && `${total} ${total === 1 ? 'registro' : 'registros'}`}
+        </span>
+        <button
+          onClick={handleExport}
+          disabled={exportLoading}
+          style={{
+            background: '#7c3aed', color: '#fff', border: 'none',
+            borderRadius: 8, padding: '6px 16px', fontSize: 13,
+            fontWeight: 600, cursor: exportLoading ? 'not-allowed' : 'pointer',
+            opacity: exportLoading ? 0.6 : 1,
+          }}
+        >
+          {exportLoading ? 'Exportando…' : '📥 Exportar CSV'}
+        </button>
+      </div>
+
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
           <label className="text-xs text-gray-500 font-medium">Ação</label>
-          <select
-            value={filterAcao}
-            onChange={(e) => setFilterAcao(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
-          >
+          <select value={filterAcao} onChange={(e) => setFilterAcao(e.target.value)} style={SEL_STYLE}>
             <option value="">Todas</option>
             <option value="aceito">Aceito</option>
             <option value="iniciado">Iniciado</option>
@@ -126,35 +189,46 @@ const LogsPanel = ({ api }) => {
           </select>
         </div>
         <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Tipo</label>
+          <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={SEL_STYLE}>
+            <option value="">Todos</option>
+            <option value="agendada">Agendada</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+        {pharmacists.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Farmacêutico</label>
+            <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} style={SEL_STYLE}>
+              <option value="">Todos</option>
+              {pharmacists.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        )}
+        {patients.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Paciente</label>
+            <select value={filterPac} onChange={(e) => setFilterPac(e.target.value)} style={SEL_STYLE}>
+              <option value="">Todos</option>
+              {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        )}
+        <div className="flex flex-col gap-1">
           <label className="text-xs text-gray-500 font-medium">De</label>
-          <input
-            type="date"
-            value={filterDe}
-            onChange={(e) => setFilterDe(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
-          />
+          <input type="date" value={filterDe} onChange={(e) => setFilterDe(e.target.value)} style={SEL_STYLE} />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-gray-500 font-medium">Até</label>
-          <input
-            type="date"
-            value={filterAte}
-            onChange={(e) => setFilterAte(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
-          />
+          <input type="date" value={filterAte} onChange={(e) => setFilterAte(e.target.value)} style={SEL_STYLE} />
         </div>
-        {(filterAcao || filterDe || filterAte) && (
+        {hasAnyFilter && (
           <button
-            onClick={() => { setFilterAcao(''); setFilterDe(''); setFilterAte(''); }}
-            className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white transition"
+            onClick={() => { setFilterAcao(''); setFilterDe(''); setFilterAte(''); setFilterFarm(''); setFilterPac(''); setFilterTipo(''); }}
+            style={{ ...SEL_STYLE, background: '#fff', color: '#6b7280', cursor: 'pointer' }}
           >
-            Limpar
+            Limpar filtros
           </button>
-        )}
-        {!loading && (
-          <span className="text-xs text-gray-400 self-end pb-1.5">
-            {total} {total === 1 ? 'registro' : 'registros'}
-          </span>
         )}
       </div>
 
@@ -167,61 +241,127 @@ const LogsPanel = ({ api }) => {
         ) : logs.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">Nenhum log encontrado.</div>
         ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
-                    <th className="text-left px-4 py-3 whitespace-nowrap">Consulta</th>
-                    <th className="text-left px-4 py-3">Usuário</th>
-                    <th className="text-left px-4 py-3">Ação</th>
-                    <th className="text-left px-4 py-3">Detalhes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {logs.map((log) => {
-                    const acaoCfg = ACAO_CFG[log.acao] || { label: log.acao, cls: 'bg-gray-100 text-gray-600' };
-                    return (
-                      <tr key={log.id} className="hover:bg-gray-50 transition">
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
-                          {fmtDt(log.criadoEm)}
-                        </td>
-                        <td className="px-4 py-3 text-gray-400 font-mono text-xs whitespace-nowrap">
-                          {log.consultaId ? log.consultaId.substring(0, 8) + '…' : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-gray-800 font-medium text-xs">{log.usuarioNome}</p>
-                          <p className="text-gray-400 text-xs">{log.role ?? '—'}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${acaoCfg.cls}`}>
-                            {acaoCfg.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">
-                          {fmtDetalhes(log.acao, log.detalhes)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {hasMore && (
-              <div className="px-5 py-4 border-t border-gray-100 text-center">
-                <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  className="px-5 py-2 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition text-gray-600"
-                >
-                  {loadingMore ? 'Carregando...' : 'Carregar mais'}
-                </button>
-              </div>
-            )}
-          </>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
+                  <th className="text-left px-4 py-3">Paciente</th>
+                  <th className="text-left px-4 py-3">Usuário</th>
+                  <th className="text-left px-4 py-3">Ação</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap">Tempo</th>
+                  <th className="text-left px-4 py-3">Detalhes</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {logs.map((log) => {
+                  const acaoCfg = ACAO_CFG[log.acao] || { label: log.acao, style: { background: '#f3f4f6', color: '#6b7280' } };
+                  const duracao = fmtDuracao(log.duracaoMin);
+                  return (
+                    <tr key={log.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                        {fmtDt(log.criadoEm)}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {log.pacienteNome
+                          ? <span className="text-gray-800 font-medium">{log.pacienteNome}</span>
+                          : <span className="text-gray-300">—</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-gray-800 font-medium text-xs">{log.usuarioNome}</p>
+                        <p className="text-gray-400 text-xs">{log.role ?? '—'}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center',
+                          padding: '2px 8px', borderRadius: 9999,
+                          fontSize: 11, fontWeight: 600,
+                          ...acaoCfg.style,
+                        }}>
+                          {acaoCfg.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: duracao ? '#6b7280' : '#d1d5db' }}>
+                        {duracao ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {fmtDetalhes(log.acao, log.detalhes, log.consultaDataHora)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {log.consultaId && log.tipo && (
+                          <button
+                            onClick={() => setViewingConsulta({ id: log.consultaId, tipo: log.tipo })}
+                            style={{
+                              background: 'transparent', border: '1.5px solid #ddd6fe',
+                              color: '#7c3aed', borderRadius: 8, padding: '4px 10px',
+                              fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            👁 Ver consulta
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
+
+      {/* Paginação numérica */}
+      {!loading && totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, paddingTop: 4 }}>
+          <button
+            onClick={() => goPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            style={{
+              padding: '5px 10px', fontSize: 12, fontWeight: 500,
+              border: '1px solid #e5e7eb', borderRadius: 8, cursor: page === 1 ? 'not-allowed' : 'pointer',
+              background: '#fff', color: '#6b7280', opacity: page === 1 ? 0.4 : 1,
+            }}
+          >←</button>
+          {getPageNums().map((n, i, arr) => (
+            <React.Fragment key={n}>
+              {i > 0 && arr[i - 1] !== n - 1 && (
+                <span style={{ color: '#d1d5db', fontSize: 12, padding: '0 2px' }}>…</span>
+              )}
+              <button
+                onClick={() => goPage(n)}
+                style={{
+                  padding: '5px 10px', fontSize: 12, fontWeight: 600,
+                  border: n === page ? 'none' : '1px solid #e5e7eb',
+                  borderRadius: 8, cursor: 'pointer',
+                  background: n === page ? '#7c3aed' : '#fff',
+                  color: n === page ? '#fff' : '#374151',
+                }}
+              >{n}</button>
+            </React.Fragment>
+          ))}
+          <button
+            onClick={() => goPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
+            style={{
+              padding: '5px 10px', fontSize: 12, fontWeight: 500,
+              border: '1px solid #e5e7eb', borderRadius: 8, cursor: page === totalPages ? 'not-allowed' : 'pointer',
+              background: '#fff', color: '#6b7280', opacity: page === totalPages ? 0.4 : 1,
+            }}
+          >→</button>
+        </div>
+      )}
+
+      {/* Modal de visualização */}
+      {viewingConsulta && (
+        <ConsultaModal
+          id={viewingConsulta.id}
+          tipo={viewingConsulta.tipo}
+          modo="visualizacao"
+          onClose={() => setViewingConsulta(null)}
+        />
+      )}
     </div>
   );
 };
@@ -244,6 +384,19 @@ const AdminPanel = () => {
   const [horarios, setHorarios] = useState(DEFAULT_HORARIOS);
   const [savingHorarios, setSavingHorarios] = useState(false);
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null);
+
+  // Financeiro
+  const [finConfig, setFinConfig]           = useState(null);
+  const [finVisao, setFinVisao]             = useState(null);
+  const [finLoading, setFinLoading]         = useState(false);
+  const [finVisaoLoading, setFinVisaoLoading] = useState(false);
+  const [finPreco, setFinPreco]             = useState('');
+  const [finComissao, setFinComissao]       = useState('');
+  const [finSaving, setFinSaving]           = useState(false);
+  const [finPeriodoDe, setFinPeriodoDe]     = useState('');
+  const [finPeriodoAte, setFinPeriodoAte]   = useState('');
+  const [editingComissao, setEditingComissao] = useState({});
+  const [savingComissao, setSavingComissao] = useState({});
 
   const api = useCallback(
     (path, opts = {}) =>
@@ -281,6 +434,38 @@ const AdminPanel = () => {
   }, [api]);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadFinanceiro = useCallback(async (de, ate) => {
+    setFinLoading(true);
+    try {
+      const res = await api('/api/admin/config/financeiro');
+      if (res.ok) {
+        const d = await res.json();
+        setFinConfig(d);
+        setFinPreco(String(d.preco));
+        setFinComissao(String(d.comissaoPadrao));
+      }
+    } finally { setFinLoading(false); }
+  }, [api]);
+
+  const loadVisaoFinanceira = useCallback(async (de, ate) => {
+    setFinVisaoLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (de)  params.set('de',  de);
+      if (ate) params.set('ate', ate);
+      const res = await api(`/api/admin/financeiro?${params}`);
+      if (res.ok) setFinVisao(await res.json());
+    } finally { setFinVisaoLoading(false); }
+  }, [api]);
+
+  useEffect(() => {
+    if (tab === 'financeiro') {
+      loadFinanceiro();
+      loadVisaoFinanceira(finPeriodoDe, finPeriodoAte);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const setBtnLoading = (key, v) => setActionLoading((prev) => ({ ...prev, [key]: v }));
 
@@ -386,8 +571,8 @@ const AdminPanel = () => {
     { id: 'horarios',     label: 'Horários' },
     { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})` },
     { id: 'patients',     label: `Pacientes (${patients.length})` },
-    { id: 'appointments', label: `Consultas (${appointments.length})` },
     { id: 'logs',         label: 'Logs' },
+    { id: 'financeiro',   label: '💰 Financeiro' },
   ];
 
   return (
@@ -727,7 +912,293 @@ const AdminPanel = () => {
       )}
 
       {/* ── LOGS ── */}
-      {tab === 'logs' && <LogsPanel api={api} />}
+      {tab === 'logs' && <LogsPanel api={api} pharmacists={pharmacists} patients={patients} />}
+
+      {/* ── FINANCEIRO ── */}
+      {tab === 'financeiro' && (
+        <div className="space-y-6">
+
+          {/* ── Visão financeira ── */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+            <div className="flex flex-wrap items-end gap-3 justify-between">
+              <h3 className="font-semibold text-gray-800 text-sm">Visão Financeira</h3>
+              <div className="flex flex-wrap gap-2 items-end">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500 font-medium">De</label>
+                  <input type="date" value={finPeriodoDe} onChange={(e) => setFinPeriodoDe(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500 font-medium">Até</label>
+                  <input type="date" value={finPeriodoAte} onChange={(e) => setFinPeriodoAte(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none" />
+                </div>
+                <button
+                  onClick={() => loadVisaoFinanceira(finPeriodoDe, finPeriodoAte)}
+                  disabled={finVisaoLoading}
+                  className="text-sm font-medium bg-violet-700 hover:bg-violet-800 text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
+                >
+                  {finVisaoLoading ? '…' : 'Filtrar'}
+                </button>
+              </div>
+            </div>
+            {finVisao ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatCard
+                  value={`R$ ${Number(finVisao.totalFaturado).toFixed(2).replace('.', ',')}`}
+                  label="Total faturado"
+                  color="text-blue-600"
+                />
+                <StatCard
+                  value={`R$ ${Number(finVisao.totalPagoFarm).toFixed(2).replace('.', ',')}`}
+                  label="Pago farmacêuticos"
+                  color="text-violet-600"
+                />
+                <StatCard
+                  value={`R$ ${Number(finVisao.receitaLiquida).toFixed(2).replace('.', ',')}`}
+                  label="Receita líquida"
+                  color={finVisao.receitaLiquida >= 0 ? 'text-emerald-600' : 'text-red-500'}
+                />
+                <StatCard
+                  value={String(finVisao.consultasConcluidas)}
+                  label="Consultas concluídas"
+                  sub={finVisao.periodo ? `${finVisao.periodo.de} → ${finVisao.periodo.ate}` : undefined}
+                  color="text-gray-800"
+                />
+              </div>
+            ) : (
+              finVisaoLoading
+                ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /></div>
+                : null
+            )}
+          </div>
+
+          {/* ── Configurações de preço e comissão ── */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <p className="font-semibold text-gray-800 text-sm">Preço e Comissão Padrão</p>
+              <p className="text-xs text-gray-500 mt-0.5">Aplicados em todos os novos agendamentos.</p>
+            </div>
+            {finLoading ? (
+              <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <div className="px-5 py-5 space-y-5">
+                {/* Preço */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 6 }}>
+                    Preço da consulta (R$)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={finPreco}
+                    onChange={(e) => setFinPreco(e.target.value)}
+                    style={{ width: '100%', maxWidth: 240, border: '1px solid #e5e7eb', borderRadius: 12, padding: '10px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="Ex: 50.00"
+                  />
+                </div>
+
+                {/* Comissão padrão */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563' }}>
+                      Comissão padrão dos farmacêuticos
+                    </label>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#7c3aed' }}>{finComissao}%</span>
+                  </div>
+                  <input
+                    type="range" min="0" max="100" step="1"
+                    value={finComissao || 0}
+                    onChange={(e) => setFinComissao(e.target.value)}
+                    style={{ width: '100%', accentColor: '#7c3aed' }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                    <span>0%</span>
+                    <span style={{ color: '#7c3aed', fontWeight: 600, textAlign: 'center' }}>
+                      R$ {(parseFloat(finPreco) || 0).toFixed(2).replace('.', ',')} cobrado → R$ {((parseFloat(finPreco) || 0) * (parseFloat(finComissao) || 0) / 100).toFixed(2).replace('.', ',')} ao farmacêutico ({finComissao}%)
+                    </span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                {/* Botão único salvar ambos */}
+                <button
+                  disabled={finSaving}
+                  onClick={async () => {
+                    const preco      = parseFloat(finPreco);
+                    const percentual = parseFloat(finComissao);
+                    if (isNaN(preco) || preco <= 0)              { showToast('error', 'Preço inválido.'); return; }
+                    if (isNaN(percentual) || percentual < 0 || percentual > 100) { showToast('error', 'Comissão inválida (0–100).'); return; }
+                    setFinSaving(true);
+                    try {
+                      const res = await api('/api/admin/config', {
+                        method: 'PUT',
+                        body: JSON.stringify({ preco_consulta: preco, comissao_padrao: percentual }),
+                      });
+                      if (res.ok) {
+                        showToast('success', '✅ Configurações salvas!');
+                        setFinConfig((prev) => prev ? { ...prev, preco, comissaoPadrao: percentual } : prev);
+                      } else {
+                        const d = await res.json().catch(() => ({}));
+                        showToast('error', d.error || 'Erro ao salvar.');
+                      }
+                    } catch { showToast('error', 'Falha de conexão.'); }
+                    finally { setFinSaving(false); }
+                  }}
+                  style={{
+                    background: finSaving ? '#9ca3af' : '#2563eb',
+                    color: '#ffffff',
+                    padding: '10px 24px',
+                    borderRadius: 8,
+                    border: 'none',
+                    cursor: finSaving ? 'not-allowed' : 'pointer',
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    marginTop: 12,
+                    display: 'block',
+                  }}
+                >
+                  {finSaving ? 'Salvando…' : '💾 Salvar configurações'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Comissões individuais ── */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <p className="font-semibold text-gray-800 text-sm">Comissões Individuais</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Sobrescreve a comissão padrão por farmacêutico. Deixe em branco para usar o padrão.
+              </p>
+            </div>
+            {finLoading || !finConfig ? (
+              <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /></div>
+            ) : finConfig.farmaceuticos.length === 0 ? (
+              <div className="p-8 text-center text-sm text-gray-400">Nenhum farmacêutico cadastrado.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <th className="text-left px-4 py-3">Nome</th>
+                      <th className="text-left px-4 py-3">E-mail</th>
+                      <th className="text-left px-4 py-3 w-44">Comissão (%)</th>
+                      <th className="text-left px-4 py-3 w-36">Recebe/consulta</th>
+                      <th className="text-left px-4 py-3">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {finConfig.farmaceuticos.map((f) => {
+                      const current  = editingComissao[f.id] !== undefined
+                        ? editingComissao[f.id]
+                        : (f.comissao != null ? String(f.comissao) : '');
+                      const isSaving = !!savingComissao[f.id];
+                      const pctNum   = current.trim() !== '' ? parseFloat(current) : finConfig.comissaoPadrao;
+                      const recebe   = isNaN(pctNum) ? null : (finConfig.preco * pctNum / 100);
+                      const isPadrao = current.trim() === '';
+
+                      return (
+                        <tr key={f.id} className="hover:bg-gray-50 transition">
+                          <td className="px-4 py-3 font-medium text-gray-800">{f.name}</td>
+                          <td className="px-4 py-3 text-gray-500 text-xs">{f.email}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value={current}
+                                placeholder={`padrão (${finConfig.comissaoPadrao}%)`}
+                                onChange={(e) => setEditingComissao((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+                              />
+                              <span className="text-gray-400 text-xs shrink-0">%</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {recebe != null ? (
+                              <span className={`text-sm font-semibold ${isPadrao ? 'text-gray-400' : 'text-violet-700'}`}>
+                                R$ {recebe.toFixed(2).replace('.', ',')}
+                                {isPadrao && <span className="text-[10px] font-normal ml-1">(padrão)</span>}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                disabled={isSaving || current.trim() === ''}
+                                style={{ opacity: (isSaving || current.trim() === '') ? 0.4 : 1 }}
+                                onClick={async () => {
+                                  const pct = parseFloat(current);
+                                  if (isNaN(pct) || pct < 0 || pct > 100) {
+                                    showToast('error', 'Percentual inválido (0–100).');
+                                    return;
+                                  }
+                                  setSavingComissao((prev) => ({ ...prev, [f.id]: true }));
+                                  try {
+                                    const res = await api(`/api/admin/comissoes/${f.id}`, {
+                                      method: 'PUT', body: JSON.stringify({ percentual: pct }),
+                                    });
+                                    if (res.ok) {
+                                      showToast('success', `Comissão de ${f.name} atualizada para ${pct}%.`);
+                                      setFinConfig((prev) => ({
+                                        ...prev,
+                                        farmaceuticos: prev.farmaceuticos.map((x) =>
+                                          x.id === f.id ? { ...x, comissao: pct } : x
+                                        ),
+                                      }));
+                                      setEditingComissao((prev) => ({ ...prev, [f.id]: String(pct) }));
+                                    } else {
+                                      showToast('error', 'Erro ao salvar.');
+                                    }
+                                  } catch { showToast('error', 'Falha de conexão.'); }
+                                  finally { setSavingComissao((prev) => ({ ...prev, [f.id]: false })); }
+                                }}
+                                className="px-3 py-1.5 text-xs font-semibold bg-violet-700 hover:bg-violet-800 text-white rounded-lg transition"
+                              >
+                                {isSaving ? '…' : '💾 Salvar'}
+                              </button>
+                              <button
+                                disabled={isSaving || (f.comissao == null && current.trim() === '')}
+                                style={{ opacity: (isSaving || (f.comissao == null && current.trim() === '')) ? 0.4 : 1 }}
+                                onClick={async () => {
+                                  setSavingComissao((prev) => ({ ...prev, [f.id]: true }));
+                                  try {
+                                    const res = await api(`/api/admin/comissoes/${f.id}`, { method: 'DELETE' });
+                                    if (res.ok) {
+                                      showToast('success', `${f.name} voltará a usar a comissão padrão (${finConfig.comissaoPadrao}%).`);
+                                      setFinConfig((prev) => ({
+                                        ...prev,
+                                        farmaceuticos: prev.farmaceuticos.map((x) =>
+                                          x.id === f.id ? { ...x, comissao: null } : x
+                                        ),
+                                      }));
+                                      setEditingComissao((prev) => ({ ...prev, [f.id]: '' }));
+                                    } else {
+                                      showToast('error', 'Erro ao remover comissão.');
+                                    }
+                                  } catch { showToast('error', 'Falha de conexão.'); }
+                                  finally { setSavingComissao((prev) => ({ ...prev, [f.id]: false })); }
+                                }}
+                                className="px-3 py-1.5 text-xs font-semibold border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg transition"
+                              >
+                                🔄 Usar padrão
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Dialog: confirmar inativação */}
       {confirmRevoke && (

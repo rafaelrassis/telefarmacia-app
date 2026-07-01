@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import SelecionarPerfilPage from './pages/SelecionarPerfilPage.jsx';
 import InstallPrompt from './components/InstallPrompt.jsx';
 import PWAReloadPrompt from './components/PWAReloadPrompt.jsx';
 
@@ -17,6 +18,7 @@ function App() {
           <Route index element={<LandingPage />} />
           <Route path="entrar" element={<LoginPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="selecionar-perfil" element={<SelecionarPerfilPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

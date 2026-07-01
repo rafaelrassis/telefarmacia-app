@@ -4,12 +4,13 @@ import { useAuth } from '../context/AuthContext.jsx';
 import Login from '../components/Login.jsx';
 
 const LoginPage = () => {
-  const { user } = useAuth();
+  const { user, needsEnvSelection } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true });
-  }, [user, navigate]);
+    if (!user) return;
+    navigate(needsEnvSelection ? '/selecionar-perfil' : '/dashboard', { replace: true });
+  }, [user, needsEnvSelection, navigate]);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 flex items-center justify-center px-4 py-12">

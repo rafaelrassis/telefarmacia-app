@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import TriagemForm from './TriagemForm';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const calcIdade = (dataNasc) => {
+  if (!dataNasc) return null;
+  try {
+    return new Date().getFullYear() - new Date(dataNasc).getFullYear();
+  } catch { return null; }
+};
 
 const toLocalDateStr = (date = new Date()) => {
   const d = new Date(date);
@@ -15,7 +23,7 @@ const toLocalDateStr = (date = new Date()) => {
 const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
   const { token } = useAuth();
 
-  const [step, setStep] = useState('select'); // 'select' | 'loading' | 'success' | 'error'
+  const [step, setStep] = useState('select'); // 'select' | 'triagem' | 'loading' | 'success' | 'error'
   const [sistemaInfo, setSistemaInfo] = useState(null); // { aberto, motivo }
   const [selectedDate, setSelectedDate] = useState(toLocalDateStr());
   const [slots, setSlots] = useState([]);
@@ -25,8 +33,17 @@ const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isInsuficiente, setIsInsuficiente] = useState(false);
+  const [pacientePerfil, setPacientePerfil] = useState(null);
 
   const today = toLocalDateStr();
+
+  // Busca perfil do paciente para pré-preencher triagem
+  useEffect(() => {
+    fetch(`${API_URL}/api/pacientes/perfil`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setPacientePerfil(d); })
+      .catch(() => {});
+  }, [token]);
 
   // Verifica se o sistema está aberto
   useEffect(() => {
@@ -56,7 +73,7 @@ const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
       .finally(() => setLoadingSlots(false));
   }, [selectedDate]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (triagem) => {
     if (!selectedSlot) return;
     setStep('loading');
     setErrorMsg('');
@@ -69,7 +86,7 @@ const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
       const res = await fetch(`${API_URL}/api/fila/agendar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data_hora }),
+        body: JSON.stringify({ data_hora, triagem: triagem || null }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -96,56 +113,62 @@ const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={step !== 'loading' ? onClose : undefined}
+        onClick={!['loading', 'triagem'].includes(step) ? onClose : undefined}
       />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+        style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}
+      >
 
         {/* ── Seleção de data e horário ── */}
         {step === 'select' && (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-bold text-gray-900 text-lg">Agendar Consulta</h2>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Sistema fechado */}
-            {sistemaInfo && !sistemaInfo.aberto && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                <p className="text-sm font-semibold text-red-800">Sistema fechado no momento</p>
-                <p className="text-xs text-red-600 mt-0.5">{sistemaInfo.motivo}</p>
-                {sistemaInfo.horaInicio && (
-                  <p className="text-xs text-red-500 mt-0.5">
-                    Horário: {sistemaInfo.horaInicio} – {sistemaInfo.horaFim}
-                  </p>
-                )}
+            {/* Cabeçalho fixo */}
+            <div style={{ padding: '24px 24px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <h2 className="font-bold text-gray-900 text-lg">Agendar Consulta</h2>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+                >
+                  ×
+                </button>
               </div>
-            )}
 
-            {/* Seletor de data */}
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Data da consulta
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                min={today}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
-              />
-            </div>
+              {/* Sistema fechado */}
+              {sistemaInfo && !sistemaInfo.aberto && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  <p className="text-sm font-semibold text-red-800">Sistema fechado no momento</p>
+                  <p className="text-xs text-red-600 mt-0.5">{sistemaInfo.motivo}</p>
+                  {sistemaInfo.horaInicio && (
+                    <p className="text-xs text-red-500 mt-0.5">
+                      Horário: {sistemaInfo.horaInicio} – {sistemaInfo.horaFim}
+                    </p>
+                  )}
+                </div>
+              )}
 
-            {/* Horários */}
-            <div className="mb-5">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              {/* Seletor de data */}
+              <div style={{ marginBottom: 16 }}>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Data da consulta
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  min={today}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                />
+              </div>
+
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Horário disponível
               </label>
+            </div>
 
+            {/* Lista de horários com scroll */}
+            <div style={{ overflowY: 'auto', flex: 1, maxHeight: 300, padding: '0 24px 8px' }}>
               {loadingSlots ? (
                 <div className="flex justify-center items-center py-6">
                   <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
@@ -156,16 +179,23 @@ const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
                   <p className="text-xs text-gray-300 mt-1">Tente outra data.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1">
+                <div className="grid grid-cols-3 gap-2">
                   {slots.map((hora) => (
                     <button
                       key={hora}
                       onClick={() => setSelectedSlot(hora)}
-                      className={`py-2.5 text-sm font-semibold rounded-xl border transition ${
-                        selectedSlot === hora
-                          ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                          : 'border-gray-200 text-gray-700 hover:border-violet-400 hover:bg-violet-50'
-                      }`}
+                      style={selectedSlot === hora ? {
+                        background: '#2563eb', color: '#fff',
+                        border: 'none', borderRadius: 12,
+                        padding: '10px 0', fontSize: 14,
+                        fontWeight: 600, cursor: 'pointer',
+                        boxShadow: '0 1px 4px rgba(37,99,235,0.3)',
+                      } : {
+                        background: '#fff', color: '#374151',
+                        border: '1px solid #e5e7eb', borderRadius: 12,
+                        padding: '10px 0', fontSize: 14,
+                        fontWeight: 600, cursor: 'pointer',
+                      }}
                     >
                       {hora}
                     </button>
@@ -174,44 +204,80 @@ const AgendamentoComDataModal = ({ onClose, onBooked, onAddCredits }) => {
               )}
             </div>
 
-            {/* Saldo */}
-            <div className="bg-gray-50 rounded-xl px-4 py-3 mb-5 flex justify-between items-center">
-              <span className="text-sm text-gray-500">Seu saldo</span>
-              <span className={`text-sm font-bold ${
-                walletBalance === null ? 'text-gray-400' : saldoOk ? 'text-emerald-600' : 'text-red-500'
-              }`}>
-                {walletBalance === null ? '...' : `R$ ${walletBalance.toFixed(2).replace('.', ',')}`}
-              </span>
-            </div>
-
-            {walletBalance !== null && !saldoOk && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-center">
-                <p className="text-sm font-semibold text-red-800">Saldo insuficiente</p>
-                <button
-                  onClick={onAddCredits}
-                  className="text-xs text-red-600 hover:text-red-800 underline mt-0.5"
-                >
-                  Adicionar créditos à carteira
-                </button>
+            {/* Rodapé fixo — NUNCA some */}
+            <div style={{
+              borderTop: '1px solid #e5e7eb',
+              padding: 16,
+              background: 'white',
+              borderBottomLeftRadius: 16,
+              borderBottomRightRadius: 16,
+            }}>
+              {/* Saldo */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span className="text-sm text-gray-500">Seu saldo</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: walletBalance === null ? '#9ca3af' : saldoOk ? '#059669' : '#ef4444' }}>
+                  {walletBalance === null ? '...' : `R$ ${walletBalance.toFixed(2).replace('.', ',')}`}
+                </span>
               </div>
-            )}
 
-            <div className="flex gap-3">
+              {walletBalance !== null && !saldoOk && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3 text-center">
+                  <p className="text-sm font-semibold text-red-800">Saldo insuficiente</p>
+                  <button
+                    onClick={onAddCredits}
+                    className="text-xs text-red-600 hover:text-red-800 underline mt-0.5"
+                  >
+                    Adicionar créditos à carteira
+                  </button>
+                </div>
+              )}
+
+              {/* Botão próximo — só aparece quando horário selecionado */}
+              {selectedSlot && (
+                <button
+                  onClick={() => setStep('triagem')}
+                  disabled={!saldoOk}
+                  style={{
+                    background: saldoOk ? '#2563eb' : '#9ca3af',
+                    color: 'white',
+                    padding: '12px',
+                    width: '100%',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontSize: 15,
+                    fontWeight: 'bold',
+                    cursor: saldoOk ? 'pointer' : 'not-allowed',
+                    marginBottom: 8,
+                    display: 'block',
+                  }}
+                >
+                  Próximo → Triagem ({selectedSlot})
+                </button>
+              )}
+
               <button
                 onClick={onClose}
-                className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+                style={{
+                  width: '100%', padding: '10px',
+                  background: 'transparent', border: '1px solid #e5e7eb',
+                  borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  color: '#6b7280', cursor: 'pointer', display: 'block',
+                }}
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleConfirm}
-                disabled={!selectedSlot || !saldoOk}
-                className="flex-1 py-2.5 text-sm font-bold bg-violet-600 text-white rounded-xl hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              >
-                Confirmar
-              </button>
             </div>
           </>
+        )}
+
+        {/* ── Triagem ── */}
+        {step === 'triagem' && (
+          <TriagemForm
+            onBack={() => setStep('select')}
+            onConfirm={handleConfirm}
+            pacienteNome={pacientePerfil?.nome_completo || ''}
+            pacienteIdade={calcIdade(pacientePerfil?.data_nascimento)}
+          />
         )}
 
         {/* ── Loading ── */}

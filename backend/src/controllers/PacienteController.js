@@ -83,6 +83,14 @@ export const getPerfil = async (req, res) => {
     });
     if (!perfil) return res.status(404).json({ error: 'Perfil não encontrado.' });
 
+    let peso = null;
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT peso FROM "PacienteProfile" WHERE "userId" = $1`, req.user.id
+      );
+      if (rows.length > 0) peso = rows[0].peso;
+    } catch {}
+
     return res.status(200).json({
       nome_completo:    perfil.nomeCompleto,
       data_nascimento:  perfil.dataNascimento,
@@ -99,6 +107,7 @@ export const getPerfil = async (req, res) => {
       aceite_termos:    perfil.aceiteTermos,
       versao_termos:    perfil.versaoTermos,
       data_aceite:      perfil.dataAceite,
+      peso,
     });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao buscar perfil.' });

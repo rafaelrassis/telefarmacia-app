@@ -2,9 +2,13 @@ import { PrismaClient } from '@prisma/client';
 import { logAction } from '../utils/logAction.js';
 
 const prisma = new PrismaClient();
-const PRECO = parseFloat(process.env.PRECO_CONSULTA_PADRAO || '50.00');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+async function getPreco() {
+  const row = await prisma.systemConfig.findUnique({ where: { key: 'preco_consulta' } });
+  return row ? parseFloat(row.value) : parseFloat(process.env.PRECO_CONSULTA_PADRAO || '50.00');
+}
 
 function nowInBR() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -17,7 +21,7 @@ function timeStr(date) {
 // ── POST /api/fila/agendar ───────────────────────────────────────────────────
 
 export const agendarConsulta = async (req, res) => {
-  const { data_hora } = req.body;
+  const { data_hora, triagem } = req.body;
   if (!data_hora) return res.status(400).json({ error: 'data_hora é obrigatória.' });
 
   // Parse date components directly from string to avoid TZ issues in day-of-week check
@@ -37,6 +41,8 @@ export const agendarConsulta = async (req, res) => {
   const dow = refDate.getDay();
 
   try {
+    const PRECO = await getPreco();
+
     const horario = await prisma.sistemaHorario.findUnique({ where: { diaSemana: dow } });
     if (!horario || !horario.ativo) {
       return res.status(400).json({ error: 'O sistema não funciona neste dia da semana.' });
@@ -54,9 +60,18 @@ export const agendarConsulta = async (req, res) => {
         where: { pacienteId: patientId },
         data: { saldo: { decrement: PRECO } },
       });
-      return tx.filaAgendada.create({
+      const nova = await tx.filaAgendada.create({
         data: { pacienteId: patientId, dataHora, creditoDebitado: PRECO, status: 'aguardando' },
       });
+      if (triagem) {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "FilaAgendada" SET triagem = $1::jsonb WHERE id = $2`,
+            JSON.stringify(triagem), nova.id
+          );
+        } catch {}
+      }
+      return nova;
     });
 
     return res.status(201).json({
@@ -74,9 +89,12 @@ export const agendarConsulta = async (req, res) => {
 // ── POST /api/fila/urgente ───────────────────────────────────────────────────
 
 export const agendarUrgente = async (req, res) => {
+  const { triagem } = req.body;
   const patientId = req.user.id;
 
   try {
+    const PRECO = await getPreco();
+
     const br = nowInBR();
     const dow = br.getDay();
     const horario = await prisma.sistemaHorario.findUnique({ where: { diaSemana: dow } });
@@ -115,9 +133,18 @@ export const agendarUrgente = async (req, res) => {
         where: { pacienteId: patientId },
         data: { saldo: { decrement: PRECO } },
       });
-      return tx.filaUrgente.create({
+      const nova = await tx.filaUrgente.create({
         data: { pacienteId: patientId, creditoDebitado: PRECO, status: 'aguardando' },
       });
+      if (triagem) {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "FilaUrgente" SET triagem = $1::jsonb WHERE id = $2`,
+            JSON.stringify(triagem), nova.id
+          );
+        } catch {}
+      }
+      return nova;
     });
 
     return res.status(201).json({ id: fila.id, status: fila.status });

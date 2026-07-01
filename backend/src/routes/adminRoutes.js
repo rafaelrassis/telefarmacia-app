@@ -15,6 +15,13 @@ import {
   getSistemaStatus,
   toggleSistema,
   getLogs,
+  getConfigFinanceiro,
+  setPreco,
+  setComissaoPadrao,
+  setConfig,
+  setComissaoFarmaceutico,
+  deleteComissaoFarmaceutico,
+  getVisaoFinanceira,
 } from '../controllers/AdminController.js';
 import { getHorarios, saveHorarios, isSistemaAberto, getDisponibilidade } from '../controllers/SistemaHorarioController.js';
 import { ping } from '../controllers/FarmaceuticoStatusController.js';
@@ -55,5 +62,15 @@ router.post('/farmaceutico/ping',                    authMiddleware, ping);
 
 // Logs de ações
 router.get('/admin/logs',                            ...guard, getLogs);
+
+// Gestão financeira
+router.get('/admin/config/financeiro',               ...guard, getConfigFinanceiro);
+router.put('/admin/config',                          ...guard, setConfig);
+router.put('/admin/config/preco',                    ...guard, setPreco);
+router.put('/admin/config/comissao-padrao',          ...guard, setComissaoPadrao);
+router.put('/admin/farmaceuticos/:id/comissao',      ...guard, setComissaoFarmaceutico);
+router.put('/admin/comissoes/:id',                   ...guard, setComissaoFarmaceutico);
+router.delete('/admin/comissoes/:id',                ...guard, deleteComissaoFarmaceutico);
+router.get('/admin/financeiro',                      ...guard, getVisaoFinanceira);
 
 export default router;

@@ -33,3 +33,9 @@ export const uploadDocs = multer({
   { name: 'foto_rg_cnh', maxCount: 1 },
   { name: 'foto_crf',    maxCount: 1 },
 ]);
+
+export const uploadPhoto = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single('photo');

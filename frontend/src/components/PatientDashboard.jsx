@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import MyAppointments from './MyAppointments';
 import CheckoutPix from './CheckoutPix';
 import PatientProfileForm from './PatientProfileForm';
-import AgendarModal from './AgendarModal';
-import AgendamentoComDataModal from './AgendamentoComDataModal';
+import TriagemForm from './TriagemForm';
 
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PRECO_CONSULTA = 50;
@@ -105,7 +104,6 @@ const PatientDashboard = () => {
   const [filter, setFilter] = useState('all'); // 'all' | 'today'
   const [loading, setLoading] = useState(true);
   const [showWalletTopup, setShowWalletTopup] = useState(false);
-  const [showAgendarModal, setShowAgendarModal] = useState(false);
   const [showDataModal, setShowDataModal] = useState(false);
   const [walletBalance, setWalletBalance] = useState(null);
   const [bookedSuccess, setBookedSuccess] = useState(false);
@@ -116,6 +114,7 @@ const PatientDashboard = () => {
   const urgentIdRef = useRef(null);
   const [addingCredito, setAddingCredito] = useState(false);
   const [creditoToast, setCreditoToast]   = useState(null);
+  const [showTriagemUrgente, setShowTriagemUrgente] = useState(false);
 
   const hasProfile = Boolean(user?.pacienteProfile);
 
@@ -272,13 +271,14 @@ const PatientDashboard = () => {
     } catch {}
   };
 
-  const handlePassarAgora = async () => {
+  const handlePassarAgora = async (triagem = null) => {
     setPassarAgoraLoading(true);
     setPassarAgoraMsg(null);
     try {
       const res = await fetch(`${API_URL}/api/fila/urgente`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(triagem ? { triagem } : {}),
       });
       const data = await res.json();
       if (res.status === 402) {
@@ -340,18 +340,6 @@ const PatientDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Modal de agendamento automático */}
-      {showAgendarModal && (
-        <AgendarModal
-          onClose={() => { setShowAgendarModal(false); fetchWalletBalance(); }}
-          onBooked={() => {
-            setBookedSuccess(true);
-            setTimeout(() => setBookedSuccess(false), 4000);
-          }}
-          onAddCredits={() => { setShowAgendarModal(false); setShowWalletTopup(true); }}
-        />
-      )}
-
       {/* Sucesso de agendamento */}
       {bookedSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -430,7 +418,7 @@ const PatientDashboard = () => {
                     📅 Agendar Consulta
                   </button>
                   <button
-                    onClick={handlePassarAgora}
+                    onClick={() => setShowTriagemUrgente(true)}
                     disabled={passarAgoraLoading || saldoInsuficiente || urgenteBloqueado}
                     title={
                       urgenteBloqueado  ? 'Você já tem um atendimento urgente em andamento' :
@@ -573,16 +561,47 @@ const PatientDashboard = () => {
         </button>
       </div>
 
-      {/* Modal: escolher data e horário */}
+      {/* Modal: triagem para atendimento urgente */}
+      {showTriagemUrgente && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowTriagemUrgente(false)} />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+            style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}
+          >
+            <TriagemForm
+              modoUrgente
+              onBack={() => setShowTriagemUrgente(false)}
+              onConfirm={(triagem) => {
+                setShowTriagemUrgente(false);
+                handlePassarAgora(triagem);
+              }}
+              pacienteNome={user?.name || ''}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: escolher data e horário + triagem */}
       {showDataModal && (
-        <AgendamentoComDataModal
-          onClose={() => { setShowDataModal(false); fetchWalletBalance(); }}
-          onBooked={() => {
-            setBookedSuccess(true);
-            setTimeout(() => setBookedSuccess(false), 4000);
-          }}
-          onAddCredits={() => { setShowDataModal(false); setShowWalletTopup(true); }}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowDataModal(false); fetchWalletBalance(); }} />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+            style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}
+          >
+            <TriagemForm
+              tipo="agendado"
+              onBack={() => { setShowDataModal(false); fetchWalletBalance(); }}
+              onBooked={() => {
+                setBookedSuccess(true);
+                setTimeout(() => setBookedSuccess(false), 4000);
+              }}
+              onAddCredits={() => { setShowDataModal(false); setShowWalletTopup(true); }}
+              pacienteNome={user?.name || ''}
+            />
+          </div>
+        </div>
       )}
 
       {/* My appointments */}

@@ -549,7 +549,7 @@ export const getGanhosFarmaceutico = async (req, res) => {
   const prevDeDate  = new Date(prevAteDate.getTime() - durationMs + 1000);
 
   try {
-    const [agendadas, urgentes, prevAg, prevUr] = await Promise.all([
+    const [agendadas, urgentes, prevAg, prevUr, comissaoRow, comissaoInd] = await Promise.all([
       prisma.filaAgendada.findMany({
         where: { farmaceuticoId: pharmacistId, status: 'concluido', dataHora: { gte: deDate, lte: ateDate } },
         include: { paciente: { select: { name: true } } },
@@ -568,29 +568,45 @@ export const getGanhosFarmaceutico = async (req, res) => {
         where: { farmaceuticoId: pharmacistId, status: 'concluido', criadoEm: { gte: prevDeDate, lte: prevAteDate } },
         select: { creditoDebitado: true },
       }),
+      prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+      prisma.$queryRawUnsafe(
+        `SELECT CAST(percentual AS FLOAT) AS percentual FROM comissoes_individuais WHERE farmaceutico_id = $1`,
+        pharmacistId
+      ).catch(() => []),
     ]);
 
-    // Normaliza período atual
+    const comissaoPadrao  = parseFloat(comissaoRow?.value ?? '70');
+    const percentual      = comissaoInd[0]?.percentual ?? comissaoPadrao;
+
+    // Normaliza período atual com ganho líquido por item
     const allItems = [
-      ...agendadas.map((f) => ({ id: f.id, tipo: 'agendada', data: f.dataHora,  paciente: f.paciente?.name ?? '—', valor: Number(f.creditoDebitado) })),
-      ...urgentes.map((f)  => ({ id: f.id, tipo: 'urgente',  data: f.criadoEm,  paciente: f.paciente?.name ?? '—', valor: Number(f.creditoDebitado) })),
+      ...agendadas.map((f) => {
+        const valor = Number(f.creditoDebitado);
+        return { id: f.id, tipo: 'agendada', data: f.dataHora, paciente: f.paciente?.name ?? '—', valor, ganho: Math.round(valor * (percentual / 100) * 100) / 100 };
+      }),
+      ...urgentes.map((f) => {
+        const valor = Number(f.creditoDebitado);
+        return { id: f.id, tipo: 'urgente', data: f.criadoEm, paciente: f.paciente?.name ?? '—', valor, ganho: Math.round(valor * (percentual / 100) * 100) / 100 };
+      }),
     ].sort((a, b) => new Date(b.data) - new Date(a.data));
 
-    // Métricas
-    const totalRecebido       = allItems.reduce((s, i) => s + i.valor, 0);
+    // Métricas — totalRecebido é o líquido (após comissão)
+    const totalBruto          = allItems.reduce((s, i) => s + i.valor, 0);
+    const totalRecebido       = allItems.reduce((s, i) => s + i.ganho, 0);
     const consultasConcluidas = allItems.length;
     const ticketMedio         = consultasConcluidas > 0 ? totalRecebido / consultasConcluidas : 0;
-    const prevTotal           = [...prevAg, ...prevUr].reduce((s, i) => s + Number(i.creditoDebitado), 0);
+    const prevBruto           = [...prevAg, ...prevUr].reduce((s, i) => s + Number(i.creditoDebitado), 0);
+    const prevTotal           = Math.round(prevBruto * (percentual / 100) * 100) / 100;
     const comparativo         = prevTotal > 0
       ? ((totalRecebido - prevTotal) / prevTotal) * 100
       : totalRecebido > 0 ? 100 : 0;
 
-    // Gráfico: agrupa por dia em BRT
+    // Gráfico: agrupa ganho por dia em BRT
     const dayMap = {};
     for (const item of allItems) {
       const brt = new Date(new Date(item.data).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
       const key = `${brt.getFullYear()}-${String(brt.getMonth()+1).padStart(2,'0')}-${String(brt.getDate()).padStart(2,'0')}`;
-      dayMap[key] = (dayMap[key] ?? 0) + item.valor;
+      dayMap[key] = (dayMap[key] ?? 0) + item.ganho;
     }
     const grafico = [];
     const [deY, deM, deD]   = de.split('-').map(Number);
@@ -604,6 +620,8 @@ export const getGanhosFarmaceutico = async (req, res) => {
     return res.status(200).json({
       metricas: {
         totalRecebido:        Math.round(totalRecebido * 100) / 100,
+        totalBruto:           Math.round(totalBruto * 100) / 100,
+        percentualComissao:   percentual,
         consultasConcluidas,
         ticketMedio:          Math.round(ticketMedio * 100) / 100,
         comparativo:          Math.round(comparativo * 10) / 10,
@@ -620,5 +638,30 @@ export const getGanhosFarmaceutico = async (req, res) => {
   } catch (err) {
     console.error('getGanhosFarmaceutico error:', err);
     return res.status(500).json({ error: 'Erro ao buscar ganhos.' });
+  }
+};
+
+// ── GET /api/farmaceutico/urgentes-aceitas ────────────────────────────────────
+
+export const getUrgentesAceitas = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const pharmacistId = req.user.id;
+  try {
+    const items = await prisma.filaUrgente.findMany({
+      where:   { farmaceuticoId: pharmacistId, status: { in: ['aceito', 'em_atendimento'] } },
+      include: { paciente: { select: { name: true } } },
+      orderBy: { criadoEm: 'desc' },
+    });
+    return res.status(200).json(
+      items.map((f) => ({
+        id:           f.id,
+        pacienteNome: f.paciente?.name ?? 'Paciente',
+        criadoEm:     f.criadoEm,
+        status:       f.status,
+      }))
+    );
+  } catch (err) {
+    console.error('getUrgentesAceitas error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar urgentes aceitas.' });
   }
 };

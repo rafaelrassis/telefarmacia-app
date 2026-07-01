@@ -233,18 +233,18 @@ const GanhosTab = () => {
           {/* ── Métricas ── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <MetricCard
-              label="Total recebido"
+              label="Seu ganho líquido"
               value={fmtBRL(m.totalRecebido)}
-              sub={compDisplay !== '—' ? `${compDisplay} vs período anterior` : 'sem dados anteriores'}
-              subColor={compColor}
+              sub={m.percentualComissao != null ? `${m.percentualComissao}% de comissão` : undefined}
+              subColor="text-violet-500"
             />
             <MetricCard
-              label="Consultas concluídas"
-              value={String(m.consultasConcluidas)}
-              sub={m.consultasConcluidas === 1 ? 'atendimento' : 'atendimentos'}
+              label="Total cobrado"
+              value={fmtBRL(m.totalBruto ?? m.totalRecebido)}
+              sub={m.consultasConcluidas === 1 ? '1 atendimento' : `${m.consultasConcluidas} atendimentos`}
             />
             <MetricCard
-              label="Ticket médio"
+              label="Ticket médio líquido"
               value={m.consultasConcluidas > 0 ? fmtBRL(m.ticketMedio) : '—'}
               sub="por consulta"
             />
@@ -304,7 +304,12 @@ const GanhosTab = () => {
                         </div>
                         <p className="text-xs text-gray-400 mt-0.5">{fmtDateTime(item.data)}</p>
                       </div>
-                      <p className="text-sm font-bold text-violet-700 shrink-0">{fmtBRL(item.valor)}</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-violet-700">{fmtBRL(item.ganho ?? item.valor)}</p>
+                        {item.ganho != null && item.ganho !== item.valor && (
+                          <p className="text-[10px] text-gray-400 mt-0.5">{fmtBRL(item.valor)} cobrado</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

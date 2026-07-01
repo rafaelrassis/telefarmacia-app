@@ -327,61 +327,301 @@ export const toggleSistema = async (req, res) => {
 };
 
 export const getLogs = async (req, res) => {
-  const { acao, de, ate, page = '1', limit = '50' } = req.query;
+  const {
+    acao, de, ate, farmaceuticoId, pacienteId, tipo,
+    page = '1', limit = '20',
+    export: exportFormat,
+  } = req.query;
+
+  const isExport = exportFormat === 'csv';
   const pageNum  = Math.max(1, parseInt(page));
-  const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
-  const skip     = (pageNum - 1) * limitNum;
+  const limitNum = isExport ? 10000 : Math.min(100, Math.max(1, parseInt(limit)));
+  const skip     = isExport ? 0 : (pageNum - 1) * limitNum;
 
   try {
     const conditions = ['1=1'];
     const params     = [];
 
-    if (acao) { conditions.push(`l.acao = $${params.length + 1}`); params.push(acao); }
-    if (de)   { conditions.push(`l.criado_em >= $${params.length + 1}`); params.push(`${de}T00:00:00-03:00`); }
-    if (ate)  { conditions.push(`l.criado_em <= $${params.length + 1}`); params.push(`${ate}T23:59:59-03:00`); }
+    if (acao)           { conditions.push(`l.acao = $${params.length + 1}`);                    params.push(acao); }
+    if (de)             { conditions.push(`l.criado_em >= $${params.length + 1}`);              params.push(`${de}T00:00:00-03:00`); }
+    if (ate)            { conditions.push(`l.criado_em <= $${params.length + 1}`);              params.push(`${ate}T23:59:59-03:00`); }
+    if (farmaceuticoId) { conditions.push(`l.usuario_id = $${params.length + 1}`);             params.push(farmaceuticoId); }
+    if (tipo)           { conditions.push(`(l.detalhes->>'tipo') = $${params.length + 1}`);    params.push(tipo); }
+    if (pacienteId)     { conditions.push(
+      `COALESCE(fa."pacienteId"::text, fu."pacienteId"::text) = $${params.length + 1}`);       params.push(pacienteId); }
 
     const where = 'WHERE ' + conditions.join(' AND ');
 
+    const joins = `
+      FROM log_acoes l
+      LEFT JOIN "User" u       ON u.id::text = l.usuario_id
+      LEFT JOIN "FilaAgendada" fa ON fa.id::text = l.consulta_id AND (l.detalhes->>'tipo') = 'agendada'
+      LEFT JOIN "FilaUrgente"  fu ON fu.id::text = l.consulta_id AND (l.detalhes->>'tipo') = 'urgente'
+      LEFT JOIN "User" pu_ag   ON pu_ag.id = fa."pacienteId"
+      LEFT JOIN "User" pu_ur   ON pu_ur.id = fu."pacienteId"
+    `;
+
     const [countRow] = await prisma.$queryRawUnsafe(
-      `SELECT COUNT(*)::int AS total FROM log_acoes l ${where}`,
+      `SELECT COUNT(*)::int AS total ${joins} ${where}`,
       ...params
     );
     const total = Number(countRow?.total ?? 0);
 
     const rows = await prisma.$queryRawUnsafe(
       `SELECT l.id, l.consulta_id, l.usuario_id, l.role, l.acao, l.detalhes, l.criado_em,
-              u.name AS usuario_nome
-       FROM log_acoes l
-       LEFT JOIN "User" u ON u.id::text = l.usuario_id
-       ${where}
+              u.name AS usuario_nome,
+              COALESCE(pu_ag.name, pu_ur.name) AS paciente_nome,
+              (l.detalhes->>'duracao_min')::int AS duracao_min,
+              COALESCE(l.detalhes->>'tipo', '') AS tipo,
+              COALESCE(fa."dataHora", fu."criadoEm") AS consulta_data_hora
+       ${joins} ${where}
        ORDER BY l.criado_em DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       ...params, limitNum, skip
     );
 
-    return res.status(200).json({
-      items: rows.map((r) => ({
-        id:          r.id,
-        consultaId:  r.consulta_id,
-        usuarioId:   r.usuario_id,
-        usuarioNome: r.usuario_nome ?? '—',
-        role:        r.role,
-        acao:        r.acao,
-        detalhes:    r.detalhes ?? {},
-        criadoEm:    r.criado_em,
-      })),
-      total,
-      page: pageNum,
-      hasMore: skip + limitNum < total,
-    });
+    const items = rows.map((r) => ({
+      id:               r.id,
+      consultaId:       r.consulta_id,
+      usuarioId:        r.usuario_id,
+      usuarioNome:      r.usuario_nome ?? '—',
+      pacienteNome:     r.paciente_nome ?? null,
+      role:             r.role,
+      acao:             r.acao,
+      detalhes:         r.detalhes ?? {},
+      criadoEm:         r.criado_em,
+      duracaoMin:       r.duracao_min != null ? Number(r.duracao_min) : null,
+      tipo:             r.tipo || null,
+      consultaDataHora: r.consulta_data_hora ?? null,
+    }));
+
+    if (isExport) {
+      const fmtMin = (m) => {
+        if (m == null) return '';
+        if (m < 60) return `${m}min`;
+        const h = Math.floor(m / 60), min = m % 60;
+        return min > 0 ? `${h}h ${min}min` : `${h}h`;
+      };
+      const header = 'Data/Hora,Paciente,Farmacêutico,Ação,Tempo,Tipo,Detalhes\n';
+      const csvRows = items.map((item) => {
+        const dt  = new Date(item.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const det = JSON.stringify(item.detalhes ?? {}).replace(/"/g, '""');
+        return [
+          `"${dt}"`, `"${item.pacienteNome ?? ''}"`, `"${item.usuarioNome}"`,
+          `"${item.acao}"`, `"${fmtMin(item.duracaoMin)}"`, `"${item.tipo ?? ''}"`, `"${det}"`,
+        ].join(',');
+      });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="logs-${new Date().toISOString().split('T')[0]}.csv"`);
+      return res.send('﻿' + header + csvRows.join('\n'));
+    }
+
+    return res.status(200).json({ items, total, page: pageNum, hasMore: skip + limitNum < total });
   } catch (err) {
     if (err.message?.includes('log_acoes') || err.message?.includes('does not exist')) {
-      return res.status(200).json({
-        items: [], total: 0, page: 1, hasMore: false,
-        warning: 'Execute a migration para habilitar logs.',
-      });
+      return res.status(200).json({ items: [], total: 0, page: 1, hasMore: false });
     }
     console.error('getLogs error:', err);
     return res.status(500).json({ error: 'Erro ao buscar logs.' });
+  }
+};
+
+// ── Gestão financeira ─────────────────────────────────────────────────────────
+
+export const getConfigFinanceiro = async (req, res) => {
+  try {
+    const [precoRow, comissaoRow, farmaceuticos] = await Promise.all([
+      prisma.systemConfig.findUnique({ where: { key: 'preco_consulta' } }),
+      prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+      prisma.user.findMany({
+        where: { role: 'FARMACEUTICO' },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    let comissoes = [];
+    try {
+      comissoes = await prisma.$queryRawUnsafe(
+        `SELECT farmaceutico_id, CAST(percentual AS FLOAT) AS percentual FROM comissoes_individuais`
+      );
+    } catch (_) {}
+
+    const comissaoMap = {};
+    for (const c of comissoes) comissaoMap[c.farmaceutico_id] = c.percentual;
+
+    return res.json({
+      preco:          parseFloat(precoRow?.value ?? '50.00'),
+      comissaoPadrao: parseFloat(comissaoRow?.value ?? '70'),
+      farmaceuticos:  farmaceuticos.map((f) => ({
+        id:       f.id,
+        name:     f.name,
+        email:    f.email,
+        comissao: comissaoMap[f.id] ?? null,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao buscar configuração financeira.' });
+  }
+};
+
+export const setPreco = async (req, res) => {
+  const valor = parseFloat(req.body.valor);
+  if (isNaN(valor) || valor <= 0) return res.status(400).json({ error: 'Valor inválido.' });
+  try {
+    await prisma.systemConfig.upsert({
+      where:  { key: 'preco_consulta' },
+      update: { value: valor.toFixed(2) },
+      create: { key: 'preco_consulta', value: valor.toFixed(2) },
+    });
+    return res.json({ preco: valor });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao salvar preço.' });
+  }
+};
+
+export const setComissaoPadrao = async (req, res) => {
+  const percentual = parseFloat(req.body.percentual);
+  if (isNaN(percentual) || percentual < 0 || percentual > 100) {
+    return res.status(400).json({ error: 'Percentual inválido (0–100).' });
+  }
+  try {
+    await prisma.systemConfig.upsert({
+      where:  { key: 'comissao_padrao' },
+      update: { value: String(percentual) },
+      create: { key: 'comissao_padrao', value: String(percentual) },
+    });
+    return res.json({ comissaoPadrao: percentual });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao salvar comissão padrão.' });
+  }
+};
+
+export const setConfig = async (req, res) => {
+  const preco      = parseFloat(req.body.preco_consulta);
+  const percentual = parseFloat(req.body.comissao_padrao);
+  if (isNaN(preco) || preco <= 0)                          return res.status(400).json({ error: 'Preço inválido.' });
+  if (isNaN(percentual) || percentual < 0 || percentual > 100) return res.status(400).json({ error: 'Comissão inválida (0–100).' });
+  try {
+    console.log(`[AdminConfig] Salvando preco=${preco} comissao=${percentual}`);
+    await Promise.all([
+      prisma.systemConfig.upsert({
+        where:  { key: 'preco_consulta' },
+        update: { value: preco.toFixed(2) },
+        create: { key: 'preco_consulta', value: preco.toFixed(2) },
+      }),
+      prisma.systemConfig.upsert({
+        where:  { key: 'comissao_padrao' },
+        update: { value: String(percentual) },
+        create: { key: 'comissao_padrao', value: String(percentual) },
+      }),
+    ]);
+    console.log(`[AdminConfig] Salvo com sucesso`);
+    return res.json({ preco_consulta: preco, comissao_padrao: percentual });
+  } catch (err) {
+    console.error('[AdminConfig] Erro ao salvar:', err);
+    return res.status(500).json({ error: 'Erro ao salvar configurações.' });
+  }
+};
+
+export const setComissaoFarmaceutico = async (req, res) => {
+  const { id } = req.params;
+  const { percentual } = req.body;
+  try {
+    if (percentual === null || percentual === undefined || percentual === '') {
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM comissoes_individuais WHERE farmaceutico_id = $1`, id
+      );
+      return res.json({ id, comissao: null });
+    }
+    const pct = parseFloat(percentual);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      return res.status(400).json({ error: 'Percentual inválido (0–100).' });
+    }
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO comissoes_individuais (farmaceutico_id, percentual, atualizado_em)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (farmaceutico_id) DO UPDATE SET percentual = $2, atualizado_em = NOW()`,
+      id, pct
+    );
+    return res.json({ id, comissao: pct });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao salvar comissão.' });
+  }
+};
+
+export const deleteComissaoFarmaceutico = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM comissoes_individuais WHERE farmaceutico_id = $1`, id
+    );
+    return res.json({ id, comissao: null });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao remover comissão individual.' });
+  }
+};
+
+export const getVisaoFinanceira = async (req, res) => {
+  try {
+    const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const yyyy  = nowBR.getFullYear();
+    const mm    = String(nowBR.getMonth() + 1).padStart(2, '0');
+    const dd    = String(nowBR.getDate()).padStart(2, '0');
+    const deStr  = req.query.de  || `${yyyy}-${mm}-01`;
+    const ateStr = req.query.ate || `${yyyy}-${mm}-${dd}`;
+
+    const deDate  = new Date(`${deStr}T00:00:00-03:00`);
+    const ateDate = new Date(`${ateStr}T23:59:59-03:00`);
+
+    const [comissaoRow, agendadas, urgentes] = await Promise.all([
+      prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+      prisma.filaAgendada.findMany({
+        where:  { status: 'concluido', dataHora: { gte: deDate, lte: ateDate } },
+        select: { farmaceuticoId: true, creditoDebitado: true },
+      }),
+      prisma.filaUrgente.findMany({
+        where:  { status: 'concluido', criadoEm: { gte: deDate, lte: ateDate } },
+        select: { farmaceuticoId: true, creditoDebitado: true },
+      }),
+    ]);
+
+    let comissoes = [];
+    try {
+      comissoes = await prisma.$queryRawUnsafe(
+        `SELECT farmaceutico_id, CAST(percentual AS FLOAT) AS percentual FROM comissoes_individuais`
+      );
+    } catch (_) {}
+
+    const comissaoPadrao = parseFloat(comissaoRow?.value ?? '70');
+    const comissaoMap = {};
+    for (const c of comissoes) comissaoMap[c.farmaceutico_id] = c.percentual;
+
+    const allItems = [
+      ...agendadas.map((f) => ({ farmaceuticoId: f.farmaceuticoId, valor: Number(f.creditoDebitado) })),
+      ...urgentes.map((f)  => ({ farmaceuticoId: f.farmaceuticoId, valor: Number(f.creditoDebitado) })),
+    ];
+
+    const totalFaturado = allItems.reduce((s, i) => s + i.valor, 0);
+    const totalPagoFarm = allItems.reduce((s, i) => {
+      const pct = comissaoMap[i.farmaceuticoId] ?? comissaoPadrao;
+      return s + i.valor * (pct / 100);
+    }, 0);
+
+    return res.json({
+      totalFaturado:        Math.round(totalFaturado * 100) / 100,
+      totalPagoFarm:        Math.round(totalPagoFarm * 100) / 100,
+      receitaLiquida:       Math.round((totalFaturado - totalPagoFarm) * 100) / 100,
+      consultasConcluidas:  allItems.length,
+      periodo:              { de: deStr, ate: ateStr },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao buscar visão financeira.' });
   }
 };

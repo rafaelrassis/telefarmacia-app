@@ -10,6 +10,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const tableName = (tipo) => (tipo === 'urgente' ? 'FilaUrgente' : 'FilaAgendada');
 
+const calcIdade = (dataNascimento) => {
+  if (!dataNascimento) return null;
+  try {
+    const ano = new Date(dataNascimento).getFullYear();
+    if (isNaN(ano)) return null;
+    return new Date().getFullYear() - ano;
+  } catch {
+    return null;
+  }
+};
+
 // ── GET /api/consulta/:id?tipo=agendada|urgente ──────────────────────────────
 
 export const getConsulta = async (req, res) => {
@@ -18,31 +29,39 @@ export const getConsulta = async (req, res) => {
   const { tipo } = req.query;
   if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
 
+  const pacienteSelect = {
+    id: true, name: true, email: true, phone: true, photoUrl: true,
+    pacienteProfile: { select: { dataNascimento: true, telefone: true } },
+  };
+
   try {
     let data;
     if (tipo === 'agendada') {
       data = await prisma.filaAgendada.findUnique({
         where:   { id },
-        include: { paciente: { select: { id: true, name: true } } },
+        include: { paciente: { select: pacienteSelect } },
       });
     } else {
       data = await prisma.filaUrgente.findUnique({
         where:   { id },
-        include: { paciente: { select: { id: true, name: true } } },
+        include: { paciente: { select: pacienteSelect } },
       });
     }
     if (!data) return res.status(404).json({ error: 'Consulta não encontrada.' });
 
-    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null;
+    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url" FROM "${tableName(tipo)}" WHERE id = $1`, id
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
-        observacoes   = rows[0].observacoes    ?? null;
-        motivo        = rows[0].motivo         ?? null;
-        receita       = rows[0].receita        ?? [];
-        receitaPdfUrl = rows[0].receita_pdf_url ?? null;
+        observacoes         = rows[0].observacoes          ?? null;
+        motivo              = rows[0].motivo               ?? null;
+        receita             = rows[0].receita              ?? [];
+        receitaPdfUrl       = rows[0].receita_pdf_url      ?? null;
+        motivoCancelamento  = rows[0].motivo_cancelamento  ?? null;
+        triagem             = rows[0].triagem              ?? null;
+        finalizacao         = rows[0].finalizacao          ?? null;
       }
     } catch {}
 
@@ -51,12 +70,22 @@ export const getConsulta = async (req, res) => {
       farmaceuticoId:  data.farmaceuticoId ?? null,
       pacienteId:      data.pacienteId,
       pacienteNome:    data.paciente?.name ?? '—',
+      paciente: {
+        nome:     data.paciente?.name     ?? '—',
+        email:    data.paciente?.email    ?? null,
+        telefone: data.paciente?.pacienteProfile?.telefone ?? data.paciente?.phone ?? null,
+        idade:    calcIdade(data.paciente?.pacienteProfile?.dataNascimento),
+        foto:     data.paciente?.photoUrl ?? null,
+      },
       dataHora:        tipo === 'urgente' ? (data.aceitoEm ?? data.criadoEm) : data.dataHora,
       status:          data.status,
       motivo,
       observacoes,
       receita,
       receitaPdfUrl,
+      motivoCancelamento,
+      triagem,
+      finalizacao,
       creditoDebitado: Number(data.creditoDebitado),
     });
   } catch (err) {
@@ -96,29 +125,29 @@ export const iniciarConsulta = async (req, res) => {
 export const concluirConsulta = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id } = req.params;
-  const { tipo, observacoes, motivo, receita } = req.body;
+  const { tipo, observacoes, motivo, receita, finalizacao } = req.body;
   const pharmacistId = req.user.id;
   if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
   if (!observacoes?.trim()) return res.status(400).json({ error: 'Observações são obrigatórias para concluir.' });
 
-  const validReceita = Array.isArray(receita) ? receita.filter((m) => m.medicamento?.trim()) : [];
-  const receitaStr   = validReceita.length > 0 ? JSON.stringify(validReceita) : null;
-  const table        = tableName(tipo);
+  const validReceita    = Array.isArray(receita) ? receita.filter((m) => m.medicamento?.trim()) : [];
+  const receitaStr      = validReceita.length > 0 ? JSON.stringify(validReceita) : null;
+  const finalizacaoStr  = finalizacao ? JSON.stringify(finalizacao) : null;
+  const table           = tableName(tipo);
 
   try {
     let count;
     try {
-      if (receitaStr) {
-        count = await prisma.$executeRawUnsafe(
-          `UPDATE "${table}" SET status = 'concluido', "observacoes" = $1, "motivo" = $2, "receita" = $3::jsonb WHERE id = $4 AND "farmaceuticoId" = $5 AND status = 'em_atendimento'`,
-          observacoes.trim(), motivo?.trim() || null, receitaStr, id, pharmacistId
-        );
-      } else {
-        count = await prisma.$executeRawUnsafe(
-          `UPDATE "${table}" SET status = 'concluido', "observacoes" = $1, "motivo" = $2 WHERE id = $3 AND "farmaceuticoId" = $4 AND status = 'em_atendimento'`,
-          observacoes.trim(), motivo?.trim() || null, id, pharmacistId
-        );
-      }
+      const sets   = [`status = 'concluido'`, `"observacoes" = $1`, `"motivo" = $2`];
+      const params = [observacoes.trim(), motivo?.trim() || null];
+      let pi = 3;
+      if (receitaStr)     { sets.push(`"receita" = $${pi}::jsonb`);     params.push(receitaStr);     pi++; }
+      if (finalizacaoStr) { sets.push(`"finalizacao" = $${pi}::jsonb`); params.push(finalizacaoStr); pi++; }
+      params.push(id, pharmacistId);
+      count = await prisma.$executeRawUnsafe(
+        `UPDATE "${table}" SET ${sets.join(', ')} WHERE id = $${pi} AND "farmaceuticoId" = $${pi + 1} AND status = 'em_atendimento'`,
+        ...params
+      );
     } catch {
       const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
       const r = await model.updateMany({
@@ -151,9 +180,10 @@ export const concluirConsulta = async (req, res) => {
 export const cancelarConsulta = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id } = req.params;
-  const { tipo } = req.body;
+  const { tipo, motivo_cancelamento } = req.body;
   const pharmacistId = req.user.id;
   if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+  if (!motivo_cancelamento?.trim()) return res.status(400).json({ error: 'Motivo do cancelamento é obrigatório.' });
 
   try {
     const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
@@ -174,8 +204,17 @@ export const cancelarConsulta = async (req, res) => {
       }
     });
 
+    // Salvar motivo_cancelamento via raw SQL (coluna pode não estar no schema Prisma)
+    const table = tableName(tipo);
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "${table}" SET motivo_cancelamento = $1 WHERE id = $2`,
+        motivo_cancelamento.trim(), id
+      );
+    } catch {}
+
     const creditoDevolvido = Number(fila.creditoDebitado);
-    await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'cancelado', detalhes: { tipo, cancelado_por: req.user.role } });
+    await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'cancelado', detalhes: { tipo, motivo: motivo_cancelamento.trim(), cancelado_por: 'farmaceutico' } });
     if (creditoDevolvido > 0) {
       await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'reembolso', detalhes: { tipo, valor: creditoDevolvido } });
     }
@@ -183,6 +222,52 @@ export const cancelarConsulta = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao cancelar consulta.' });
+  }
+};
+
+// ── PATCH /api/consulta/:id/salvar-rascunho ─────────────────────────────────
+
+export const salvarRascunho = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { tipo, motivo, observacoes, receita } = req.body;
+  const pharmacistId = req.user.id;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+
+  const table      = tableName(tipo);
+  const receitaStr = Array.isArray(receita) && receita.filter((m) => m.medicamento?.trim()).length > 0
+    ? JSON.stringify(receita.filter((m) => m.medicamento?.trim()))
+    : null;
+
+  try {
+    let count;
+    try {
+      if (receitaStr) {
+        count = await prisma.$executeRawUnsafe(
+          `UPDATE "${table}" SET "observacoes" = $1, "motivo" = $2, "receita" = $3::jsonb
+           WHERE id = $4 AND "farmaceuticoId" = $5 AND status IN ('aceito', 'em_atendimento')`,
+          observacoes?.trim() || null, motivo?.trim() || null, receitaStr, id, pharmacistId
+        );
+      } else {
+        count = await prisma.$executeRawUnsafe(
+          `UPDATE "${table}" SET "observacoes" = $1, "motivo" = $2
+           WHERE id = $3 AND "farmaceuticoId" = $4 AND status IN ('aceito', 'em_atendimento')`,
+          observacoes?.trim() || null, motivo?.trim() || null, id, pharmacistId
+        );
+      }
+    } catch {
+      const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+      const r = await model.updateMany({
+        where: { id, farmaceuticoId: pharmacistId, status: { in: ['aceito', 'em_atendimento'] } },
+        data:  {},
+      });
+      count = r.count;
+    }
+    if (count === 0) return res.status(409).json({ error: 'Rascunho não pode ser salvo (status inválido).' });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao salvar rascunho.' });
   }
 };
 
@@ -374,6 +459,178 @@ export const getHistoricoPaciente = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao buscar histórico.' });
+  }
+};
+
+// ── GET /api/consulta/:id/detalhes ──────────────────────────────────────────
+
+export const getDetalhesConsulta = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { tipo } = req.query;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+
+  const pacienteSelect = {
+    id: true, name: true, email: true, phone: true, photoUrl: true,
+    pacienteProfile: { select: { dataNascimento: true, telefone: true } },
+  };
+
+  try {
+    const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+    const data  = await model.findUnique({
+      where:   { id },
+      include: { paciente: { select: pacienteSelect } },
+    });
+    if (!data) return res.status(404).json({ error: 'Consulta não encontrada.' });
+
+    let farmaceuticoNome = null;
+    if (data.farmaceuticoId) {
+      try {
+        const farm = await prisma.user.findUnique({ where: { id: data.farmaceuticoId }, select: { name: true } });
+        farmaceuticoNome = farm?.name ?? null;
+      } catch {}
+    }
+
+    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
+      );
+      if (rows.length > 0) {
+        observacoes         = rows[0].observacoes          ?? null;
+        motivo              = rows[0].motivo               ?? null;
+        receita             = rows[0].receita              ?? [];
+        receitaPdfUrl       = rows[0].receita_pdf_url      ?? null;
+        motivoCancelamento  = rows[0].motivo_cancelamento  ?? null;
+        triagem             = rows[0].triagem              ?? null;
+        finalizacao         = rows[0].finalizacao          ?? null;
+      }
+    } catch {}
+
+    return res.status(200).json({
+      id, tipo,
+      farmaceuticoId:   data.farmaceuticoId  ?? null,
+      farmaceuticoNome,
+      pacienteId:       data.pacienteId,
+      pacienteNome:     data.paciente?.name   ?? '—',
+      paciente: {
+        nome:     data.paciente?.name     ?? '—',
+        email:    data.paciente?.email    ?? null,
+        telefone: data.paciente?.pacienteProfile?.telefone ?? data.paciente?.phone ?? null,
+        idade:    calcIdade(data.paciente?.pacienteProfile?.dataNascimento),
+        foto:     data.paciente?.photoUrl ?? null,
+      },
+      dataHora:        tipo === 'urgente' ? (data.aceitoEm ?? data.criadoEm) : data.dataHora,
+      status:          data.status,
+      motivo,
+      observacoes,
+      receita,
+      receitaPdfUrl,
+      motivoCancelamento,
+      triagem,
+      finalizacao,
+      creditoDebitado: Number(data.creditoDebitado),
+    });
+  } catch (err) {
+    console.error('getDetalhesConsulta error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar detalhes.' });
+  }
+};
+
+// ── GET /api/consulta/:id/historico-completo ────────────────────────────────
+
+export const getHistoricoCompleto = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { tipo } = req.query;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+
+  try {
+    const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+    const consulta = await model.findUnique({ where: { id }, select: { pacienteId: true } });
+    if (!consulta) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    const patientId = consulta.pacienteId;
+
+    let agendadas = [], urgentes = [];
+
+    try {
+      agendadas = await prisma.$queryRawUnsafe(
+        `SELECT fa.id,
+                fa."dataHora"  AS data_hora,
+                'agendada'     AS tipo,
+                fa.status,
+                fa."observacoes",
+                fa."motivo",
+                fa."receita",
+                fa."receita_pdf_url",
+                fa."finalizacao",
+                u.name         AS farmaceutico_nome
+         FROM "FilaAgendada" fa
+         LEFT JOIN "User" u ON u.id = fa."farmaceuticoId"
+         WHERE fa."pacienteId" = $1
+           AND fa.status IN ('concluido', 'cancelado')
+         ORDER BY fa."criadoEm" DESC
+         LIMIT 30`,
+        patientId
+      );
+    } catch {
+      const rows = await prisma.filaAgendada.findMany({
+        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        select:  { id: true, dataHora: true, status: true, criadoEm: true },
+        orderBy: { criadoEm: 'desc' }, take: 30,
+      });
+      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+    }
+
+    try {
+      urgentes = await prisma.$queryRawUnsafe(
+        `SELECT fu.id,
+                fu."criadoEm"  AS data_hora,
+                'urgente'      AS tipo,
+                fu.status,
+                fu."observacoes",
+                fu."motivo",
+                fu."receita",
+                fu."receita_pdf_url",
+                fu."finalizacao",
+                u.name         AS farmaceutico_nome
+         FROM "FilaUrgente" fu
+         LEFT JOIN "User" u ON u.id = fu."farmaceuticoId"
+         WHERE fu."pacienteId" = $1
+           AND fu.status IN ('concluido', 'cancelado')
+         ORDER BY fu."criadoEm" DESC
+         LIMIT 30`,
+        patientId
+      );
+    } catch {
+      const rows = await prisma.filaUrgente.findMany({
+        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        select:  { id: true, criadoEm: true, status: true },
+        orderBy: { criadoEm: 'desc' }, take: 30,
+      });
+      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+    }
+
+    const normalized = [...agendadas, ...urgentes]
+      .sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora))
+      .slice(0, 30)
+      .map((r) => ({
+        id:               r.id,
+        dataHora:         r.data_hora,
+        tipo:             r.tipo,
+        status:           r.status,
+        farmaceuticoNome: r.farmaceutico_nome ?? null,
+        motivo:           r.motivo            ?? null,
+        observacoes:      r.observacoes        ?? null,
+        receita:          Array.isArray(r.receita) ? r.receita : [],
+        receitaPdfUrl:    r.receita_pdf_url    ?? null,
+        finalizacao:      r.finalizacao        ?? null,
+      }));
+
+    return res.status(200).json(normalized);
+  } catch (err) {
+    console.error('getHistoricoCompleto error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar histórico completo.' });
   }
 };
 

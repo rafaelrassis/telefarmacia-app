@@ -7,6 +7,7 @@ import 'dotenv/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import pharmacistRoutes from './routes/pharmacistRoutes.js';
 import pacienteRoutes from './routes/pacienteRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
@@ -60,6 +61,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/payments/webhook', webhookLimiter);
+app.use('/api', userRoutes);
 app.use('/api', pharmacistRoutes);
 app.use('/api', pacienteRoutes);
 app.use('/api', appointmentRoutes);
