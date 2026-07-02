@@ -45,6 +45,7 @@ model User {
   filaUrgenteComoPaciente      FilaUrgente[]       @relation("PacienteFilaUrgente")
   filaUrgenteComoFarmaceutico  FilaUrgente[]       @relation("FarmaceuticoFilaUrgente")
   farmaceuticoStatus           FarmaceuticoStatus?
+  dependentes                  DependentProfile[]  @relation("TitularDependentes")
 }
 
 model PacienteProfile {
@@ -167,27 +168,48 @@ model SistemaHorario {
 }
 
 model FilaAgendada {
-  id              String   @id @default(uuid())
+  id              String            @id @default(uuid())
   pacienteId      String
-  paciente        User     @relation("PacienteFilaAgendada", fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente        User              @relation("PacienteFilaAgendada", fields: [pacienteId], references: [id], onDelete: Cascade)
   dataHora        DateTime
-  status          String   @default("aguardando")
+  status          String            @default("aguardando")
   farmaceuticoId  String?
-  farmaceutico    User?    @relation("FarmaceuticoFilaAgendada", fields: [farmaceuticoId], references: [id])
-  creditoDebitado Decimal  @db.Decimal(10, 2)
-  criadoEm       DateTime @default(now())
+  farmaceutico    User?             @relation("FarmaceuticoFilaAgendada", fields: [farmaceuticoId], references: [id])
+  creditoDebitado Decimal           @db.Decimal(10, 2)
+  criadoEm        DateTime          @default(now())
+  dependentId     String?
+  dependent       DependentProfile? @relation("DependenteFilaAgendada", fields: [dependentId], references: [id])
 }
 
 model FilaUrgente {
-  id              String    @id @default(uuid())
+  id              String            @id @default(uuid())
   pacienteId      String
-  paciente        User      @relation("PacienteFilaUrgente", fields: [pacienteId], references: [id], onDelete: Cascade)
-  status          String    @default("aguardando")
+  paciente        User              @relation("PacienteFilaUrgente", fields: [pacienteId], references: [id], onDelete: Cascade)
+  status          String            @default("aguardando")
   farmaceuticoId  String?
-  farmaceutico    User?     @relation("FarmaceuticoFilaUrgente", fields: [farmaceuticoId], references: [id])
-  creditoDebitado Decimal   @db.Decimal(10, 2)
-  criadoEm       DateTime  @default(now())
-  aceitoEm       DateTime?
+  farmaceutico    User?             @relation("FarmaceuticoFilaUrgente", fields: [farmaceuticoId], references: [id])
+  creditoDebitado Decimal           @db.Decimal(10, 2)
+  criadoEm        DateTime          @default(now())
+  aceitoEm        DateTime?
+  dependentId     String?
+  dependent       DependentProfile? @relation("DependenteFilaUrgente", fields: [dependentId], references: [id])
+}
+
+model DependentProfile {
+  id                      String         @id @default(uuid())
+  ownerId                 String
+  owner                   User           @relation("TitularDependentes", fields: [ownerId], references: [id], onDelete: Cascade)
+  nome                    String
+  dataNascimento          DateTime
+  sexo                    String
+  parentesco              String?
+  ativo                   Boolean        @default(true)
+  aceitouResponsabilidade Boolean        @default(false)
+  dadosSaude              Json?
+  criadoEm                DateTime       @default(now())
+  atualizadoEm            DateTime       @updatedAt
+  filaAgendada            FilaAgendada[] @relation("DependenteFilaAgendada")
+  filaUrgente             FilaUrgente[]  @relation("DependenteFilaUrgente")
 }
 
 model FarmaceuticoStatus {

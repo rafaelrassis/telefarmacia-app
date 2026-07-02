@@ -56,28 +56,58 @@ export const saveHorarios = async (req, res) => {
 
 // ── GET /api/sistema/aberto ──────────────────────────────────────────────────
 
+const DIAS_PT = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+async function getProximaAbertura(currentDow) {
+  try {
+    const ativos = await prisma.sistemaHorario.findMany({ where: { ativo: true } });
+    for (let i = 1; i <= 7; i++) {
+      const nextDow = (currentDow + i) % 7;
+      const h = ativos.find((x) => x.diaSemana === nextDow);
+      if (h) {
+        return { dia: i === 1 ? 'amanhã' : DIAS_PT[nextDow], hora: h.horaInicio };
+      }
+    }
+  } catch {}
+  return null;
+}
+
 export const isSistemaAberto = async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache');
   try {
     const br  = nowInBR();
     const dow = br.getDay();
+    const agora = timeStr(br);
     const horario = await prisma.sistemaHorario.findUnique({ where: { diaSemana: dow } });
 
     if (!horario || !horario.ativo) {
-      return res.status(200).json({ aberto: false, motivo: 'O sistema não funciona neste dia.' });
+      const proximaAbertura = await getProximaAbertura(dow);
+      return res.status(200).json({
+        aberto: false,
+        motivo: 'O sistema não funciona neste dia.',
+        proximaAbertura,
+      });
     }
 
-    const agora  = timeStr(br);
     const aberto = agora >= horario.horaInicio && agora < horario.horaFim;
+
+    let proximaAbertura = null;
+    if (!aberto) {
+      if (agora < horario.horaInicio) {
+        proximaAbertura = { dia: 'hoje', hora: horario.horaInicio };
+      } else {
+        proximaAbertura = await getProximaAbertura(dow);
+      }
+    }
 
     return res.status(200).json({
       aberto,
       horaInicio: horario.horaInicio,
       horaFim:    horario.horaFim,
       motivo: aberto ? null : `Fora do horário. Funciona das ${horario.horaInicio} às ${horario.horaFim}.`,
+      proximaAbertura,
     });
   } catch {
-    // Se nenhum horário foi configurado, deixa aberto por padrão
     return res.status(200).json({ aberto: true });
   }
 };

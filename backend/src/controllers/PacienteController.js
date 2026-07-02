@@ -196,54 +196,78 @@ export const getAgendamentos = async (req, res) => {
   }
   const patientId = req.user.id;
   console.log('[getAgendamentos] userId da sessão (JWT):', patientId, '| email:', req.user.email);
-  const { de, ate, status, page = '1', limit = '10' } = req.query;
+  const { de, ate, status, page = '1', limit = '10', dependentId } = req.query;
 
   const pageNum  = Math.max(1, parseInt(page));
   const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
   const skip     = (pageNum - 1) * limitNum;
 
   try {
+    // Se dependentId informado, valida posse antes de qualquer query
+    if (dependentId) {
+      const dep = await prisma.dependentProfile.findFirst({
+        where: { id: dependentId, ownerId: patientId },
+      });
+      if (!dep) {
+        return res.status(403).json({ error: 'Dependente não encontrado ou sem permissão.' });
+      }
+    }
+
+    // Filtro de dependentId: null = IS NULL (titular), string = valor exato
+    const depFilter = dependentId ? dependentId : null;
+
     const [appointments, agendadas, urgentes] = await Promise.all([
-      prisma.appointment.findMany({
-        where: { patientId },
-        include: {
-          pharmacist: { select: { name: true } },
-          avaliacao:  { select: { nota: true, comentario: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
+      // Appointments legados não têm dependentId — exibir somente para titular
+      dependentId
+        ? Promise.resolve([])
+        : prisma.appointment.findMany({
+            where: { patientId },
+            include: {
+              pharmacist: { select: { name: true } },
+              avaliacao:  { select: { nota: true, comentario: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          }),
       prisma.filaAgendada.findMany({
-        where: { pacienteId: patientId },
+        where: { pacienteId: patientId, dependentId: depFilter },
         include: { farmaceutico: { select: { name: true } } },
         orderBy: { criadoEm: 'desc' },
       }),
       prisma.filaUrgente.findMany({
-        where: { pacienteId: patientId },
+        where: { pacienteId: patientId, dependentId: depFilter },
         include: { farmaceutico: { select: { name: true } } },
         orderBy: { criadoEm: 'desc' },
       }),
     ]);
 
-    // Busca receitaPdfUrl em lote para itens de fila (requer migration-receita-campos)
-    const urlMap = {};
+    // Busca receitaPdfUrl + pessoaNome + dependentId em lote para itens de fila
+    const urlMap  = {};
+    const pessoaMap = {};
+    const depIdMap  = {};
     try {
       const agIds = agendadas.map((f) => f.id);
       const urIds = urgentes.map((f) => f.id);
       const [rowsA, rowsU] = await Promise.all([
         agIds.length > 0
           ? prisma.$queryRawUnsafe(
-              `SELECT id, "receita_pdf_url" FROM "FilaAgendada" WHERE id = ANY($1::text[]) AND "receita_pdf_url" IS NOT NULL`,
+              `SELECT id, "receita_pdf_url", triagem->>'paciente_nome' AS pessoa_nome, "dependentId"
+               FROM "FilaAgendada" WHERE id = ANY($1::text[])`,
               agIds
             )
           : Promise.resolve([]),
         urIds.length > 0
           ? prisma.$queryRawUnsafe(
-              `SELECT id, "receita_pdf_url" FROM "FilaUrgente" WHERE id = ANY($1::text[]) AND "receita_pdf_url" IS NOT NULL`,
+              `SELECT id, "receita_pdf_url", triagem->>'paciente_nome' AS pessoa_nome, "dependentId"
+               FROM "FilaUrgente" WHERE id = ANY($1::text[])`,
               urIds
             )
           : Promise.resolve([]),
       ]);
-      [...rowsA, ...rowsU].forEach((r) => { urlMap[r.id] = r.receita_pdf_url; });
+      [...rowsA, ...rowsU].forEach((r) => {
+        if (r.receita_pdf_url) urlMap[r.id]  = r.receita_pdf_url;
+        if (r.pessoa_nome)     pessoaMap[r.id] = r.pessoa_nome;
+        if (r.dependentId)     depIdMap[r.id]  = r.dependentId;
+      });
     } catch {}
 
     let normalized = [
@@ -264,7 +288,9 @@ export const getAgendamentos = async (req, res) => {
         farmaceutico:    f.farmaceutico ? { name: f.farmaceutico.name } : null,
         recommendations: null, avaliacao: null,
         creditoDebitado: Number(f.creditoDebitado),
-        receitaPdfUrl:   urlMap[f.id] ?? null,
+        receitaPdfUrl:   urlMap[f.id]   ?? null,
+        pessoaNome:      pessoaMap[f.id] ?? null,
+        dependentId:     depIdMap[f.id]  ?? null,
       })),
       ...urgentes.map((f) => ({
         id: f.id, tipo: 'urgente',
@@ -273,7 +299,9 @@ export const getAgendamentos = async (req, res) => {
         farmaceutico:    f.farmaceutico ? { name: f.farmaceutico.name } : null,
         recommendations: null, avaliacao: null,
         creditoDebitado: Number(f.creditoDebitado),
-        receitaPdfUrl:   urlMap[f.id] ?? null,
+        receitaPdfUrl:   urlMap[f.id]   ?? null,
+        pessoaNome:      pessoaMap[f.id] ?? null,
+        dependentId:     depIdMap[f.id]  ?? null,
       })),
     ].sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
 
@@ -307,6 +335,36 @@ export const getAgendamentos = async (req, res) => {
   } catch (err) {
     console.error('getAgendamentos error:', err);
     return res.status(500).json({ error: 'Erro ao buscar agendamentos.' });
+  }
+};
+
+// ── GET /api/pacientes/dados-saude ──────────────────────────────────────────
+
+export const getDadosSaudeTitular = async (req, res) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT "dados_saude" FROM "PacienteProfile" WHERE "userId" = $1`,
+      req.user.id
+    );
+    const dadosSaude = rows.length > 0 ? (rows[0].dados_saude ?? {}) : {};
+    return res.status(200).json({ dadosSaude });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao buscar dados de saúde.' });
+  }
+};
+
+// ── PATCH /api/pacientes/dados-saude ────────────────────────────────────────
+
+export const saveDadosSaudeTitular = async (req, res) => {
+  const { dadosSaude } = req.body;
+  try {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "PacienteProfile" SET "dados_saude" = $1::jsonb WHERE "userId" = $2`,
+      JSON.stringify(dadosSaude ?? {}), req.user.id
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao salvar dados de saúde.' });
   }
 };
 

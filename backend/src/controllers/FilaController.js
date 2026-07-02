@@ -21,7 +21,7 @@ function timeStr(date) {
 // ── POST /api/fila/agendar ───────────────────────────────────────────────────
 
 export const agendarConsulta = async (req, res) => {
-  const { data_hora, triagem } = req.body;
+  const { data_hora, triagem, dependentId } = req.body;
   if (!data_hora) return res.status(400).json({ error: 'data_hora é obrigatória.' });
 
   // Parse date components directly from string to avoid TZ issues in day-of-week check
@@ -48,6 +48,14 @@ export const agendarConsulta = async (req, res) => {
       return res.status(400).json({ error: 'O sistema não funciona neste dia da semana.' });
     }
 
+    // Valida dependentId: deve pertencer ao titular
+    if (dependentId) {
+      const dep = await prisma.dependentProfile.findFirst({
+        where: { id: dependentId, ownerId: patientId, ativo: true },
+      });
+      if (!dep) return res.status(403).json({ error: 'Dependente não encontrado ou não pertence a esta conta.' });
+    }
+
     const carteira = await prisma.carteira.findUnique({ where: { pacienteId: patientId } });
     if (!carteira || Number(carteira.saldo) < PRECO) {
       return res.status(402).json({
@@ -61,7 +69,13 @@ export const agendarConsulta = async (req, res) => {
         data: { saldo: { decrement: PRECO } },
       });
       const nova = await tx.filaAgendada.create({
-        data: { pacienteId: patientId, dataHora, creditoDebitado: PRECO, status: 'aguardando' },
+        data: {
+          pacienteId: patientId,
+          dataHora,
+          creditoDebitado: PRECO,
+          status: 'aguardando',
+          ...(dependentId && { dependentId }),
+        },
       });
       if (triagem) {
         try {
@@ -89,7 +103,7 @@ export const agendarConsulta = async (req, res) => {
 // ── POST /api/fila/urgente ───────────────────────────────────────────────────
 
 export const agendarUrgente = async (req, res) => {
-  const { triagem } = req.body;
+  const { triagem, dependentId } = req.body;
   const patientId = req.user.id;
 
   try {
@@ -121,6 +135,14 @@ export const agendarUrgente = async (req, res) => {
       });
     }
 
+    // Valida dependentId: deve pertencer ao titular
+    if (dependentId) {
+      const dep = await prisma.dependentProfile.findFirst({
+        where: { id: dependentId, ownerId: patientId, ativo: true },
+      });
+      if (!dep) return res.status(403).json({ error: 'Dependente não encontrado ou não pertence a esta conta.' });
+    }
+
     const carteira = await prisma.carteira.findUnique({ where: { pacienteId: patientId } });
     if (!carteira || Number(carteira.saldo) < PRECO) {
       return res.status(402).json({
@@ -134,7 +156,12 @@ export const agendarUrgente = async (req, res) => {
         data: { saldo: { decrement: PRECO } },
       });
       const nova = await tx.filaUrgente.create({
-        data: { pacienteId: patientId, creditoDebitado: PRECO, status: 'aguardando' },
+        data: {
+          pacienteId: patientId,
+          creditoDebitado: PRECO,
+          status: 'aguardando',
+          ...(dependentId && { dependentId }),
+        },
       });
       if (triagem) {
         try {

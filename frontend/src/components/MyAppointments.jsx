@@ -80,7 +80,7 @@ const Stars = ({ value, onChange, readonly = false, size = 'text-xl' }) => (
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-const MyAppointments = ({ onCancelled }) => {
+const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) => {
   const { token, user, activeEnv } = useAuth();
   const isPharmacist = activeEnv === 'pharmacist';
 
@@ -100,6 +100,7 @@ const MyAppointments = ({ onCancelled }) => {
   // Cancelar item de fila (paciente)
   const [confirmCancelFila, setConfirmCancelFila] = useState(null);
   const [cancellingFilaId,  setCancellingFilaId]  = useState(null);
+  const [cancelToast,       setCancelToast]       = useState(null);
 
   // Estado legado
   const [completingAppointment, setCompletingAppointment] = useState(null);
@@ -149,9 +150,10 @@ const MyAppointments = ({ onCancelled }) => {
     let cancelled = false;
 
     const params = new URLSearchParams({ page: '1', limit: '10' });
-    if (filterDe)     params.set('de',     filterDe);
-    if (filterAte)    params.set('ate',    filterAte);
-    if (filterStatus) params.set('status', filterStatus);
+    if (filterDe)            params.set('de',          filterDe);
+    if (filterAte)           params.set('ate',         filterAte);
+    if (filterStatus)        params.set('status',      filterStatus);
+    if (selectedPerson?.id)  params.set('dependentId', selectedPerson.id);
 
     setLoading(true);
     setPage(1);
@@ -170,15 +172,41 @@ const MyAppointments = ({ onCancelled }) => {
       .catch(() => setLoading(false));
 
     return () => { cancelled = true; };
-  }, [isPharmacist, token, filterDe, filterAte, filterStatus]);
+  }, [isPharmacist, token, filterDe, filterAte, filterStatus, selectedPerson?.id, refreshKey]);
+
+  // Polling silencioso a cada 20s (paciente) — pausa quando aba está em segundo plano
+  useEffect(() => {
+    if (isPharmacist) return;
+    const poll = async () => {
+      if (document.hidden) return;
+      const params = new URLSearchParams({ page: '1', limit: '10' });
+      if (filterDe)            params.set('de',          filterDe);
+      if (filterAte)           params.set('ate',         filterAte);
+      if (filterStatus)        params.set('status',      filterStatus);
+      if (selectedPerson?.id)  params.set('dependentId', selectedPerson.id);
+      try {
+        const res = await fetch(`${API_URL}/api/paciente/agendamentos?${params}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setAppointments(data.items);
+        setHasMore(data.hasMore);
+        setTotal(data.total);
+      } catch {}
+    };
+    const id = setInterval(poll, 20000);
+    return () => clearInterval(id);
+  }, [isPharmacist, token, filterDe, filterAte, filterStatus, selectedPerson?.id]);
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
     setLoadingMore(true);
     const params = new URLSearchParams({ page: String(nextPage), limit: '10' });
-    if (filterDe)     params.set('de',     filterDe);
-    if (filterAte)    params.set('ate',    filterAte);
-    if (filterStatus) params.set('status', filterStatus);
+    if (filterDe)            params.set('de',          filterDe);
+    if (filterAte)           params.set('ate',         filterAte);
+    if (filterStatus)        params.set('status',      filterStatus);
+    if (selectedPerson?.id)  params.set('dependentId', selectedPerson.id);
     const loadMoreUrl = isPharmacist
       ? `${API_URL}/api/farmaceutico/consultas?${params}`
       : `${API_URL}/api/paciente/agendamentos?${params}`;
@@ -264,6 +292,11 @@ const MyAppointments = ({ onCancelled }) => {
       if (res.ok) {
         setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: 'cancelado' } : a));
         onCancelled?.();
+        setCancelToast({ type: 'success', msg: 'Consulta cancelada. Créditos devolvidos ao seu saldo.' });
+        setTimeout(() => setCancelToast(null), 4000);
+      } else {
+        setCancelToast({ type: 'error', msg: 'Não foi possível cancelar — tente novamente.' });
+        setTimeout(() => setCancelToast(null), 4000);
       }
     } finally {
       setCancellingFilaId(null);
@@ -274,6 +307,17 @@ const MyAppointments = ({ onCancelled }) => {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full mt-8">
+
+      {/* Toast de resultado de cancelamento */}
+      {cancelToast && (
+        <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
+          cancelToast.type === 'success'
+            ? 'bg-green-50 border border-green-200 text-green-800'
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {cancelToast.type === 'success' ? '✓' : '✕'} {cancelToast.msg}
+        </div>
+      )}
 
       {/* Modal: confirmar cancelamento legado */}
       {confirmCancel && (
@@ -489,7 +533,11 @@ const MyAppointments = ({ onCancelled }) => {
       {loading ? (
         <p className="text-gray-400 text-sm italic py-4">Carregando...</p>
       ) : appointments.length === 0 ? (
-        <p className="text-gray-500 italic">Nenhum agendamento encontrado.</p>
+        <p className="text-gray-500 italic">
+          {!isPharmacist && selectedPerson
+            ? `Nenhuma consulta para ${selectedPerson.nome}.`
+            : 'Nenhum agendamento encontrado.'}
+        </p>
       ) : (
         <>
           <div className="space-y-4">
@@ -534,9 +582,11 @@ const MyAppointments = ({ onCancelled }) => {
                         )}
                       </>
                     ) : (
-                      <p className="text-sm text-gray-600">
-                        {nomeFarm ? `Farmacêutico(a): ${nomeFarm}` : 'Farmacêutico: aguardando atribuição'}
-                      </p>
+                      <>
+                        <p className="text-sm text-gray-600">
+                          {nomeFarm ? `Farmacêutico(a): ${nomeFarm}` : 'Farmacêutico: aguardando atribuição'}
+                        </p>
+                      </>
                     )}
 
                     {/* Status com dot colorido */}

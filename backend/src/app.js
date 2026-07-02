@@ -17,6 +17,7 @@ import avaliacaoRoutes from './routes/avaliacaoRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import filaRoutes from './routes/filaRoutes.js';
 import consultaRoutes from './routes/consultaRoutes.js';
+import dependentRoutes from './routes/dependentRoutes.js';
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/api', avaliacaoRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', filaRoutes);
 app.use('/api', consultaRoutes);
+app.use('/api', dependentRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado.' });

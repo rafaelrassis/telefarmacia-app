@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { formatIdade } from '../utils/formatIdade.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const toLocalDateStr = (date = new Date()) => {
   const d = new Date(date);
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+};
+
+const calcIdade = (dataNascimento) => {
+  if (!dataNascimento) return null;
+  const hoje = new Date();
+  const nasc  = new Date(dataNascimento);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  if (
+    hoje.getMonth() < nasc.getMonth() ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+  ) idade--;
+  return idade;
 };
 
 const SINAIS_ALERTA = [
@@ -18,6 +31,26 @@ const SINAIS_ALERTA = [
   'Alteração do nível de consciência',
   'Sintomas em criança pequena, gestante ou idoso',
 ];
+
+const PARENTESCO_LABEL = {
+  filho_a: 'Filho(a)',
+  conjuge: 'Cônjuge',
+  pai_mae: 'Pai/Mãe',
+  irmao_a: 'Irmão(ã)',
+  outro: 'Outro',
+};
+
+const DEP_COLORS = [
+  'from-pink-400 to-rose-500',
+  'from-amber-400 to-orange-500',
+  'from-teal-400 to-cyan-500',
+  'from-indigo-400 to-blue-500',
+  'from-lime-400 to-green-500',
+  'from-fuchsia-400 to-purple-500',
+];
+
+const initials = (name = '') =>
+  name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
 
 const inp = {
   width: '100%', boxSizing: 'border-box',
@@ -71,7 +104,19 @@ const Slider = ({ value, onChange, label }) => (
   </div>
 );
 
-const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm, onBooked, onAddCredits, loading = false, pacienteNome = '', pacienteIdade = null }) => {
+const TriagemForm = ({
+  tipo = 'urgente',
+  modoUrgente = false,
+  onBack,
+  onConfirm,
+  onBooked,
+  onAddCredits,
+  loading = false,
+  pacienteNome = '',
+  pacienteIdade = null,
+  preSelectedPerson = null,
+  dependentes = [],
+}) => {
   const isAgendado = tipo === 'agendado';
   const { token } = useAuth();
   const today = toLocalDateStr();
@@ -85,6 +130,15 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
   const [agResult, setAgResult] = useState(null);
   const [agErrorMsg, setAgErrorMsg] = useState('');
   const [agInsuficiente, setAgInsuficiente] = useState(false);
+
+  // ── Pessoa selecionada para a consulta ─────────────────────────────────────
+  // null = titular; objeto = dependente
+  const [selectedPerson, setSelectedPerson] = useState(preSelectedPerson);
+
+  // ── Dados do perfil do titular (carregados do backend) ─────────────────────
+  const [perfilIdade, setPerfilIdade]   = useState(pacienteIdade);
+  const [perfilSexo, setPerfilSexo]     = useState('');
+  const [perfilPeso, setPerfilPeso]     = useState('');
 
   useEffect(() => {
     if (!isAgendado) return;
@@ -105,6 +159,7 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
       .finally(() => setLoadingSlots(false));
   }, [isAgendado, selectedDate]);
 
+  // Carrega perfil do titular
   useEffect(() => {
     fetch(`${API_URL}/api/pacientes/perfil`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -112,37 +167,18 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
         if (!d) return;
         const sexoVal = d.genero?.toLowerCase() || '';
         setPerfilSexo(sexoVal);
-        setSexo(sexoVal);
         if (d.data_nascimento) {
-          setPerfilIdade(new Date().getFullYear() - new Date(d.data_nascimento).getFullYear());
+          setPerfilIdade(calcIdade(d.data_nascimento));
         }
         if (d.peso) {
           const pesoStr = String(d.peso);
           setPerfilPeso(pesoStr);
-          setPeso(pesoStr);
         }
       })
       .catch(() => {});
   }, [token]);
 
-  const handleAgendadoConfirm = async (triagem) => {
-    setAgStep('loading');
-    const data_hora = `${selectedDate}T${selectedSlot}:00`;
-    try {
-      const res = await fetch(`${API_URL}/api/fila/agendar`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data_hora, triagem: triagem || null }),
-      });
-      const data = await res.json();
-      if (res.ok) { setAgResult(data); setAgStep('success'); onBooked?.(); }
-      else if (res.status === 402) { setAgInsuficiente(true); setAgErrorMsg(data.error || 'Saldo insuficiente.'); setAgStep('error'); }
-      else { setAgErrorMsg(data.error || 'Erro ao realizar agendamento.'); setAgStep('error'); }
-    } catch { setAgErrorMsg('Falha de conexão. Tente novamente.'); setAgStep('error'); }
-  };
-
-  const saldoOk = walletBalance !== null && walletBalance > 0;
-
+  // ── Campos de triagem ────────────────────────────────────────────────────────
   const [sexo, setSexo] = useState('');
   const [peso, setPeso] = useState('');
   const [tipoConsulta, setTipoConsulta] = useState(null);
@@ -181,28 +217,54 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
 
   const [temReceita, setTemReceita] = useState(false);
 
-  const [paraQuem, setParaQuem] = useState('eu');
-  const [pacienteNomeInput, setPacienteNomeInput] = useState(pacienteNome || '');
-  const [outroPacienteIdade, setOutroPacienteIdade] = useState('');
-  const [outroPacienteRelacao, setOutroPacienteRelacao] = useState('');
-  const [perfilIdade, setPerfilIdade] = useState(null);
-  const [perfilSexo, setPerfilSexo] = useState('');
-  const [perfilPeso, setPerfilPeso] = useState('');
-
-  const handleSetParaQuem = (val) => {
-    setParaQuem(val);
-    if (val === 'eu') {
-      setPacienteNomeInput(pacienteNome || '');
+  // Quando muda a pessoa selecionada, atualiza sexo e peso
+  useEffect(() => {
+    if (selectedPerson === null) {
+      // titular
       setSexo(perfilSexo);
       setPeso(perfilPeso);
     } else {
-      setPacienteNomeInput('');
-      setSexo('');
-      setPeso('');
-      setOutroPacienteIdade('');
-      setOutroPacienteRelacao('');
+      // dependente
+      setSexo(selectedPerson.sexo?.toLowerCase() || '');
+      const dadosPeso = selectedPerson.dadosSaude?.peso;
+      setPeso(dadosPeso ? String(dadosPeso) : '');
     }
+  }, [selectedPerson, perfilSexo, perfilPeso]);
+
+  // Após carregar perfilSexo/perfilPeso, se titular ainda selecionado, prefill
+  useEffect(() => {
+    if (selectedPerson === null) {
+      setSexo(perfilSexo);
+      setPeso(perfilPeso);
+    }
+  }, [perfilSexo, perfilPeso]);
+
+  const pessoaNome = selectedPerson ? selectedPerson.nome : (pacienteNome || '');
+  const pessoaIdade = selectedPerson
+    ? calcIdade(selectedPerson.dataNascimento)
+    : perfilIdade;
+
+  const handleAgendadoConfirm = async (triagem) => {
+    setAgStep('loading');
+    const data_hora = `${selectedDate}T${selectedSlot}:00`;
+    try {
+      const res = await fetch(`${API_URL}/api/fila/agendar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data_hora,
+          triagem: triagem || null,
+          dependentId: selectedPerson?.id ?? undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) { setAgResult(data); setAgStep('success'); onBooked?.(); }
+      else if (res.status === 402) { setAgInsuficiente(true); setAgErrorMsg(data.error || 'Saldo insuficiente.'); setAgStep('error'); }
+      else { setAgErrorMsg(data.error || 'Erro ao realizar agendamento.'); setAgStep('error'); }
+    } catch { setAgErrorMsg('Falha de conexão. Tente novamente.'); setAgStep('error'); }
   };
+
+  const saldoOk = walletBalance !== null && walletBalance > 0;
 
   const temSinais = sinaisAlerta.length > 0;
   const bloqueadoPorAlerta = temSinais && !alertaConfirmado;
@@ -214,42 +276,40 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
     if (!tipoConsulta || bloqueadoPorAlerta) return;
     const isTrat = tipoConsulta === 'tratamento';
     const triagem = {
-      para_quem: paraQuem,
-      paciente_nome: pacienteNomeInput.trim() || null,
-      paciente_sexo: sexo || null,
-      paciente_idade: paraQuem === 'outro'
-        ? (outroPacienteIdade ? parseInt(outroPacienteIdade) : null)
-        : (perfilIdade ?? null),
-      paciente_peso: peso ? parseFloat(peso) : null,
-      paciente_relacao: paraQuem === 'outro' ? outroPacienteRelacao || null : null,
-      identificacao: { sexo: sexo || null, peso: peso ? parseFloat(peso) : null },
-      tipo_consulta: tipoConsulta,
-      queixa_principal: isTrat ? queixaPrincipal || null : null,
-      tempo_sintomas: isTrat ? tempoSintomas || null : null,
+      dependent_id:             selectedPerson?.id ?? null,
+      paciente_nome:            pessoaNome || null,
+      paciente_sexo:            sexo || null,
+      paciente_idade:           pessoaIdade ?? null,
+      paciente_data_nascimento: selectedPerson?.dataNascimento ?? null,
+      paciente_peso:   peso ? parseFloat(peso) : null,
+      identificacao:   { sexo: sexo || null, peso: peso ? parseFloat(peso) : null },
+      tipo_consulta:   tipoConsulta,
+      queixa_principal:  isTrat ? queixaPrincipal || null : null,
+      tempo_sintomas:    isTrat ? tempoSintomas || null : null,
       evolucao_sintomas: isTrat ? evolucaoSintomas || null : null,
-      localizacao: isTrat ? localizacao || null : null,
-      intensidade: isTrat ? intensidade : null,
-      febre: isTrat ? febre : null,
-      temperatura: (isTrat && febre) ? temperatura || null : null,
-      dor: isTrat ? dor : null,
-      intensidade_dor: (isTrat && dor) ? intensidadeDor : null,
-      outros_sintomas: isTrat ? outrosSintomas || null : null,
-      doenca_cronica: isTrat ? doencaCronica : null,
-      qual_doenca: (isTrat && doencaCronica) ? qualDoenca || null : null,
+      localizacao:       isTrat ? localizacao || null : null,
+      intensidade:       isTrat ? intensidade : null,
+      febre:             isTrat ? febre : null,
+      temperatura:       (isTrat && febre) ? temperatura || null : null,
+      dor:               isTrat ? dor : null,
+      intensidade_dor:   (isTrat && dor) ? intensidadeDor : null,
+      outros_sintomas:   isTrat ? outrosSintomas || null : null,
+      doenca_cronica:    isTrat ? doencaCronica : null,
+      qual_doenca:       (isTrat && doencaCronica) ? qualDoenca || null : null,
       gravida_amamentando: isTrat ? gravidaAmamentando : null,
-      problema_anterior: isTrat ? problemaAnterior : null,
+      problema_anterior:   isTrat ? problemaAnterior : null,
       acompanhamento_medico: isTrat ? acompanhamentoMedico : null,
-      exercicios: isTrat ? exercicios : null,
+      exercicios:          isTrat ? exercicios : null,
       medicamentos_atuais: isTrat ? medicamentosAtuais : null,
-      quais_medicamentos: (isTrat && medicamentosAtuais) ? quaisMedicamentos || null : null,
+      quais_medicamentos:  (isTrat && medicamentosAtuais) ? quaisMedicamentos || null : null,
       medicamento_problema: isTrat ? medicamentoProblema : null,
-      houve_melhora: (isTrat && medicamentoProblema) ? houveMelhora : null,
+      houve_melhora:       (isTrat && medicamentoProblema) ? houveMelhora : null,
       alergia_medicamento: alergiasMedicamento,
-      quais_alergias: alergiasMedicamento ? quaisAlergias || null : null,
-      outras_alergias: outrasAlergias,
+      quais_alergias:      alergiasMedicamento ? quaisAlergias || null : null,
+      outras_alergias:     outrasAlergias,
       quais_outras_alergias: outrasAlergias ? quaisOutrasAlergias || null : null,
-      sinais_alerta: sinaisAlerta,
-      receita_anexo: temReceita,
+      sinais_alerta:  sinaisAlerta,
+      receita_anexo:  temReceita,
     };
     if (isAgendado) { handleAgendadoConfirm(triagem); } else { onConfirm(triagem); }
   };
@@ -269,6 +329,78 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
       {label}
     </button>
   );
+
+  // ── Chip seletor dentro da triagem ─────────────────────────────────────────
+  const renderPessoaSelector = () => {
+    const todosAtivos = dependentes.filter(d => d.ativo);
+    if (todosAtivos.length === 0) return null;
+
+    return (
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+          {/* Titular */}
+          <button
+            type="button"
+            onClick={() => setSelectedPerson(null)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: selectedPerson === null ? 700 : 500,
+              border: selectedPerson === null ? '2px solid #7c3aed' : '1.5px solid #e5e7eb',
+              background: selectedPerson === null ? '#f5f3ff' : 'white',
+              color: selectedPerson === null ? '#5b21b6' : '#374151',
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            <span style={{
+              width: 18, height: 18, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 7, fontWeight: 700, color: 'white', flexShrink: 0,
+            }}>
+              {initials(pacienteNome)}
+            </span>
+            {pacienteNome?.split(' ')[0] || 'Eu'}
+            <span style={{ fontSize: 10, color: selectedPerson === null ? '#7c3aed' : '#9ca3af' }}>(eu)</span>
+          </button>
+
+          {/* Dependentes */}
+          {todosAtivos.map((dep, idx) => {
+            const isSelected = selectedPerson?.id === dep.id;
+            return (
+              <button
+                key={dep.id}
+                type="button"
+                onClick={() => setSelectedPerson(dep)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: isSelected ? 700 : 500,
+                  border: isSelected ? '2px solid #7c3aed' : '1.5px solid #e5e7eb',
+                  background: isSelected ? '#f5f3ff' : 'white',
+                  color: isSelected ? '#5b21b6' : '#374151',
+                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+              >
+                <span style={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${DEP_COLORS[idx % DEP_COLORS.length].replace('from-', '').replace(' to-', ',')})`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 7, fontWeight: 700, color: 'white', flexShrink: 0,
+                }}>
+                  {initials(dep.nome)}
+                </span>
+                {dep.nome.split(' ')[0]}
+                {(dep.parentesco || dep.dataNascimento) && (
+                  <span style={{ fontSize: 10, color: isSelected ? '#7c3aed' : '#9ca3af' }}>
+                    {[dep.parentesco ? (PARENTESCO_LABEL[dep.parentesco] ?? dep.parentesco) : null, formatIdade(dep.dataNascimento)].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   if (isAgendado && agStep === 'select') return (
     <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
@@ -421,9 +553,13 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
             Etapa 2 de 2
           </span>
         </div>
-        {(pacienteNome || pacienteIdade !== null) && (
+        {(pessoaNome || pessoaIdade !== null) && (
           <p style={{ fontSize: 12, color: '#9ca3af', margin: '2px 0 0' }}>
-            {pacienteNome}{pacienteNome && pacienteIdade !== null ? ' · ' : ''}{pacienteIdade !== null ? `${pacienteIdade} anos` : ''}
+            {pessoaNome}
+            {pessoaNome && (selectedPerson?.dataNascimento || pessoaIdade !== null) ? ' · ' : ''}
+            {selectedPerson?.dataNascimento
+              ? formatIdade(selectedPerson.dataNascimento)
+              : pessoaIdade !== null ? `${pessoaIdade} anos` : ''}
           </p>
         )}
       </div>
@@ -431,39 +567,27 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
       {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 24px 16px' }}>
 
-        {/* Para quem é a consulta */}
-        <p style={sec}>Para quem é a consulta?</p>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-          {[['eu', '👤 Para mim'], ['outro', '👥 Para outra pessoa']].map(([v, label]) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => handleSetParaQuem(v)}
-              style={{
-                flex: 1, padding: '12px 8px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: `2px solid ${paraQuem === v ? '#2563eb' : '#e5e7eb'}`,
-                background: paraQuem === v ? '#eff6ff' : 'white',
-                color: paraQuem === v ? '#1d4ed8' : '#374151', cursor: 'pointer',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Seletor de perfil (só aparece se há dependentes) */}
+        {dependentes.filter(d => d.ativo).length > 0 && (
+          <>
+            <p style={sec}>Para quem é a consulta?</p>
+            {renderPessoaSelector()}
+          </>
+        )}
 
         {/* 1. Identificação */}
         <p style={sec}>1. Identificação</p>
-        <div style={{ marginBottom: 12 }}>
-          <label style={lbl}>
-            Nome do paciente{paraQuem === 'outro' && <span style={{ color: '#ef4444' }}> *</span>}
-          </label>
-          <input
-            type="text"
-            value={pacienteNomeInput}
-            onChange={(e) => setPacienteNomeInput(e.target.value)}
-            placeholder={paraQuem === 'eu' ? 'Seu nome' : 'Nome completo do paciente'}
-            style={inp}
-          />
+        {/* Nome exibido como readonly */}
+        <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: 12, color: '#6b7280', display: 'block', marginBottom: 2 }}>Paciente</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{pessoaNome || '—'}</span>
+          {(selectedPerson?.dataNascimento || pessoaIdade !== null) && (
+            <span style={{ fontSize: 13, color: '#6b7280', marginLeft: 8 }}>
+              {selectedPerson?.dataNascimento
+                ? formatIdade(selectedPerson.dataNascimento)
+                : `${pessoaIdade} anos`}
+            </span>
+          )}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
@@ -480,24 +604,6 @@ const TriagemForm = ({ tipo = 'urgente', modoUrgente = false, onBack, onConfirm,
             <input type="number" min={1} max={300} value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="Ex: 70" style={inp} />
           </div>
         </div>
-        {paraQuem === 'outro' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={lbl}>Idade</label>
-              <input type="number" min={0} max={120} value={outroPacienteIdade} onChange={(e) => setOutroPacienteIdade(e.target.value)} placeholder="Ex: 8" style={inp} />
-            </div>
-            <div>
-              <label style={lbl}>Relação (opcional)</label>
-              <select value={outroPacienteRelacao} onChange={(e) => setOutroPacienteRelacao(e.target.value)} style={inp}>
-                <option value="">Selecionar</option>
-                <option value="filho_a">Filho(a)</option>
-                <option value="conjuge">Cônjuge</option>
-                <option value="pai_mae">Pai/Mãe</option>
-                <option value="outro">Outro</option>
-              </select>
-            </div>
-          </div>
-        )}
 
         {/* Objetivo */}
         <p style={sec}>Objetivo da consulta</p>

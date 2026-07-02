@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { formatIdade } from '../utils/formatIdade.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -170,8 +171,11 @@ const TriagemDisplay = ({ triagem, solicitanteNome }) => {
   const rows = [];
 
   if (triagem.para_quem) {
+    // Formato legado (para_quem presente)
     const nome = triagem.paciente_nome || '—';
-    const idadeStr = triagem.paciente_idade ? `, ${triagem.paciente_idade} anos` : '';
+    const idadeStr = triagem.paciente_data_nascimento
+      ? `, ${formatIdade(triagem.paciente_data_nascimento)}`
+      : triagem.paciente_idade != null ? `, ${triagem.paciente_idade} anos` : '';
     const relStr = triagem.paciente_relacao ? ` (${RELACAO_LABEL[triagem.paciente_relacao] || triagem.paciente_relacao})` : '';
     if (triagem.para_quem === 'eu') {
       rows.push({ label: 'Consulta para', value: `${nome} (para si mesmo)` });
@@ -179,6 +183,14 @@ const TriagemDisplay = ({ triagem, solicitanteNome }) => {
       const sol = solicitanteNome ? ` — solicitada por ${solicitanteNome}` : '';
       rows.push({ label: 'Consulta para', value: `${nome}${idadeStr}${relStr}${sol}` });
     }
+  } else if (triagem.paciente_nome) {
+    // Formato novo (sem para_quem, mas com paciente_nome)
+    const idadeFormatada = triagem.paciente_data_nascimento
+      ? formatIdade(triagem.paciente_data_nascimento)
+      : triagem.paciente_idade != null ? `${triagem.paciente_idade} anos` : null;
+    const partes = [triagem.paciente_nome, idadeFormatada].filter(Boolean);
+    const sol = solicitanteNome && triagem.dependent_id ? ` — solicitada por ${solicitanteNome}` : '';
+    rows.push({ label: 'Consulta para', value: `${partes.join(', ')}${sol}` });
   }
 
   if (triagem.tipo_consulta) rows.push({ label: 'Tipo de consulta', value: triagem.tipo_consulta === 'tratamento' ? 'Orientação de tratamento' : 'Tirar dúvida' });
