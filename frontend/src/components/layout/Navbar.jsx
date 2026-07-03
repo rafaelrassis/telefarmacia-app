@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -366,13 +366,82 @@ const PerfilModal = ({ onClose }) => {
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 
+const API_URL_NOTIF = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+function fmtRelativo(iso) {
+  const diff = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60)   return 'agora';
+  if (diff < 3600) return `há ${Math.round(diff / 60)} min`;
+  if (diff < 86400) return `há ${Math.round(diff / 3600)}h`;
+  return `há ${Math.round(diff / 86400)}d`;
+}
+
+const NOTIF_ICON = {
+  consulta_aceita: '✅',
+  lembrete_24h:    '🔔',
+  documento:       '📄',
+  estorno:         '💰',
+};
+
 const Navbar = () => {
-  const { user, logout, activeEnv, availableEnvs, setActiveEnv } = useAuth();
+  const { user, token, logout, activeEnv, availableEnvs, setActiveEnv } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen]         = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPerfil, setShowPerfil]     = useState(false);
   const dropRef = useRef(null);
+
+  // ── Notificações ─────────────────────────────────────────────────────────
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const [notifData,    setNotifData]    = useState({ naoLidas: 0, notificacoes: [] });
+  const notifRef = useRef(null);
+
+  const isPaciente = activeEnv === 'patient' && Boolean(user);
+
+  const fetchNotificacoes = useCallback(async () => {
+    if (!token || !isPaciente) return;
+    try {
+      const res = await fetch(`${API_URL_NOTIF}/api/paciente/notificacoes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setNotifData(await res.json());
+    } catch {}
+  }, [token, isPaciente]);
+
+  useEffect(() => {
+    fetchNotificacoes();
+    if (!isPaciente) return;
+    const id = setInterval(fetchNotificacoes, 30000);
+    return () => clearInterval(id);
+  }, [fetchNotificacoes, isPaciente]);
+
+  const handleOpenNotif = async () => {
+    setNotifOpen((v) => !v);
+    if (!notifOpen && notifData.naoLidas > 0) {
+      // Marcar como lidas
+      try {
+        await fetch(`${API_URL_NOTIF}/api/paciente/notificacoes/marcar-lidas`, {
+          method:  'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setNotifData((d) => ({
+          ...d,
+          naoLidas:      0,
+          notificacoes:  d.notificacoes.map((n) => ({ ...n, lida: true })),
+        }));
+      } catch {}
+    }
+  };
+
+  // Fecha painel de notificações ao clicar fora
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [notifOpen]);
 
   const handleLogout = () => { logout(); navigate('/entrar'); };
 
@@ -475,6 +544,70 @@ const Navbar = () => {
                   </div>
                 )}
 
+                {/* Sininho de notificações (só paciente) */}
+                {isPaciente && (
+                  <div className="relative" ref={notifRef}>
+                    <button
+                      onClick={handleOpenNotif}
+                      className="relative flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition text-slate-600"
+                      aria-label="Notificações"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      {notifData.naoLidas > 0 && (
+                        <span style={{
+                          position: 'absolute', top: -4, right: -4,
+                          background: '#ef4444', color: 'white',
+                          fontSize: 10, fontWeight: 700, lineHeight: 1,
+                          padding: '2px 5px', borderRadius: 10,
+                          minWidth: 16, textAlign: 'center',
+                        }}>
+                          {notifData.naoLidas > 9 ? '9+' : notifData.naoLidas}
+                        </span>
+                      )}
+                    </button>
+
+                    {notifOpen && (
+                      <div style={{
+                        position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+                        width: 320, background: 'white',
+                        border: '1px solid #e5e7eb', borderRadius: 14,
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                        zIndex: 60, overflow: 'hidden',
+                      }}>
+                        <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Notificações</span>
+                          {notifData.naoLidas > 0 && (
+                            <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>{notifData.naoLidas} não lida{notifData.naoLidas > 1 ? 's' : ''}</span>
+                          )}
+                        </div>
+                        <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                          {notifData.notificacoes.length === 0 ? (
+                            <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: '24px 16px' }}>Nenhuma notificação.</p>
+                          ) : notifData.notificacoes.map((n) => (
+                            <div key={n.id} style={{
+                              padding: '12px 16px', borderBottom: '1px solid #f9fafb',
+                              background: n.lida ? 'white' : '#f5f3ff',
+                              display: 'flex', gap: 10, alignItems: 'flex-start',
+                            }}>
+                              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.3 }}>{NOTIF_ICON[n.tipo] ?? '🔔'}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111827' }}>{n.titulo}</p>
+                                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>{n.mensagem}</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>{fmtRelativo(n.criadoEm)}</p>
+                              </div>
+                              {!n.lida && (
+                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0, marginTop: 5 }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Meu Perfil */}
                 <button
                   onClick={() => setShowPerfil(true)}
@@ -566,6 +699,19 @@ const Navbar = () => {
                 )}
 
                 <div className="border-t border-slate-100 pt-1">
+                  {isPaciente && (
+                    <button
+                      onClick={() => { setMenuOpen(false); handleOpenNotif(); }}
+                      className="flex items-center justify-between w-full text-left px-3 py-2 text-sm text-slate-600 rounded-lg hover:bg-slate-50"
+                    >
+                      <span>🔔 Notificações</span>
+                      {notifData.naoLidas > 0 && (
+                        <span style={{ background: '#ef4444', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>
+                          {notifData.naoLidas}
+                        </span>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => { setMenuOpen(false); setShowPerfil(true); }}
                     className="block w-full text-left px-3 py-2 text-sm text-slate-600 rounded-lg hover:bg-slate-50"

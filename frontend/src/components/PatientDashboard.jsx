@@ -5,6 +5,8 @@ import CheckoutPix from './CheckoutPix';
 import PatientProfileForm from './PatientProfileForm';
 import TriagemForm from './TriagemForm';
 import { formatIdade } from '../utils/formatIdade.js';
+import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
+import OnboardingSlider from './OnboardingSlider';
 
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PRECO_CONSULTA = 50;
@@ -32,6 +34,23 @@ const initials = (name = '') =>
 
 const fmtTime = (iso) =>
   iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+
+const DIAS_SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const fmtWhen = (iso) => {
+  const dt = new Date(iso);
+  const now = new Date();
+  const diffMs = dt.getTime() - now.getTime();
+  const diffMin = Math.round(diffMs / 60000);
+  const hora = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (diffMin < 60) return `em ${diffMin} min`;
+  const diffDays = Math.round(
+    (new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()) - new Date(now.getFullYear(), now.getMonth(), now.getDate()))
+    / 86400000
+  );
+  if (diffDays === 0) return `hoje às ${hora}`;
+  if (diffDays === 1) return `amanhã às ${hora}`;
+  return `${DIAS_SEMANA[dt.getDay()]} às ${hora}`;
+};
 
 const PARENTESCO_OPTS = [
   { value: '', label: 'Selecionar' },
@@ -137,6 +156,28 @@ const PatientDashboard = () => {
   const [sistemaProximaAbertura, setSistemaProximaAbertura] = useState(null);
   const [appointmentsRefreshKey, setAppointmentsRefreshKey] = useState(0);
   const [passarAgoraLoading, setPassarAgoraLoading] = useState(false);
+
+  // ── Lembrete de próxima consulta ─────────────────────────────────────────
+  const [proximaConsulta,   setProximaConsulta]   = useState(null);
+  const [proximaDismissId,  setProximaDismissId]   = useState(() => {
+    try { return sessionStorage.getItem('proximaConsultaDismissId') || null; } catch { return null; }
+  });
+  const [reminderDetalhes, setReminderDetalhes] = useState(null);
+
+  // ── Avaliação pendente ───────────────────────────────────────────────────
+  const [avaliacaoPendente,  setAvaliacaoPendente]  = useState(null);
+  const [avaliacaoDismiss,   setAvaliacaoDismiss]    = useState(() => {
+    try { return JSON.parse(localStorage.getItem('avaliacaoDismiss') || '{}'); } catch { return {}; }
+  });
+  const [avaliacaoNota,      setAvaliacaoNota]       = useState(0);
+  const [avaliacaoComentario, setAvaliacaoComentario] = useState('');
+  const [avaliacaoEnviando,  setAvaliacaoEnviando]   = useState(false);
+  const [avaliacaoEnviada,   setAvaliacaoEnviada]    = useState(false);
+
+  // ── Extrato ──────────────────────────────────────────────────────────────
+  const [showExtrato,   setShowExtrato]   = useState(false);
+  const [extrato,       setExtrato]       = useState(null);
+  const [extratoLoading, setExtratoLoading] = useState(false);
   const [passarAgoraMsg, setPassarAgoraMsg] = useState(null);
   const urgentIdRef = useRef(null);
   const [addingCredito, setAddingCredito] = useState(false);
@@ -246,7 +287,8 @@ const PatientDashboard = () => {
   };
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
-  const hasProfile = Boolean(user?.pacienteProfile);
+  const hasProfile          = Boolean(user?.pacienteProfile);
+  const onboardingPendente  = hasProfile && user.pacienteProfile.onboardingConcluido === false;
 
   const fetchWalletBalance = useCallback(async () => {
     if (!token) return;
@@ -273,6 +315,49 @@ const PatientDashboard = () => {
     }
   }, []);
 
+  const fetchProximaConsulta = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/paciente/proxima-consulta`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setProximaConsulta(data);
+      // Re-exibir lembrete dispensado se faltar menos de 2h
+      if (data && proximaDismissId === data.id) {
+        const diffMs = new Date(data.dataHora).getTime() - Date.now();
+        if (diffMs > 0 && diffMs < 2 * 60 * 60 * 1000) {
+          setProximaDismissId(null);
+          try { sessionStorage.removeItem('proximaConsultaDismissId'); } catch {}
+        }
+      }
+    } catch {}
+  }, [token, proximaDismissId]);
+
+  const fetchAvaliacaoPendente = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/paciente/avaliacao-pendente`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setAvaliacaoPendente(data);
+    } catch {}
+  }, [token]);
+
+  const fetchExtrato = async () => {
+    setExtratoLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/paciente/extrato`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setExtrato(await res.json());
+    } catch {}
+    finally { setExtratoLoading(false); }
+  };
+
   const fetchSistemaAberto = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/sistema/aberto`);
@@ -289,9 +374,16 @@ const PatientDashboard = () => {
     }
   }, []);
 
-  useEffect(() => { fetchPharmacists(filter); }, [filter, fetchPharmacists]);
-  useEffect(() => { fetchWalletBalance(); },    [fetchWalletBalance]);
-  useEffect(() => { fetchSistemaAberto(); },    [fetchSistemaAberto]);
+  useEffect(() => { fetchPharmacists(filter); },      [filter, fetchPharmacists]);
+  useEffect(() => { fetchWalletBalance(); },           [fetchWalletBalance]);
+  useEffect(() => { fetchSistemaAberto(); },           [fetchSistemaAberto]);
+  useEffect(() => { fetchProximaConsulta(); },         [fetchProximaConsulta]);
+  useEffect(() => { fetchAvaliacaoPendente(); },       [fetchAvaliacaoPendente]);
+
+  useEffect(() => {
+    const id = setInterval(fetchProximaConsulta, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [fetchProximaConsulta]);
 
   useEffect(() => {
     const id = setInterval(fetchSistemaAberto, 60000);
@@ -302,12 +394,13 @@ const PatientDashboard = () => {
     const onVisible = () => {
       if (!document.hidden) {
         fetchSistemaAberto();
+        fetchProximaConsulta();
         setAppointmentsRefreshKey((k) => k + 1);
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [fetchSistemaAberto]);
+  }, [fetchSistemaAberto, fetchProximaConsulta]);
 
   useEffect(() => {
     if (!token) return;
@@ -353,6 +446,10 @@ const PatientDashboard = () => {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [dropdownOpen]);
+
+  if (onboardingPendente) {
+    return <OnboardingSlider onConcluido={refreshUser} />;
+  }
 
   if (!hasProfile) {
     return (
@@ -704,6 +801,181 @@ const PatientDashboard = () => {
         )}
       </div>
 
+      {/* Card de lembrete de próxima consulta */}
+      {proximaConsulta && proximaDismissId !== proximaConsulta.id && (
+        <div style={{
+          background: '#eff6ff', border: '1.5px solid #93c5fd',
+          borderRadius: 12, padding: '12px 14px',
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+        }}>
+          <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.2 }}>🔔</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1e40af' }}>
+              Você tem consulta {fmtWhen(proximaConsulta.dataHora)}
+              {proximaConsulta.pessoaNome ? ` para ${proximaConsulta.pessoaNome.split(' ')[0]}` : ''}
+            </p>
+            <button
+              onClick={() => setReminderDetalhes({ id: proximaConsulta.id, tipo: proximaConsulta.tipo })}
+              style={{
+                marginTop: 4, background: 'none', border: 'none',
+                padding: 0, fontSize: 12, color: '#2563eb',
+                cursor: 'pointer', fontWeight: 600, textDecoration: 'underline',
+              }}
+            >
+              Ver detalhes →
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              const id = proximaConsulta.id;
+              setProximaDismissId(id);
+              try { sessionStorage.setItem('proximaConsultaDismissId', id); } catch {}
+            }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#93c5fd', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0,
+            }}
+            aria-label="Dispensar lembrete"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Card de avaliação pendente */}
+      {(() => {
+        if (!avaliacaoPendente) return null;
+        const dismissCount = avaliacaoDismiss[avaliacaoPendente.id] ?? 0;
+        if (dismissCount >= 2) return null;
+        const fmtData = new Date(avaliacaoPendente.dataHora).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+
+        const handleDismiss = () => {
+          const next = { ...avaliacaoDismiss, [avaliacaoPendente.id]: dismissCount + 1 };
+          setAvaliacaoDismiss(next);
+          try { localStorage.setItem('avaliacaoDismiss', JSON.stringify(next)); } catch {}
+        };
+
+        const handleEnviar = async () => {
+          if (!avaliacaoNota) return;
+          setAvaliacaoEnviando(true);
+          try {
+            const res = await fetch(`${API_URL}/api/avaliacoes`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                consulta_id: avaliacaoPendente.id,
+                tipo:        avaliacaoPendente.tipo,
+                nota:        avaliacaoNota,
+                comentario:  avaliacaoComentario.trim() || undefined,
+              }),
+            });
+            if (res.ok) {
+              setAvaliacaoEnviada(true);
+              setTimeout(() => {
+                setAvaliacaoPendente(null);
+                setAvaliacaoEnviada(false);
+                setAvaliacaoNota(0);
+                setAvaliacaoComentario('');
+              }, 2000);
+            }
+          } catch {}
+          finally { setAvaliacaoEnviando(false); }
+        };
+
+        return (
+          <div style={{
+            background: '#fdf4ff', border: '1.5px solid #e9d5ff',
+            borderRadius: 12, padding: '14px 16px',
+          }}>
+            {avaliacaoEnviada ? (
+              <p style={{ fontSize: 14, color: '#7c3aed', fontWeight: 700, margin: 0, textAlign: 'center' }}>
+                ✓ Avaliação enviada! Obrigado.
+              </p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#6b21a8' }}>Como foi sua consulta?</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9333ea' }}>
+                      {avaliacaoPendente.farmaceutico ? `Com ${avaliacaoPendente.farmaceutico.split(' ')[0]}` : 'Consulta'} · {fmtData}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDismiss}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c4b5fd', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}
+                    aria-label="Agora não"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Estrelas */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setAvaliacaoNota(n)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        fontSize: 28, lineHeight: 1,
+                        color: n <= avaliacaoNota ? '#f59e0b' : '#e5e7eb',
+                        transition: 'color 0.1s',
+                      }}
+                      aria-label={`${n} estrelas`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+
+                {avaliacaoNota > 0 && (
+                  <>
+                    <textarea
+                      value={avaliacaoComentario}
+                      onChange={(e) => setAvaliacaoComentario(e.target.value)}
+                      placeholder="Comentário opcional..."
+                      maxLength={500}
+                      rows={2}
+                      style={{
+                        width: '100%', boxSizing: 'border-box', resize: 'none',
+                        border: '1px solid #e9d5ff', borderRadius: 8,
+                        padding: '8px 10px', fontSize: 13, fontFamily: 'inherit',
+                        outline: 'none', marginBottom: 10, color: '#374151',
+                        background: 'white',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={handleDismiss}
+                        style={{
+                          flex: 1, padding: '9px 0', background: 'white',
+                          border: '1px solid #e9d5ff', borderRadius: 8,
+                          fontSize: 13, color: '#9333ea', cursor: 'pointer',
+                        }}
+                      >
+                        Agora não
+                      </button>
+                      <button
+                        onClick={handleEnviar}
+                        disabled={avaliacaoEnviando}
+                        style={{
+                          flex: 2, padding: '9px 0', background: '#7c3aed', color: 'white',
+                          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          cursor: avaliacaoEnviando ? 'not-allowed' : 'pointer',
+                          opacity: avaliacaoEnviando ? 0.6 : 1,
+                        }}
+                      >
+                        {avaliacaoEnviando ? 'Enviando...' : 'Enviar avaliação'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Banner de status do sistema — só exibe quando fechado */}
       {sistemaAberto === false && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -879,6 +1151,12 @@ const PatientDashboard = () => {
             {creditoToast && (
               <p className="text-xs text-green-600 font-semibold mt-0.5">{creditoToast}</p>
             )}
+            <button
+              onClick={() => { setShowExtrato(true); fetchExtrato(); }}
+              style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: '#7c3aed', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', marginTop: 2 }}
+            >
+              Ver extrato
+            </button>
           </div>
         </div>
         <button
@@ -1058,6 +1336,95 @@ const PatientDashboard = () => {
         <h3 className="font-semibold text-gray-800 text-sm mb-4">Minhas consultas</h3>
         <MyAppointments onCancelled={fetchWalletBalance} selectedPerson={selectedPerson} refreshKey={appointmentsRefreshKey} />
       </div>
+
+      {/* Sheet de extrato da carteira */}
+      {showExtrato && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowExtrato(false)} />
+          <div
+            className="relative bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-md"
+            style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '16px 16px 0 0' }}
+          >
+            <div style={{ padding: '18px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>Extrato da carteira</h2>
+              <button
+                onClick={() => setShowExtrato(false)}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1, padding: 4 }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px 28px' }}>
+              {extratoLoading && (
+                <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', marginTop: 32 }}>Carregando...</p>
+              )}
+              {!extratoLoading && extrato && (
+                <>
+                  <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 12, textAlign: 'right' }}>
+                    Saldo atual: <strong style={{ color: '#111827' }}>R$ {extrato.saldo.toFixed(2).replace('.', ',')}</strong>
+                  </p>
+                  {extrato.transacoes.length === 0 ? (
+                    <p style={{ fontSize: 14, color: '#9ca3af', textAlign: 'center', marginTop: 32 }}>
+                      Nenhuma movimentação registrada.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {extrato.transacoes.map((t) => {
+                        const isCredito = t.tipo === 'credito';
+                        const isEstorno = t.tipo === 'estorno';
+                        const cor = isCredito || isEstorno ? '#16a34a' : '#dc2626';
+                        const sinal = isCredito || isEstorno ? '+' : '−';
+                        const dt = new Date(t.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                        return (
+                          <div key={t.id} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '11px 0', borderBottom: '1px solid #f3f4f6', gap: 12,
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {t.descricao}
+                              </p>
+                              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>{dt}</p>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: cor }}>
+                                {sinal} R$ {t.valor.toFixed(2).replace('.', ',')}
+                              </p>
+                              <p style={{ margin: '1px 0 0', fontSize: 11, color: '#9ca3af' }}>
+                                saldo: R$ {t.saldoApos.toFixed(2).replace('.', ',')}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalhes aberto pelo card de lembrete */}
+      {reminderDetalhes && (
+        <ConsultaDetalhesPaciente
+          id={reminderDetalhes.id}
+          tipo={reminderDetalhes.tipo}
+          onClose={() => setReminderDetalhes(null)}
+          onCancelled={() => {
+            setReminderDetalhes(null);
+            setProximaConsulta(null);
+            fetchWalletBalance();
+            setAppointmentsRefreshKey((k) => k + 1);
+          }}
+          onAgendar={() => {
+            setReminderDetalhes(null);
+            setShowDataModal(true);
+          }}
+        />
+      )}
     </div>
   );
 };

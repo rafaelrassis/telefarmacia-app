@@ -23,6 +23,10 @@ import {
   deleteComissaoFarmaceutico,
   getVisaoFinanceira,
 } from '../controllers/AdminController.js';
+import {
+  listParceiros, createParceiro, updateParceiro, deleteParceiro,
+  getMetricasParceiros, getOndeComprarConfig, toggleOndeComprar,
+} from '../controllers/PartnerPharmacyController.js';
 import { getHorarios, saveHorarios, isSistemaAberto, getDisponibilidade } from '../controllers/SistemaHorarioController.js';
 import { ping } from '../controllers/FarmaceuticoStatusController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
@@ -72,5 +76,14 @@ router.put('/admin/farmaceuticos/:id/comissao',      ...guard, setComissaoFarmac
 router.put('/admin/comissoes/:id',                   ...guard, setComissaoFarmaceutico);
 router.delete('/admin/comissoes/:id',                ...guard, deleteComissaoFarmaceutico);
 router.get('/admin/financeiro',                      ...guard, getVisaoFinanceira);
+
+// Gestão de parceiros (Onde Comprar)
+router.get('/admin/parceiros',                       ...guard, listParceiros);
+router.post('/admin/parceiros',                      ...guard, createParceiro);
+router.put('/admin/parceiros/:id',                   ...guard, updateParceiro);
+router.delete('/admin/parceiros/:id',                ...guard, deleteParceiro);
+router.get('/admin/parceiros/metricas',              ...guard, getMetricasParceiros);
+router.get('/admin/config/onde-comprar',             ...guard, getOndeComprarConfig);
+router.patch('/admin/config/onde-comprar',           ...guard, toggleOndeComprar);
 
 export default router;

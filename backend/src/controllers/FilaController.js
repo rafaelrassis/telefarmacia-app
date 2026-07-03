@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { logAction } from '../utils/logAction.js';
+import { criarNotificacao } from './NotificacaoController.js';
 
 const prisma = new PrismaClient();
 
@@ -64,9 +65,9 @@ export const agendarConsulta = async (req, res) => {
     }
 
     const fila = await prisma.$transaction(async (tx) => {
-      await tx.carteira.update({
+      const c = await tx.carteira.update({
         where: { pacienteId: patientId },
-        data: { saldo: { decrement: PRECO } },
+        data:  { saldo: { decrement: PRECO } },
       });
       const nova = await tx.filaAgendada.create({
         data: {
@@ -75,6 +76,16 @@ export const agendarConsulta = async (req, res) => {
           creditoDebitado: PRECO,
           status: 'aguardando',
           ...(dependentId && { dependentId }),
+        },
+      });
+      await tx.transacaoCarteira.create({
+        data: {
+          carteiraId: c.id,
+          tipo:       'debito',
+          valor:      PRECO,
+          saldoApos:  c.saldo,
+          descricao:  'Consulta agendada',
+          consultaId: nova.id,
         },
       });
       if (triagem) {
@@ -151,9 +162,9 @@ export const agendarUrgente = async (req, res) => {
     }
 
     const fila = await prisma.$transaction(async (tx) => {
-      await tx.carteira.update({
+      const c = await tx.carteira.update({
         where: { pacienteId: patientId },
-        data: { saldo: { decrement: PRECO } },
+        data:  { saldo: { decrement: PRECO } },
       });
       const nova = await tx.filaUrgente.create({
         data: {
@@ -161,6 +172,16 @@ export const agendarUrgente = async (req, res) => {
           creditoDebitado: PRECO,
           status: 'aguardando',
           ...(dependentId && { dependentId }),
+        },
+      });
+      await tx.transacaoCarteira.create({
+        data: {
+          carteiraId: c.id,
+          tipo:       'debito',
+          valor:      PRECO,
+          saldoApos:  c.saldo,
+          descricao:  'Consulta urgente',
+          consultaId: nova.id,
         },
       });
       if (triagem) {
@@ -277,6 +298,13 @@ export const aceitarAgendada = async (req, res) => {
       include: { paciente: { select: { name: true, email: true } } },
     });
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'aceito', detalhes: { tipo: 'agendada' } });
+    await criarNotificacao({
+      userId:     fila.pacienteId,
+      tipo:       'consulta_aceita',
+      titulo:     'Consulta confirmada!',
+      mensagem:   'Um farmacêutico aceitou sua consulta agendada.',
+      consultaId: id,
+    });
     return res.status(200).json({ success: true, fila });
   } catch (err) {
     console.error(err);
@@ -316,6 +344,13 @@ export const aceitarUrgente = async (req, res) => {
       include: { paciente: { select: { name: true, email: true } } },
     });
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'aceito', detalhes: { tipo: 'urgente' } });
+    await criarNotificacao({
+      userId:     fila.pacienteId,
+      tipo:       'consulta_aceita',
+      titulo:     'Farmacêutico a caminho!',
+      mensagem:   `${fila.paciente?.name?.split(' ')[0] ?? 'Um farmacêutico'} aceitou seu atendimento urgente.`,
+      consultaId: id,
+    });
     return res.status(200).json({ success: true, fila });
   } catch (err) {
     console.error(err);
@@ -356,20 +391,38 @@ export const cancelarUrgente = async (req, res) => {
     if (fila.status === 'cancelado') return res.status(400).json({ error: 'Já cancelada.' });
     if (fila.status === 'concluido') return res.status(400).json({ error: 'Consulta já concluída.' });
 
+    const creditoDevolvido = Number(fila.creditoDebitado);
+
     await prisma.$transaction(async (tx) => {
       await tx.filaUrgente.update({ where: { id }, data: { status: 'cancelado' } });
-      if (Number(fila.creditoDebitado) > 0) {
-        await tx.carteira.update({
+      if (creditoDevolvido > 0) {
+        const c = await tx.carteira.update({
           where: { pacienteId: patientId },
-          data: { saldo: { increment: fila.creditoDebitado } },
+          data:  { saldo: { increment: fila.creditoDebitado } },
+        });
+        await tx.transacaoCarteira.create({
+          data: {
+            carteiraId: c.id,
+            tipo:       'estorno',
+            valor:      creditoDevolvido,
+            saldoApos:  c.saldo,
+            descricao:  'Estorno — cancelamento de consulta urgente',
+            consultaId: id,
+          },
         });
       }
     });
 
-    const creditoDevolvido = Number(fila.creditoDebitado);
     await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'cancelado', detalhes: { tipo: 'urgente', cancelado_por: req.user.role } });
     if (creditoDevolvido > 0) {
       await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'reembolso', detalhes: { tipo: 'urgente', valor: creditoDevolvido } });
+      await criarNotificacao({
+        userId:     patientId,
+        tipo:       'estorno',
+        titulo:     'Créditos devolvidos',
+        mensagem:   `R$ ${creditoDevolvido.toFixed(2).replace('.', ',')} foram devolvidos à sua carteira.`,
+        consultaId: id,
+      });
     }
     return res.status(200).json({ success: true, creditoDevolvido });
   } catch (err) {
@@ -390,20 +443,38 @@ export const cancelarAgendada = async (req, res) => {
     if (fila.status === 'cancelado') return res.status(400).json({ error: 'Já cancelado.' });
     if (fila.status === 'concluido') return res.status(400).json({ error: 'Consulta já concluída.' });
 
+    const creditoDevolvido = Number(fila.creditoDebitado);
+
     await prisma.$transaction(async (tx) => {
       await tx.filaAgendada.update({ where: { id }, data: { status: 'cancelado' } });
-      if (Number(fila.creditoDebitado) > 0) {
-        await tx.carteira.update({
+      if (creditoDevolvido > 0) {
+        const c = await tx.carteira.update({
           where: { pacienteId: patientId },
-          data: { saldo: { increment: fila.creditoDebitado } },
+          data:  { saldo: { increment: fila.creditoDebitado } },
+        });
+        await tx.transacaoCarteira.create({
+          data: {
+            carteiraId: c.id,
+            tipo:       'estorno',
+            valor:      creditoDevolvido,
+            saldoApos:  c.saldo,
+            descricao:  'Estorno — cancelamento de consulta agendada',
+            consultaId: id,
+          },
         });
       }
     });
 
-    const creditoDevolvido = Number(fila.creditoDebitado);
     await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'cancelado', detalhes: { tipo: 'agendada', cancelado_por: req.user.role } });
     if (creditoDevolvido > 0) {
       await logAction(prisma, { consultaId: id, usuarioId: patientId, role: req.user.role, acao: 'reembolso', detalhes: { tipo: 'agendada', valor: creditoDevolvido } });
+      await criarNotificacao({
+        userId:     patientId,
+        tipo:       'estorno',
+        titulo:     'Créditos devolvidos',
+        mensagem:   `R$ ${creditoDevolvido.toFixed(2).replace('.', ',')} foram devolvidos à sua carteira.`,
+        consultaId: id,
+      });
     }
     return res.status(200).json({ success: true, creditoDevolvido });
   } catch (err) {

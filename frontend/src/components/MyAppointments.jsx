@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CompleteAppointmentModal from './CompleteAppointmentModal';
 import ConsultaModal from './ConsultaModal';
+import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
+import ReceitaViewer from './ReceitaViewer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -36,34 +38,6 @@ const getEffectiveStatus = (app) => {
     return new Date(app.dataHora) <= new Date() ? 'em_atendimento' : 'aceito';
   }
   return app.status;
-};
-
-// ── Affiliate links (intacto) ─────────────────────────────────────────────────
-
-const AFFILIATE_TERMS = [
-  { key: 'dipirona',    link: 'https://drogaraia.com.br/busca?w=dipirona&ref=telefarmacia' },
-  { key: 'paracetamol', link: 'https://drogasil.com.br/busca?w=paracetamol&ref=telefarmacia' },
-  { key: 'ibuprofeno',  link: 'https://drogaraia.com.br/busca?w=ibuprofeno&ref=telefarmacia' },
-  { key: 'vitamina c',  link: 'https://drogaraia.com.br/busca?w=vitamina+c&ref=telefarmacia' },
-  { key: 'omeprazol',   link: 'https://drogasil.com.br/busca?w=omeprazol&ref=telefarmacia' },
-  { key: 'loratadina',  link: 'https://drogaraia.com.br/busca?w=loratadina&ref=telefarmacia' },
-];
-
-const renderAffiliateLinks = (text) => {
-  if (!text) return null;
-  const matches = AFFILIATE_TERMS.filter((t) => text.toLowerCase().includes(t.key));
-  if (matches.length === 0) return null;
-  return (
-    <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 flex-wrap">
-      <span className="text-xs text-gray-500 w-full mb-1">Compre online com desconto (Parceiros):</span>
-      {matches.map((item) => (
-        <a key={item.key} href={item.link} target="_blank" rel="noreferrer"
-          className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-200 transition font-semibold">
-          Comprar {item.key.charAt(0).toUpperCase() + item.key.slice(1)}
-        </a>
-      ))}
-    </div>
-  );
 };
 
 const Stars = ({ value, onChange, readonly = false, size = 'text-xl' }) => (
@@ -101,6 +75,14 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
   const [confirmCancelFila, setConfirmCancelFila] = useState(null);
   const [cancellingFilaId,  setCancellingFilaId]  = useState(null);
   const [cancelToast,       setCancelToast]       = useState(null);
+
+  // Detalhes da consulta (paciente)
+  const [viewingDetalhes, setViewingDetalhes] = useState(null); // { id, tipo }
+  // Ver receita inline
+  const [viewingReceita,  setViewingReceita]  = useState(null); // { id, tipo, data }
+
+  // Timer para contagem regressiva / destaque "É agora"
+  const [agoraNow, setAgoraNow] = useState(Date.now());
 
   // Estado legado
   const [completingAppointment, setCompletingAppointment] = useState(null);
@@ -198,6 +180,13 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
     const id = setInterval(poll, 20000);
     return () => clearInterval(id);
   }, [isPharmacist, token, filterDe, filterAte, filterStatus, selectedPerson?.id]);
+
+  // Atualiza o relógio local a cada 30s para recomputar "É agora" sem refetch
+  useEffect(() => {
+    if (isPharmacist) return;
+    const id = setInterval(() => setAgoraNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, [isPharmacist]);
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -304,9 +293,57 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
     }
   };
 
+  // ── Helpers "É agora" ────────────────────────────────────────────────────
+  const isEAgora = (app) => {
+    if (isPharmacist) return false;
+    if (!['aceito', 'em_atendimento', 'AGENDADO'].includes(app.status)) return false;
+    if (!app.dataHora) return false;
+    const dt = new Date(app.dataHora).getTime();
+    return dt >= agoraNow - 30 * 60 * 1000 && dt <= agoraNow + 15 * 60 * 1000;
+  };
+
+  const countdownLabel = (dataHora) => {
+    const diffMin = Math.round((new Date(dataHora).getTime() - agoraNow) / 60000);
+    if (diffMin > 0) return `começa em ${diffMin} min`;
+    return 'em andamento';
+  };
+
+  const sortedAppointments = isPharmacist
+    ? appointments
+    : [...appointments].sort((a, b) => {
+        const aOk = isEAgora(a) ? 0 : 1;
+        const bOk = isEAgora(b) ? 0 : 1;
+        return aOk - bOk;
+      });
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full mt-8">
+
+      {/* Modal: detalhes da consulta (paciente) */}
+      {viewingDetalhes && (
+        <ConsultaDetalhesPaciente
+          id={viewingDetalhes.id}
+          tipo={viewingDetalhes.tipo}
+          onClose={() => setViewingDetalhes(null)}
+          onCancelled={() => {
+            setAppointments((prev) =>
+              prev.map((a) => a.id === viewingDetalhes.id ? { ...a, status: 'cancelado' } : a)
+            );
+            onCancelled?.();
+          }}
+        />
+      )}
+
+      {/* Modal: visualizador de receita */}
+      {viewingReceita && (
+        <ReceitaViewer
+          consultaId={viewingReceita.id}
+          tipo={viewingReceita.tipo}
+          data={viewingReceita.data}
+          onClose={() => setViewingReceita(null)}
+        />
+      )}
 
       {/* Toast de resultado de cancelamento */}
       {cancelToast && (
@@ -541,7 +578,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       ) : (
         <>
           <div className="space-y-4">
-            {appointments.map((app) => {
+            {sortedAppointments.map((app) => {
               const tipo            = app.tipo ?? 'appointment';
               const effectiveStatus = getEffectiveStatus(app);
               const statusCfg       = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, cls: 'text-gray-500', dot: 'bg-gray-400' };
@@ -551,19 +588,31 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               const isLegacy        = tipo === 'appointment';
               const isCancelled     = app.status === 'cancelado' || app.status === 'CANCELADO';
               const canCancelFila   = !isPharmacist && !isLegacy && ['aguardando', 'aceito'].includes(app.status);
+              const eAgora          = !isPharmacist && isEAgora(app);
 
               return (
                 <div
                   key={app.id}
-                  className={`p-4 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${
-                    isCancelled ? 'border-red-100 opacity-60' : 'border-gray-200'
-                  }`}
+                  style={eAgora ? { border: '2px solid #16a34a', borderRadius: 10, background: '#f0fdf4', boxShadow: '0 0 0 3px #bbf7d040' } : undefined}
+                  className={eAgora ? 'p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition' : `p-4 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${isCancelled ? 'border-red-100 opacity-60' : 'border-gray-200'}`}
                 >
                   <div className="flex-1 min-w-0">
 
+                    {/* Badge "É agora!" */}
+                    {eAgora && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '3px 10px', borderRadius: 20 }}>
+                          ⚡ É agora!
+                        </span>
+                        {dataHora && (
+                          <span style={{ fontSize: 12, color: '#16a34a' }}>{countdownLabel(dataHora)}</span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Cabeçalho: data + badge de tipo */}
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className={`font-bold text-gray-800 ${isCancelled ? 'line-through' : ''}`}>
+                      <p className={`font-bold ${eAgora ? 'text-green-800' : 'text-gray-800'} ${isCancelled ? 'line-through' : ''}`}>
                         {new Date(dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                       </p>
                       {tipoBadge && (
@@ -609,7 +658,6 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                           Recomendações do farmacêutico
                         </p>
                         <p className="italic">"{app.recommendations}"</p>
-                        {!isPharmacist && renderAffiliateLinks(app.recommendations)}
                       </div>
                     )}
 
@@ -695,16 +743,50 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                       </button>
                     )}
 
-                    {/* Ver receita (paciente, fila concluída com PDF) */}
-                    {!isPharmacist && !isLegacy && app.receitaPdfUrl && (
+                    {/* Entrar na consulta — apenas quando "é agora" e tem meetLink */}
+                    {eAgora && app.meetLink && (
                       <a
-                        href={`${API_URL}${app.receitaPdfUrl}`}
+                        href={app.meetLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-4 py-2 bg-violet-50 border border-violet-200 text-violet-700 font-bold rounded hover:bg-violet-100 transition text-sm"
+                        style={{
+                          padding: '8px 14px', background: '#16a34a', color: 'white',
+                          borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          textDecoration: 'none', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        🎥 Entrar na consulta
+                      </a>
+                    )}
+
+                    {/* Detalhes (paciente) */}
+                    {!isPharmacist && (
+                      <button
+                        onClick={() => setViewingDetalhes({ id: app.id, tipo })}
+                        style={{
+                          padding: '8px 14px', background: 'white',
+                          color: '#6b7280', border: '1.5px solid #e5e7eb',
+                          borderRadius: 8, fontSize: 13, fontWeight: 600,
+                          cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Detalhes →
+                      </button>
+                    )}
+
+                    {/* Ver receita (paciente, fila concluída com receita) */}
+                    {!isPharmacist && !isLegacy && app.status === 'concluido' &&
+                      (Array.isArray(app.receita) && app.receita.length > 0 || app.receitaPdfUrl) && (
+                      <button
+                        onClick={() => setViewingReceita({ id: app.id, tipo, data: app })}
+                        style={{
+                          padding: '8px 14px', background: '#7c3aed', color: 'white',
+                          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}
                       >
                         📄 Ver receita
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>

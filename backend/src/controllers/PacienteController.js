@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client';
+import { createReadStream, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const prisma = new PrismaClient();
+const prisma      = new PrismaClient();
+const __dirname   = dirname(fileURLToPath(import.meta.url));
+const UPLOAD_DIR  = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
 
 const VERSAO_TERMOS = process.env.TERMOS_VERSAO || '1.0';
 
@@ -280,6 +285,7 @@ export const getAgendamentos = async (req, res) => {
         avaliacao:       a.avaliacao ?? null,
         creditoDebitado: null,
         receitaPdfUrl:   null,
+        meetLink:        a.googleMeetLink ?? null,
       })),
       ...agendadas.map((f) => ({
         id: f.id, tipo: 'agendada',
@@ -401,5 +407,230 @@ export const updatePerfil = async (req, res) => {
   } catch (error) {
     console.error('Erro ao atualizar perfil:', error);
     return res.status(500).json({ error: 'Erro ao atualizar perfil.' });
+  }
+};
+
+// ── GET /api/paciente/consulta/:id?tipo=agendada|urgente|appointment ─────────
+
+export const getConsultaDetalhesPaciente = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  const { id }     = req.params;
+  const { tipo }   = req.query;
+  const patientId  = req.user.id;
+
+  if (!['agendada', 'urgente', 'appointment'].includes(tipo)) {
+    return res.status(400).json({ error: 'tipo inválido.' });
+  }
+
+  try {
+    if (tipo === 'appointment') {
+      const a = await prisma.appointment.findFirst({
+        where:   { id, patientId },
+        include: { pharmacist: { select: { name: true } } },
+      });
+      if (!a) return res.status(404).json({ error: 'Consulta não encontrada.' });
+      return res.status(200).json({
+        id, tipo,
+        dataHora:          a.dateTime,
+        status:            a.status,
+        pessoaNome:        null,
+        dependentId:       null,
+        creditoDebitado:   null,
+        meetLink:          a.googleMeetLink ?? null,
+        observacoes:       a.recommendations ?? null,
+        motivo:            null,
+        receita:           [],
+        receitaPdfUrl:     null,
+        motivoCancelamento: null,
+        finalizacao:       null,
+        farmaceutico:      a.pharmacist ? { nome: a.pharmacist.name } : null,
+      });
+    }
+
+    const tableName = tipo === 'urgente' ? 'FilaUrgente' : 'FilaAgendada';
+    const model     = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+
+    const fila = await model.findUnique({
+      where:   { id },
+      include: {
+        farmaceutico: { select: { name: true } },
+        dependent:    { select: { id: true, nome: true, ownerId: true } },
+      },
+    });
+
+    if (!fila) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    if (fila.pacienteId !== patientId && fila.dependent?.ownerId !== patientId) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
+        motivoCancelamento = null, finalizacao = null, pessoaNome = null;
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url",
+                "motivo_cancelamento", "finalizacao",
+                triagem->>'paciente_nome' AS pessoa_nome
+         FROM "${tableName}" WHERE id = $1`, id
+      );
+      if (rows.length > 0) {
+        observacoes        = rows[0].observacoes         ?? null;
+        motivo             = rows[0].motivo              ?? null;
+        receita            = rows[0].receita             ?? [];
+        receitaPdfUrl      = rows[0].receita_pdf_url     ?? null;
+        motivoCancelamento = rows[0].motivo_cancelamento ?? null;
+        finalizacao        = rows[0].finalizacao         ?? null;
+        pessoaNome         = rows[0].pessoa_nome         ?? null;
+      }
+    } catch {}
+
+    return res.status(200).json({
+      id, tipo,
+      dataHora:          tipo === 'urgente' ? (fila.aceitoEm ?? fila.criadoEm) : fila.dataHora,
+      status:            fila.status,
+      pessoaNome:        pessoaNome ?? fila.dependent?.nome ?? null,
+      dependentId:       fila.dependentId ?? null,
+      creditoDebitado:   Number(fila.creditoDebitado),
+      meetLink:          null,
+      observacoes,
+      motivo,
+      receita:           Array.isArray(receita) ? receita : [],
+      receitaPdfUrl,
+      motivoCancelamento,
+      finalizacao,
+      farmaceutico:      fila.farmaceutico ? { nome: fila.farmaceutico.name } : null,
+    });
+  } catch (err) {
+    console.error('getConsultaDetalhesPaciente error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar detalhes.' });
+  }
+};
+
+// ── GET /api/paciente/consulta/:id/pdf?tipo=agendada|urgente ────────────────
+
+export const getReceitaPdfPaciente = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  const { id }    = req.params;
+  const { tipo }  = req.query;
+  const patientId = req.user.id;
+
+  if (!['agendada', 'urgente'].includes(tipo)) {
+    return res.status(400).json({ error: 'tipo inválido.' });
+  }
+
+  try {
+    const tableName = tipo === 'urgente' ? 'FilaUrgente' : 'FilaAgendada';
+    const model     = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+
+    const fila = await model.findUnique({
+      where:   { id },
+      include: { dependent: { select: { ownerId: true } } },
+    });
+
+    if (!fila) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    if (fila.pacienteId !== patientId && fila.dependent?.ownerId !== patientId) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT "receita_pdf_url" FROM "${tableName}" WHERE id = $1`, id
+    );
+    const pdfUrl = rows[0]?.receita_pdf_url ?? null;
+    if (!pdfUrl) return res.status(404).json({ error: 'PDF não encontrado.' });
+
+    const relativePath = pdfUrl.replace(/^\/uploads\//, '');
+    const filepath     = join(UPLOAD_DIR, relativePath);
+    if (!existsSync(filepath)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="receita-${id}.pdf"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    createReadStream(filepath).pipe(res);
+  } catch (err) {
+    console.error('getReceitaPdfPaciente error:', err);
+    return res.status(500).json({ error: 'Erro ao baixar PDF.' });
+  }
+};
+
+// ── GET /api/paciente/proxima-consulta ──────────────────────────────────────
+
+export const getProximaConsulta = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  const patientId = req.user.id;
+
+  try {
+    const agora = new Date();
+    const em48h = new Date(agora.getTime() + 48 * 60 * 60 * 1000);
+
+    const proxima = await prisma.filaAgendada.findFirst({
+      where:   { pacienteId: patientId, status: 'aceito', dataHora: { gt: agora, lte: em48h } },
+      orderBy: { dataHora: 'asc' },
+      include: { dependent: { select: { id: true, nome: true } } },
+    });
+
+    if (!proxima) return res.status(200).json(null);
+
+    let pessoaNome = null;
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT triagem->>'paciente_nome' AS pessoa_nome FROM "FilaAgendada" WHERE id = $1`,
+        proxima.id
+      );
+      pessoaNome = rows[0]?.pessoa_nome ?? null;
+    } catch {}
+
+    return res.status(200).json({
+      id:          proxima.id,
+      tipo:        'agendada',
+      dataHora:    proxima.dataHora,
+      pessoaNome:  pessoaNome ?? proxima.dependent?.nome ?? null,
+      dependentId: proxima.dependentId ?? null,
+    });
+  } catch (err) {
+    console.error('getProximaConsulta error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar próxima consulta.' });
+  }
+};
+
+// GET /api/paciente/extrato
+export const getExtrato = async (req, res) => {
+  try {
+    const pacienteId = req.user.id;
+
+    const carteira = await prisma.carteira.findUnique({ where: { pacienteId } });
+    if (!carteira) return res.json({ saldo: 0, transacoes: [] });
+
+    const transacoes = await prisma.transacaoCarteira.findMany({
+      where:   { carteiraId: carteira.id },
+      orderBy: { criadoEm: 'desc' },
+      take:    50,
+    });
+
+    return res.json({
+      saldo:      parseFloat(carteira.saldo),
+      transacoes: transacoes.map((t) => ({
+        id:        t.id,
+        tipo:      t.tipo,
+        valor:     parseFloat(t.valor),
+        saldoApos: parseFloat(t.saldoApos),
+        descricao: t.descricao,
+        criadoEm:  t.criadoEm,
+      })),
+    });
+  } catch (err) {
+    console.error('getExtrato error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar extrato.' });
+  }
+};
+
+// PATCH /api/paciente/onboarding/concluir
+export const concluirOnboarding = async (req, res) => {
+  try {
+    await prisma.pacienteProfile.update({
+      where: { userId: req.user.id },
+      data:  { onboardingConcluido: true },
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('concluirOnboarding error:', err);
+    return res.status(500).json({ error: 'Erro ao concluir onboarding.' });
   }
 };

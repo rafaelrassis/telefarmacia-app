@@ -57,11 +57,23 @@ export const confirmarPagamento = async (req, res) => {
         data: { status: 'Pago', confirmedAt: new Date() },
       });
 
-      return tx.carteira.upsert({
-        where: { pacienteId },
+      const c = await tx.carteira.upsert({
+        where:  { pacienteId },
         update: { saldo: { increment: pagamento.valor } },
         create: { pacienteId, saldo: pagamento.valor },
       });
+
+      await tx.transacaoCarteira.create({
+        data: {
+          carteiraId: c.id,
+          tipo:       'credito',
+          valor:      pagamento.valor,
+          saldoApos:  c.saldo,
+          descricao:  'Recarga via PIX',
+        },
+      });
+
+      return c;
     });
 
     return res.status(200).json({
@@ -97,10 +109,22 @@ export const adicionarCreditoTeste = async (req, res) => {
     const { valor = 50 } = req.body;
     const pacienteId = req.user.id;
 
-    const carteira = await prisma.carteira.upsert({
-      where:  { pacienteId },
-      update: { saldo: { increment: valor } },
-      create: { pacienteId, saldo: valor },
+    const carteira = await prisma.$transaction(async (tx) => {
+      const c = await tx.carteira.upsert({
+        where:  { pacienteId },
+        update: { saldo: { increment: valor } },
+        create: { pacienteId, saldo: valor },
+      });
+      await tx.transacaoCarteira.create({
+        data: {
+          carteiraId: c.id,
+          tipo:       'credito',
+          valor,
+          saldoApos:  c.saldo,
+          descricao:  'Crédito de teste',
+        },
+      });
+      return c;
     });
 
     return res.status(200).json({ novo_saldo: parseFloat(carteira.saldo) });

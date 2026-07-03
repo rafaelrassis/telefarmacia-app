@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import { logAction } from '../utils/logAction.js';
+import { criarNotificacao } from './NotificacaoController.js';
 import { createWriteStream, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -168,6 +169,22 @@ export const concluirConsulta = async (req, res) => {
       }
     } catch {}
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'concluido', detalhes: { tipo, duracao_min: duracaoMin } });
+
+    // Notificação de documento para o paciente
+    try {
+      const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+      const fila  = await model.findUnique({ where: { id }, select: { pacienteId: true } });
+      if (fila) {
+        await criarNotificacao({
+          userId:     fila.pacienteId,
+          tipo:       'documento',
+          titulo:     'Orientações disponíveis',
+          mensagem:   'O farmacêutico registrou as orientações da sua consulta.',
+          consultaId: id,
+        });
+      }
+    } catch {}
+
     return res.status(200).json({ success: true, status: 'concluido' });
   } catch (err) {
     console.error(err);

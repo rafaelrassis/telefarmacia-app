@@ -46,27 +46,41 @@ model User {
   filaUrgenteComoFarmaceutico  FilaUrgente[]       @relation("FarmaceuticoFilaUrgente")
   farmaceuticoStatus           FarmaceuticoStatus?
   dependentes                  DependentProfile[]  @relation("TitularDependentes")
+  notificacoes                 Notificacao[]       @relation("UserNotificacoes")
+}
+
+model Notificacao {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation("UserNotificacoes", fields: [userId], references: [id], onDelete: Cascade)
+  tipo       String
+  titulo     String
+  mensagem   String
+  lida       Boolean  @default(false)
+  criadoEm   DateTime @default(now())
+  consultaId String?
 }
 
 model PacienteProfile {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nomeCompleto   String
-  dataNascimento DateTime
-  genero         String
-  cpf            String   @unique
-  telefone       String?
-  cep            String?
-  logradouro     String?
-  numero         String?
-  complemento    String?
-  bairro         String?
-  cidade         String?
-  estado         String?
-  aceiteTermos   Boolean
-  dataAceite     DateTime
-  versaoTermos   String
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nomeCompleto         String
+  dataNascimento       DateTime
+  genero               String
+  cpf                  String   @unique
+  telefone             String?
+  cep                  String?
+  logradouro           String?
+  numero               String?
+  complemento          String?
+  bairro               String?
+  cidade               String?
+  estado               String?
+  aceiteTermos         Boolean
+  dataAceite           DateTime
+  versaoTermos         String
+  onboardingConcluido  Boolean  @default(false)
 }
 
 model PharmacistProfile {
@@ -98,11 +112,24 @@ model Pagamento {
 }
 
 model Carteira {
+  id         String                @id @default(uuid())
+  pacienteId String                @unique
+  paciente   User                  @relation("PacienteCarteira", fields: [pacienteId], references: [id], onDelete: Cascade)
+  saldo      Decimal               @default(0.00) @db.Decimal(10, 2)
+  updatedAt  DateTime              @updatedAt
+  transacoes TransacaoCarteira[]
+}
+
+model TransacaoCarteira {
   id         String   @id @default(uuid())
-  pacienteId String   @unique
-  paciente   User     @relation("PacienteCarteira", fields: [pacienteId], references: [id], onDelete: Cascade)
-  saldo      Decimal  @default(0.00) @db.Decimal(10, 2)
-  updatedAt  DateTime @updatedAt
+  carteiraId String
+  carteira   Carteira @relation(fields: [carteiraId], references: [id], onDelete: Cascade)
+  tipo       String
+  valor      Decimal  @db.Decimal(10, 2)
+  saldoApos  Decimal  @db.Decimal(10, 2)
+  descricao  String
+  consultaId String?
+  criadoEm   DateTime @default(now())
 }
 
 model WeeklySchedule {
@@ -134,16 +161,20 @@ model Appointment {
 }
 
 model Avaliacao {
-  id            String      @id @default(uuid())
-  pacienteId    String
-  paciente      User        @relation("PacienteAvaliacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
-  pharmacistId  String
-  pharmacist    User        @relation("FarmaceuticoAvaliacoes", fields: [pharmacistId], references: [id], onDelete: Cascade)
-  appointmentId String      @unique
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  nota          Int
-  comentario    String?
-  createdAt     DateTime    @default(now())
+  id             String        @id @default(uuid())
+  pacienteId     String
+  paciente       User          @relation("PacienteAvaliacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
+  pharmacistId   String?
+  pharmacist     User?         @relation("FarmaceuticoAvaliacoes", fields: [pharmacistId], references: [id], onDelete: SetNull)
+  appointmentId  String?       @unique
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  filaAgendadaId String?       @unique
+  filaAgendada   FilaAgendada? @relation(fields: [filaAgendadaId], references: [id], onDelete: Cascade)
+  filaUrgenteId  String?       @unique
+  filaUrgente    FilaUrgente?  @relation(fields: [filaUrgenteId], references: [id], onDelete: Cascade)
+  nota           Int
+  comentario     String?
+  createdAt      DateTime      @default(now())
 }
 
 model Availability {
@@ -179,6 +210,7 @@ model FilaAgendada {
   criadoEm        DateTime          @default(now())
   dependentId     String?
   dependent       DependentProfile? @relation("DependenteFilaAgendada", fields: [dependentId], references: [id])
+  avaliacao       Avaliacao?
 }
 
 model FilaUrgente {
@@ -193,6 +225,7 @@ model FilaUrgente {
   aceitoEm        DateTime?
   dependentId     String?
   dependent       DependentProfile? @relation("DependenteFilaUrgente", fields: [dependentId], references: [id])
+  avaliacao       Avaliacao?
 }
 
 model DependentProfile {
@@ -217,4 +250,26 @@ model FarmaceuticoStatus {
   farmaceutico   User     @relation(fields: [farmaceuticoId], references: [id], onDelete: Cascade)
   online         Boolean  @default(false)
   ultimoPing     DateTime @default(now())
+}
+
+model PartnerPharmacy {
+  id            String           @id @default(cuid())
+  nome          String
+  logoUrl       String?
+  baseUrl       String
+  affiliateCode String
+  linkTemplate  String?
+  ativo         Boolean          @default(true)
+  ordem         Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  clicks        AffiliateClick[]
+}
+
+model AffiliateClick {
+  id         String          @id @default(cuid())
+  pharmacyId String
+  pharmacy   PartnerPharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  consultaId String?
+  createdAt  DateTime        @default(now())
 }
