@@ -50,6 +50,11 @@ export const getConsulta = async (req, res) => {
     }
     if (!data) return res.status(404).json({ error: 'Consulta não encontrada.' });
 
+    // Bloqueia farmacêutico de ver consulta de outro farmacêutico
+    if (data.farmaceuticoId && data.farmaceuticoId !== req.user.id) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
     let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
     try {
       const rows = await prisma.$queryRawUnsafe(
@@ -66,6 +71,23 @@ export const getConsulta = async (req, res) => {
       }
     } catch {}
 
+    let whatsappContato = null, modalidadeAtend = 'whatsapp', semContatoLog = null;
+    let remarcacoes = 0, remarcacaoPendente = null, retornoSugerido = null, retornoDispensado = false;
+    try {
+      const extra = await prisma.$queryRawUnsafe(
+        `SELECT "whatsapp_contato","modalidade_atend","sem_contato_log","remarcacoes","remarcacao_pendente","retorno_sugerido","retorno_dispensado" FROM "${tableName(tipo)}" WHERE id = $1`, id
+      );
+      if (extra.length > 0) {
+        whatsappContato    = extra[0].whatsapp_contato    ?? null;
+        modalidadeAtend    = extra[0].modalidade_atend    ?? 'whatsapp';
+        semContatoLog      = extra[0].sem_contato_log     ?? null;
+        remarcacoes        = extra[0].remarcacoes         ?? 0;
+        remarcacaoPendente = extra[0].remarcacao_pendente ?? null;
+        retornoSugerido    = extra[0].retorno_sugerido    ?? null;
+        retornoDispensado  = extra[0].retorno_dispensado  ?? false;
+      }
+    } catch {}
+
     return res.status(200).json({
       id, tipo,
       farmaceuticoId:  data.farmaceuticoId ?? null,
@@ -78,8 +100,8 @@ export const getConsulta = async (req, res) => {
         idade:    calcIdade(data.paciente?.pacienteProfile?.dataNascimento),
         foto:     data.paciente?.photoUrl ?? null,
       },
-      dataHora:        tipo === 'urgente' ? (data.aceitoEm ?? data.criadoEm) : data.dataHora,
-      status:          data.status,
+      dataHora:          tipo === 'urgente' ? (data.aceitoEm ?? data.criadoEm) : data.dataHora,
+      status:            data.status,
       motivo,
       observacoes,
       receita,
@@ -87,7 +109,14 @@ export const getConsulta = async (req, res) => {
       motivoCancelamento,
       triagem,
       finalizacao,
-      creditoDebitado: Number(data.creditoDebitado),
+      creditoDebitado:   Number(data.creditoDebitado),
+      whatsappContato,
+      modalidadeAtend,
+      semContatoLog,
+      remarcacoes,
+      remarcacaoPendente,
+      retornoSugerido,
+      retornoDispensado,
     });
   } catch (err) {
     console.error(err);
@@ -126,7 +155,7 @@ export const iniciarConsulta = async (req, res) => {
 export const concluirConsulta = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id } = req.params;
-  const { tipo, observacoes, motivo, receita, finalizacao } = req.body;
+  const { tipo, observacoes, motivo, receita, finalizacao, retorno_sugerido } = req.body;
   const pharmacistId = req.user.id;
   if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
   if (!observacoes?.trim()) return res.status(400).json({ error: 'Observações são obrigatórias para concluir.' });
@@ -134,6 +163,7 @@ export const concluirConsulta = async (req, res) => {
   const validReceita    = Array.isArray(receita) ? receita.filter((m) => m.medicamento?.trim()) : [];
   const receitaStr      = validReceita.length > 0 ? JSON.stringify(validReceita) : null;
   const finalizacaoStr  = finalizacao ? JSON.stringify(finalizacao) : null;
+  const retornoStr      = retorno_sugerido?.dias_sugeridos ? JSON.stringify(retorno_sugerido) : null;
   const table           = tableName(tipo);
 
   try {
@@ -142,8 +172,9 @@ export const concluirConsulta = async (req, res) => {
       const sets   = [`status = 'concluido'`, `"observacoes" = $1`, `"motivo" = $2`];
       const params = [observacoes.trim(), motivo?.trim() || null];
       let pi = 3;
-      if (receitaStr)     { sets.push(`"receita" = $${pi}::jsonb`);     params.push(receitaStr);     pi++; }
-      if (finalizacaoStr) { sets.push(`"finalizacao" = $${pi}::jsonb`); params.push(finalizacaoStr); pi++; }
+      if (receitaStr)     { sets.push(`"receita" = $${pi}::jsonb`);          params.push(receitaStr);     pi++; }
+      if (finalizacaoStr) { sets.push(`"finalizacao" = $${pi}::jsonb`);      params.push(finalizacaoStr); pi++; }
+      if (retornoStr)     { sets.push(`"retorno_sugerido" = $${pi}::jsonb`); params.push(retornoStr);     pi++; }
       params.push(id, pharmacistId);
       count = await prisma.$executeRawUnsafe(
         `UPDATE "${table}" SET ${sets.join(', ')} WHERE id = $${pi} AND "farmaceuticoId" = $${pi + 1} AND status = 'em_atendimento'`,
@@ -170,7 +201,7 @@ export const concluirConsulta = async (req, res) => {
     } catch {}
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'concluido', detalhes: { tipo, duracao_min: duracaoMin } });
 
-    // Notificação de documento para o paciente
+    // Notificação de documento + retorno sugerido
     try {
       const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
       const fila  = await model.findUnique({ where: { id }, select: { pacienteId: true } });
@@ -182,6 +213,19 @@ export const concluirConsulta = async (req, res) => {
           mensagem:   'O farmacêutico registrou as orientações da sua consulta.',
           consultaId: id,
         });
+        if (retornoStr) {
+          const diasSugeridos = retorno_sugerido.dias_sugeridos;
+          const obs           = retorno_sugerido.observacao?.trim() || '';
+          const dataApprox    = new Date(Date.now() + diasSugeridos * 86400000);
+          const dataFmt       = dataApprox.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+          await criarNotificacao({
+            userId:     fila.pacienteId,
+            tipo:       'retorno_sugerido',
+            titulo:     `Retorno sugerido para ~${dataFmt}`,
+            mensagem:   obs || `Seu farmacêutico sugere um retorno em ${diasSugeridos} dias.`,
+            consultaId: id,
+          });
+        }
       }
     } catch {}
 
@@ -410,6 +454,260 @@ export const devolverConsulta = async (req, res) => {
   }
 };
 
+// ── PATCH /api/consulta/:id/sem-contato ─────────────────────────────────────
+// Farmacêutico registra tentativa sem sucesso → cancela com estorno integral
+
+export const semContato = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { tipo } = req.body;
+  const pharmacistId = req.user.id;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+
+  try {
+    const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+    const table = tableName(tipo);
+
+    const fila = await model.findFirst({ where: { id, farmaceuticoId: pharmacistId } });
+    if (!fila) return res.status(404).json({ error: 'Consulta não encontrada ou não é sua.' });
+    if (!['aceito', 'em_atendimento'].includes(fila.status)) {
+      return res.status(400).json({ error: 'Só é possível registrar sem-contato em consultas aceitas ou em atendimento.' });
+    }
+
+    const tentativa = JSON.stringify([{ quando: new Date().toISOString(), farmaceuticoId: pharmacistId }]);
+    const credito   = Number(fila.creditoDebitado);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `UPDATE "${table}"
+         SET status = 'cancelado',
+             "farmaceuticoId" = NULL,
+             "motivo_cancelamento" = 'Sem contato com o paciente',
+             "sem_contato_log" = COALESCE("sem_contato_log", '[]'::jsonb) || $1::jsonb
+         WHERE id = $2`,
+        tentativa, id
+      );
+      if (credito > 0) {
+        const carteira = await tx.carteira.update({
+          where: { pacienteId: fila.pacienteId },
+          data:  { saldo: { increment: credito } },
+        });
+        await tx.transacaoCarteira.create({
+          data: {
+            carteiraId: carteira.id,
+            tipo:       'credito',
+            valor:      credito,
+            saldoApos:  carteira.saldo,
+            descricao:  'Estorno — farmacêutico não conseguiu contato',
+            consultaId: id,
+          },
+        });
+      }
+    });
+
+    await criarNotificacao({
+      userId:   fila.pacienteId,
+      tipo:     'estorno',
+      titulo:   'Farmacêutico tentou contato',
+      mensagem: `O farmacêutico não conseguiu falar com você. O valor foi devolvido ao seu saldo.`,
+      consultaId: id,
+    });
+
+    await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'sem_contato', detalhes: { tipo } });
+    return res.json({ success: true, status: 'cancelado', estorno: credito });
+  } catch (err) {
+    console.error('semContato:', err);
+    return res.status(500).json({ error: 'Erro ao registrar sem-contato.' });
+  }
+};
+
+// ── PATCH /api/consulta/:id/remarcar ────────────────────────────────────────
+// Paciente remarca consulta agendada (máx 2x, com 2h de antecedência)
+
+export const remarcarConsulta = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { nova_data_hora } = req.body;
+  const pacienteId = req.user.id;
+
+  if (!nova_data_hora) return res.status(400).json({ error: 'nova_data_hora é obrigatória.' });
+
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT status, "dataHora", remarcacoes, "pacienteId" FROM "FilaAgendada" WHERE id = $1`, id
+    );
+    if (!rows.length || rows[0].pacienteid !== pacienteId) {
+      return res.status(404).json({ error: 'Consulta não encontrada.' });
+    }
+    const fila = rows[0];
+    if (!['aguardando', 'aceito'].includes(fila.status)) {
+      return res.status(400).json({ error: 'Só é possível remarcar consultas aguardando ou aceitas.' });
+    }
+    const remarcacoes = Number(fila.remarcacoes ?? 0);
+    if (remarcacoes >= 2) {
+      return res.status(400).json({ error: 'Limite de 2 remarcações atingido. Para mudar o horário, cancele e reagende.' });
+    }
+    const diffHoras = (new Date(fila.datahora).getTime() - Date.now()) / 3600000;
+    if (diffHoras < 2) {
+      return res.status(400).json({ error: 'Remarcação só é permitida até 2 horas antes da consulta.' });
+    }
+    const novaData = new Date(nova_data_hora);
+    if (isNaN(novaData.getTime()) || novaData <= new Date()) {
+      return res.status(400).json({ error: 'nova_data_hora inválida.' });
+    }
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "FilaAgendada"
+       SET "dataHora" = $1, remarcacoes = remarcacoes + 1
+       WHERE id = $2 AND "pacienteId" = $3`,
+      novaData, id, pacienteId
+    );
+
+    await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcado', detalhes: { nova_data_hora, remarcacoes: remarcacoes + 1 } });
+    return res.json({ success: true, nova_data_hora: novaData, remarcacoes: remarcacoes + 1 });
+  } catch (err) {
+    console.error('remarcarConsulta:', err);
+    return res.status(500).json({ error: 'Erro ao remarcar consulta.' });
+  }
+};
+
+// ── PATCH /api/consulta/:id/propor-remarcacao ────────────────────────────────
+// Farmacêutico propõe novo horário ao paciente
+
+export const proporRemarcacao = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { nova_data_hora, motivo } = req.body;
+  const pharmacistId = req.user.id;
+
+  if (!nova_data_hora) return res.status(400).json({ error: 'nova_data_hora é obrigatória.' });
+  if (!motivo?.trim()) return res.status(400).json({ error: 'Motivo é obrigatório.' });
+
+  try {
+    const fila = await prisma.filaAgendada.findFirst({
+      where: { id, farmaceuticoId: pharmacistId, status: 'aceito' },
+    });
+    if (!fila) return res.status(404).json({ error: 'Consulta não encontrada ou não é sua.' });
+
+    const novaData  = new Date(nova_data_hora);
+    if (isNaN(novaData.getTime())) return res.status(400).json({ error: 'Data inválida.' });
+    const expiraEm  = new Date(Date.now() + 24 * 3600 * 1000);
+    const pendente  = JSON.stringify({ novaDataHora: novaData, motivo: motivo.trim(), propostoEm: new Date(), expiraEm });
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "FilaAgendada"
+       SET status = 'remarcacao_pendente', "remarcacao_pendente" = $1::jsonb
+       WHERE id = $2`,
+      pendente, id
+    );
+
+    await criarNotificacao({
+      userId:     fila.pacienteId,
+      tipo:       'remarcacao',
+      titulo:     'Farmacêutico propôs novo horário',
+      mensagem:   `Motivo: ${motivo.trim()}. Novo horário: ${novaData.toLocaleString('pt-BR')}. Você tem 24h para responder.`,
+      consultaId: id,
+    });
+
+    await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'proposta_remarcacao', detalhes: { nova_data_hora, motivo: motivo.trim() } });
+    return res.json({ success: true, status: 'remarcacao_pendente', expiraEm });
+  } catch (err) {
+    console.error('proporRemarcacao:', err);
+    return res.status(500).json({ error: 'Erro ao propor remarcação.' });
+  }
+};
+
+// ── PATCH /api/consulta/:id/responder-remarcacao ─────────────────────────────
+// Paciente responde à proposta do farmacêutico
+
+export const responderRemarcacao = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { decisao, nova_data_hora } = req.body;
+  const pacienteId = req.user.id;
+
+  if (!['aceitar', 'outro', 'cancelar'].includes(decisao)) {
+    return res.status(400).json({ error: 'decisao deve ser aceitar, outro ou cancelar.' });
+  }
+
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT status, "creditoDebitado", "remarcacao_pendente", "pacienteId" FROM "FilaAgendada" WHERE id = $1`, id
+    );
+    if (!rows.length || rows[0].pacienteid !== pacienteId) {
+      return res.status(404).json({ error: 'Consulta não encontrada.' });
+    }
+    const fila = rows[0];
+    if (fila.status !== 'remarcacao_pendente') {
+      return res.status(400).json({ error: 'Consulta não está aguardando resposta de remarcação.' });
+    }
+    const pendente = fila.remarcacao_pendente;
+
+    if (decisao === 'cancelar') {
+      // Estorno integral — cancelamento partiu do farmacêutico
+      const credito = Number(fila.creditodebitado);
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(
+          `UPDATE "FilaAgendada" SET status = 'cancelado', "remarcacao_pendente" = NULL, "motivo_cancelamento" = 'Paciente recusou remarcação proposta pelo farmacêutico' WHERE id = $1`, id
+        );
+        if (credito > 0) {
+          const carteira = await tx.carteira.update({ where: { pacienteId }, data: { saldo: { increment: credito } } });
+          await tx.transacaoCarteira.create({ data: { carteiraId: carteira.id, tipo: 'credito', valor: credito, saldoApos: carteira.saldo, descricao: 'Estorno — paciente recusou remarcação do farmacêutico', consultaId: id } });
+        }
+      });
+      await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcacao_recusada', detalhes: { estorno: Number(fila.creditodebitado) } });
+      return res.json({ success: true, status: 'cancelado' });
+    }
+
+    // aceitar → usa novaDataHora da proposta | outro → usa nova_data_hora do body
+    const novaData = decisao === 'aceitar'
+      ? new Date(pendente?.novaDataHora)
+      : new Date(nova_data_hora);
+
+    if (isNaN(novaData?.getTime())) {
+      return res.status(400).json({ error: 'Data inválida.' });
+    }
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "FilaAgendada"
+       SET status = 'aceito', "dataHora" = $1, "remarcacao_pendente" = NULL, remarcacoes = remarcacoes + 1
+       WHERE id = $2`,
+      novaData, id
+    );
+    await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcacao_aceita', detalhes: { decisao, nova_data_hora: novaData } });
+    return res.json({ success: true, status: 'aceito', nova_data_hora: novaData });
+  } catch (err) {
+    console.error('responderRemarcacao:', err);
+    return res.status(500).json({ error: 'Erro ao responder remarcação.' });
+  }
+};
+
+// ── PATCH /api/consulta/:id/dispensar-retorno ────────────────────────────────
+
+export const dispensarRetorno = async (req, res) => {
+  const { id } = req.params;
+  const { tipo } = req.body;
+  const userId = req.user.id;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+
+  try {
+    const table = tableName(tipo);
+    const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+
+    // Valida que é o próprio paciente
+    const fila = await model.findFirst({ where: { id, pacienteId: userId } });
+    if (!fila) return res.status(404).json({ error: 'Consulta não encontrada.' });
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "${table}" SET "retorno_dispensado" = true WHERE id = $1`, id
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('dispensarRetorno:', err);
+    return res.status(500).json({ error: 'Erro ao dispensar retorno.' });
+  }
+};
+
 // ── GET /api/paciente/:id/historico (farmacêutico vê histórico do paciente) ──
 
 export const getHistoricoPaciente = async (req, res) => {
@@ -564,8 +862,14 @@ export const getHistoricoCompleto = async (req, res) => {
 
   try {
     const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
-    const consulta = await model.findUnique({ where: { id }, select: { pacienteId: true } });
+    const consulta = await model.findUnique({ where: { id }, select: { pacienteId: true, farmaceuticoId: true } });
     if (!consulta) return res.status(404).json({ error: 'Consulta não encontrada.' });
+
+    // Só o farmacêutico responsável pode ver o histórico completo do paciente
+    if (consulta.farmaceuticoId && consulta.farmaceuticoId !== req.user.id) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
     const patientId = consulta.pacienteId;
 
     let agendadas = [], urgentes = [];

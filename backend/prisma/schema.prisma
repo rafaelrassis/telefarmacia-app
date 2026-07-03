@@ -47,6 +47,7 @@ model User {
   farmaceuticoStatus           FarmaceuticoStatus?
   dependentes                  DependentProfile[]  @relation("TitularDependentes")
   notificacoes                 Notificacao[]       @relation("UserNotificacoes")
+  consentRecords               ConsentRecord[]
 }
 
 model Notificacao {
@@ -272,4 +273,17 @@ model AffiliateClick {
   pharmacy   PartnerPharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
   consultaId String?
   createdAt  DateTime        @default(now())
+}
+
+model ConsentRecord {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipoTermo   String
+  versaoTermo String
+  aceitoEm    DateTime @default(now())
+  ip          String?
+
+  @@unique([userId, tipoTermo, versaoTermo])
+  @@index([userId, tipoTermo])
 }

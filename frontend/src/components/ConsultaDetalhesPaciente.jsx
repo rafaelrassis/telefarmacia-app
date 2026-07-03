@@ -6,22 +6,24 @@ import OndeComprar from './OndeComprar';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const STATUS_LABEL = {
-  aguardando:         'Aguardando farmacêutico',
-  aceito:             'Confirmada',
-  em_atendimento:     'Em atendimento',
-  concluido:          'Concluída',
-  cancelado:          'Cancelada',
-  expirado:           'Expirada',
-  AGENDADO:           'Confirmada',
-  CONCLUIDO:          'Concluída',
-  CANCELADO:          'Cancelada',
-  PENDENTE_PAGAMENTO: 'Aguardando pagamento',
-  EXPIRADA:           'Expirada',
+  aguardando:           'Aguardando farmacêutico',
+  aceito:               'Confirmada',
+  em_atendimento:       'Em atendimento',
+  concluido:            'Concluída',
+  cancelado:            'Cancelada',
+  expirado:             'Expirada',
+  remarcacao_pendente:  'Remarcação pendente',
+  AGENDADO:             'Confirmada',
+  CONCLUIDO:            'Concluída',
+  CANCELADO:            'Cancelada',
+  PENDENTE_PAGAMENTO:   'Aguardando pagamento',
+  EXPIRADA:             'Expirada',
 };
 
 const STATUS_DOT = {
   aguardando: '#9ca3af', aceito: '#2563eb', em_atendimento: '#16a34a',
   concluido: '#7c3aed', cancelado: '#dc2626', expirado: '#9ca3af',
+  remarcacao_pendente: '#d97706',
   AGENDADO: '#2563eb', CONCLUIDO: '#7c3aed', CANCELADO: '#dc2626',
   PENDENTE_PAGAMENTO: '#d97706', EXPIRADA: '#9ca3af',
 };
@@ -54,6 +56,16 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
   const [showReceita,   setShowReceita]   = useState(false);
   const [parceiros,       setParceiros]       = useState([]);
   const [ondeComprarAtivo, setOndeComprarAtivo] = useState(false);
+
+  // ── Remarcação ────────────────────────────────────────────────────────────────
+  const [showRemarcarForm, setShowRemarcarForm]     = useState(false);
+  const [novaDataHora, setNovaDataHora]             = useState('');
+  const [remarcandoLoading, setRemarcandoLoading]   = useState(false);
+  const [remarcandoError, setRemarcandoError]       = useState('');
+  const [respondendoLoading, setRespondendoLoading] = useState(false);
+  const [respostaError, setRespostaError]           = useState('');
+  const [showOutroHorario, setShowOutroHorario]     = useState(false);
+  const [outroHorario, setOutroHorario]             = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -137,7 +149,62 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
     }
   };
 
-  const isFuture    = data && ['aguardando', 'aceito', 'AGENDADO', 'PENDENTE_PAGAMENTO'].includes(data.status);
+  const handleRemarcar = async () => {
+    if (!novaDataHora) { setRemarcandoError('Selecione a nova data e hora.'); return; }
+    setRemarcandoLoading(true);
+    setRemarcandoError('');
+    try {
+      const res = await fetch(`${API_URL}/api/consulta/${id}/remarcar`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tipo, novaDataHora }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setData((d) => ({ ...d, dataHora: novaDataHora, remarcacoes: (d.remarcacoes ?? 0) + 1 }));
+        setShowRemarcarForm(false);
+        setNovaDataHora('');
+        onCancelled?.();
+      } else {
+        setRemarcandoError(result.error || 'Erro ao remarcar.');
+      }
+    } catch { setRemarcandoError('Falha de conexão.'); }
+    finally   { setRemarcandoLoading(false); }
+  };
+
+  const handleResponderRemarcacao = async (acao, novaDataHoraResposta = null) => {
+    setRespondendoLoading(true);
+    setRespostaError('');
+    try {
+      const body = { tipo, acao };
+      if (novaDataHoraResposta) body.novaDataHora = novaDataHoraResposta;
+      const res = await fetch(`${API_URL}/api/consulta/${id}/responder-remarcacao`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify(body),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        if (acao === 'cancelar') {
+          onCancelled?.();
+          onClose();
+        } else {
+          const refresh = await fetch(`${API_URL}/api/paciente/consulta/${id}?tipo=${tipo}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (refresh.ok) setData(await refresh.json());
+          setShowOutroHorario(false);
+          setOutroHorario('');
+          onCancelled?.();
+        }
+      } else {
+        setRespostaError(result.error || 'Erro ao responder.');
+      }
+    } catch { setRespostaError('Falha de conexão.'); }
+    finally   { setRespondendoLoading(false); }
+  };
+
+  const isFuture    = data && ['aguardando', 'aceito', 'remarcacao_pendente', 'AGENDADO', 'PENDENTE_PAGAMENTO'].includes(data.status);
   const isConcluded = data && ['concluido', 'CONCLUIDO'].includes(data.status);
   const isCancelled = data && ['cancelado', 'CANCELADO', 'expirado', 'EXPIRADA'].includes(data.status);
   const canCancel   = isFuture && tipo !== 'appointment';
@@ -216,64 +283,192 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
               {/* ── FUTURA ─────────────────────────────────────── */}
               {isFuture && (
                 <>
-                  {data.meetLink ? (
-                    <a
-                      href={data.meetLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: 'block', textAlign: 'center', padding: '12px 0',
-                        background: '#1a73e8', color: 'white', borderRadius: 10,
-                        fontWeight: 700, fontSize: 14, textDecoration: 'none',
-                      }}
-                    >
-                      🎥 Entrar no Google Meet
-                    </a>
-                  ) : (
-                    <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '4px 0' }}>
-                      O link da reunião será informado pelo farmacêutico.
-                    </p>
-                  )}
-
-                  {canCancel && !confirmCancel && (
-                    <button
-                      onClick={() => setConfirmCancel(true)}
-                      style={{
-                        padding: '11px 0', background: 'white',
-                        border: '1.5px solid #fca5a5', borderRadius: 10,
-                        color: '#dc2626', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >
-                      Cancelar consulta
-                    </button>
-                  )}
-
-                  {canCancel && confirmCancel && (
-                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '14px' }}>
-                      <p style={{ fontSize: 13, color: '#991b1b', fontWeight: 600, margin: '0 0 12px' }}>
-                        Confirma o cancelamento?{data?.creditoDebitado > 0
-                          ? ` Você receberá R$ ${Number(data.creditoDebitado).toFixed(2).replace('.', ',')} de volta na sua carteira.`
-                          : ' A consulta será cancelada.'}
-                      </p>
-                      {cancelError && (
-                        <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 10px' }}>{cancelError}</p>
-                      )}
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                          onClick={() => { setConfirmCancel(false); setCancelError(''); }}
-                          style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
-                        >
-                          Voltar
-                        </button>
-                        <button
-                          onClick={handleCancelar}
-                          disabled={cancelling}
-                          style={{ flex: 1, padding: '9px 0', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1 }}
-                        >
-                          {cancelling ? 'Cancelando...' : 'Sim, cancelar'}
-                        </button>
+                  {/* Proposta de remarcação pelo farmacêutico */}
+                  {data.status === 'remarcacao_pendente' && data.remarcacaoPendente && (() => {
+                    const p = data.remarcacaoPendente;
+                    const novaData = p.novaDataHora
+                      ? new Date(p.novaDataHora).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' })
+                      : null;
+                    const expira = p.expiraEm
+                      ? new Date(p.expiraEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                      : null;
+                    const min2h = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
+                    return (
+                      <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 10, padding: '14px' }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', margin: '0 0 6px' }}>
+                          📅 Farmacêutico propôs remarcar
+                        </p>
+                        {novaData && (
+                          <p style={{ fontSize: 13, color: '#78350f', margin: '0 0 4px' }}>
+                            Nova data: <strong>{novaData}</strong>
+                          </p>
+                        )}
+                        {p.motivo && (
+                          <p style={{ fontSize: 12, color: '#a16207', margin: '0 0 4px', fontStyle: 'italic' }}>
+                            Motivo: "{p.motivo}"
+                          </p>
+                        )}
+                        {expira && (
+                          <p style={{ fontSize: 11, color: '#b45309', margin: '0 0 12px' }}>
+                            Válido até: {expira}
+                          </p>
+                        )}
+                        {respostaError && (
+                          <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 8px' }}>{respostaError}</p>
+                        )}
+                        {!showOutroHorario ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <button
+                              onClick={() => handleResponderRemarcacao('aceitar')}
+                              disabled={respondendoLoading}
+                              style={{ padding: '9px 0', background: '#16a34a', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: respondendoLoading ? 'not-allowed' : 'pointer', opacity: respondendoLoading ? 0.6 : 1 }}
+                            >
+                              {respondendoLoading ? '...' : '✓ Aceitar nova data'}
+                            </button>
+                            <button
+                              onClick={() => setShowOutroHorario(true)}
+                              disabled={respondendoLoading}
+                              style={{ padding: '9px 0', background: 'white', color: '#d97706', border: '1.5px solid #fde68a', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              📅 Escolher outro horário
+                            </button>
+                            <button
+                              onClick={() => handleResponderRemarcacao('cancelar')}
+                              disabled={respondendoLoading}
+                              style={{ padding: '9px 0', background: 'white', color: '#dc2626', border: '1.5px solid #fca5a5', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: respondendoLoading ? 'not-allowed' : 'pointer', opacity: respondendoLoading ? 0.6 : 1 }}
+                            >
+                              Cancelar com reembolso
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: '#78350f' }}>Nova data e hora:</label>
+                            <input
+                              type="datetime-local"
+                              value={outroHorario}
+                              min={min2h}
+                              onChange={(e) => setOutroHorario(e.target.value)}
+                              style={{ border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white' }}
+                            />
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={() => { setShowOutroHorario(false); setOutroHorario(''); }}
+                                style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                                Voltar
+                              </button>
+                              <button
+                                onClick={() => handleResponderRemarcacao('outro', outroHorario)}
+                                disabled={!outroHorario || respondendoLoading}
+                                style={{ flex: 2, padding: '9px 0', background: '#d97706', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: (!outroHorario || respondendoLoading) ? 'not-allowed' : 'pointer', opacity: (!outroHorario || respondendoLoading) ? 0.6 : 1 }}>
+                                {respondendoLoading ? '...' : 'Confirmar horário'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    );
+                  })()}
+
+                  {/* Ações normais (exceto quando remarcacao_pendente) */}
+                  {data.status !== 'remarcacao_pendente' && (
+                    <>
+                      {data.meetLink ? (
+                        <a
+                          href={data.meetLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'block', textAlign: 'center', padding: '12px 0',
+                            background: '#1a73e8', color: 'white', borderRadius: 10,
+                            fontWeight: 700, fontSize: 14, textDecoration: 'none',
+                          }}
+                        >
+                          🎥 Entrar no Google Meet
+                        </a>
+                      ) : (
+                        <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '4px 0' }}>
+                          O link da reunião será informado pelo farmacêutico.
+                        </p>
+                      )}
+
+                      {/* Remarcar consulta (paciente-iniciado) */}
+                      {data.status === 'aceito' && tipo === 'agendada' && (data.remarcacoes ?? 0) < 2 && !showRemarcarForm && (
+                        <button
+                          onClick={() => setShowRemarcarForm(true)}
+                          style={{ padding: '11px 0', background: 'white', border: '1.5px solid #7c3aed', borderRadius: 10, color: '#7c3aed', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          📅 Remarcar consulta
+                        </button>
+                      )}
+                      {showRemarcarForm && (
+                        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '14px' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#5b21b6', margin: '0 0 10px' }}>Remarcar consulta</p>
+                          <p style={{ fontSize: 12, color: '#7c3aed', margin: '0 0 10px' }}>
+                            Restam {2 - (data.remarcacoes ?? 0)} remarcação(ões). Selecione a nova data com pelo menos 2h de antecedência.
+                          </p>
+                          <input
+                            type="datetime-local"
+                            value={novaDataHora}
+                            min={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                            onChange={(e) => setNovaDataHora(e.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #ddd6fe', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: 10 }}
+                          />
+                          {remarcandoError && <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 8px' }}>{remarcandoError}</p>}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => { setShowRemarcarForm(false); setNovaDataHora(''); setRemarcandoError(''); }}
+                              style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={handleRemarcar}
+                              disabled={remarcandoLoading || !novaDataHora}
+                              style={{ flex: 2, padding: '9px 0', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: (remarcandoLoading || !novaDataHora) ? 'not-allowed' : 'pointer', opacity: (remarcandoLoading || !novaDataHora) ? 0.6 : 1 }}>
+                              {remarcandoLoading ? 'Salvando...' : 'Confirmar remarcação'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {canCancel && !confirmCancel && (
+                        <button
+                          onClick={() => setConfirmCancel(true)}
+                          style={{
+                            padding: '11px 0', background: 'white',
+                            border: '1.5px solid #fca5a5', borderRadius: 10,
+                            color: '#dc2626', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                          }}
+                        >
+                          Cancelar consulta
+                        </button>
+                      )}
+
+                      {canCancel && confirmCancel && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '14px' }}>
+                          <p style={{ fontSize: 13, color: '#991b1b', fontWeight: 600, margin: '0 0 12px' }}>
+                            Confirma o cancelamento?{data?.creditoDebitado > 0
+                              ? ` Você receberá R$ ${Number(data.creditoDebitado).toFixed(2).replace('.', ',')} de volta na sua carteira.`
+                              : ' A consulta será cancelada.'}
+                          </p>
+                          {cancelError && (
+                            <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 10px' }}>{cancelError}</p>
+                          )}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => { setConfirmCancel(false); setCancelError(''); }}
+                              style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                            >
+                              Voltar
+                            </button>
+                            <button
+                              onClick={handleCancelar}
+                              disabled={cancelling}
+                              style={{ flex: 1, padding: '9px 0', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1 }}
+                            >
+                              {cancelling ? 'Cancelando...' : 'Sim, cancelar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}

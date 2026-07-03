@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CheckoutPix from './CheckoutPix';
+import TermoConsentimento from './TermoConsentimento';
+
+const API_URL_CONSENT = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -414,15 +417,41 @@ const StepSuccess = ({ pharmacist, slot, onClose }) => (
 // ── Wizard principal ──────────────────────────────────────────────────────────
 
 const BookingWizard = ({ onClose, onBooked }) => {
-  const [step, setStep]               = useState(1);
-  const [pharmacist, setPharmacist]   = useState(null);
-  const [slot, setSlot]               = useState(null);
-  const [showTopup, setShowTopup]     = useState(false);
+  const { token }                           = useAuth();
+  const [step, setStep]                     = useState(1);
+  const [pharmacist, setPharmacist]         = useState(null);
+  const [slot, setSlot]                     = useState(null);
+  const [showTopup, setShowTopup]           = useState(false);
+  const [consentOk, setConsentOk]           = useState(null); // null=loading, true=ok, false=pendente
+  const [showConsent, setShowConsent]       = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL_CONSENT}/api/consent/telefarmacia`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (!d) { setConsentOk(true); return; } // falha silenciosa — não bloquear
+        if (d.aceito) { setConsentOk(true); }
+        else          { setConsentOk(false); setShowConsent(true); }
+      })
+      .catch(() => setConsentOk(true)); // erro de rede — não bloquear
+  }, [token]);
 
   const handleBooked = () => {
     setStep('success');
     onBooked?.();
   };
+
+  if (showConsent) {
+    return (
+      <TermoConsentimento
+        onAceito={() => { setConsentOk(true); setShowConsent(false); }}
+        onFechar={onClose}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">

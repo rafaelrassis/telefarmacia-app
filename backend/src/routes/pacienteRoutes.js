@@ -4,10 +4,12 @@ import {
   getHistorico, getAgendamentos,
   getDadosSaudeTitular, saveDadosSaudeTitular,
   getConsultaDetalhesPaciente, getReceitaPdfPaciente, getProximaConsulta,
-  getExtrato, concluirOnboarding,
+  getExtrato, concluirOnboarding, getRetornoSugerido, getMeusDocumentos,
 } from '../controllers/PacienteController.js';
 import { getNotificacoes, marcarLidas } from '../controllers/NotificacaoController.js';
 import { getParceirosPaciente, registrarClique } from '../controllers/PartnerPharmacyController.js';
+import { getConsentStatus, registrarConsentimento } from '../controllers/ConsentController.js';
+import { exportarDados, excluirConta } from '../controllers/LgpdController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -30,5 +32,19 @@ router.get('/paciente/consulta/:id',      authMiddleware, getConsultaDetalhesPac
 // Onde Comprar — parceiros ativos (flag-gated) e registro de clique
 router.get('/parceiros',             authMiddleware, getParceirosPaciente);
 router.post('/parceiros/:id/click',  authMiddleware, registrarClique);
+
+// Consentimento informado — telefarmácia
+router.get('/consent/telefarmacia',  authMiddleware, getConsentStatus);
+router.post('/consent/telefarmacia', authMiddleware, registrarConsentimento);
+
+// LGPD — direitos do titular
+router.get('/lgpd/exportar',         authMiddleware, exportarDados);
+router.post('/lgpd/excluir-conta',   authMiddleware, excluirConta);
+
+// Retorno sugerido pelo farmacêutico
+router.get('/paciente/retorno-sugerido', authMiddleware, getRetornoSugerido);
+
+// Meus documentos (receitas + orientações de consultas concluídas)
+router.get('/paciente/documentos', authMiddleware, getMeusDocumentos);
 
 export default router;

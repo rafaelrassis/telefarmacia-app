@@ -193,7 +193,14 @@ const TriagemDisplay = ({ triagem, solicitanteNome }) => {
     rows.push({ label: 'Consulta para', value: `${partes.join(', ')}${sol}` });
   }
 
-  if (triagem.tipo_consulta) rows.push({ label: 'Tipo de consulta', value: triagem.tipo_consulta === 'tratamento' ? 'Orientação de tratamento' : 'Tirar dúvida' });
+  if (triagem.tipo_consulta) {
+    const tipoLabel = triagem.tipo_consulta === 'tratamento'
+      ? 'Orientação de tratamento'
+      : triagem.tipo_consulta === 'interpretacao_receita'
+        ? 'Interpretação de receita'
+        : 'Tirar dúvida'; // retrocompatibilidade com registros antigos
+    rows.push({ label: 'Tipo de consulta', value: tipoLabel });
+  }
   if (triagem.identificacao?.sexo) rows.push({ label: 'Sexo', value: triagem.identificacao.sexo });
   if (triagem.identificacao?.peso) rows.push({ label: 'Peso', value: `${triagem.identificacao.peso} kg` });
 
@@ -427,6 +434,10 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   const [encaminhamentoMedico, setEncaminhamentoMedico]   = useState(null);
   const [encaminhamentoDetalhe, setEncaminhamentoDetalhe] = useState('');
   const [finalizacaoError, setFinalizacaoError]           = useState(false);
+  const [showSemContatoConfirm, setShowSemContatoConfirm] = useState(false);
+  const [semContatoLoading, setSemContatoLoading]         = useState(false);
+  const [retornoDias, setRetornoDias]   = useState('');
+  const [retornoObs, setRetornoObs]     = useState('');
   const timerRef = useRef(null);
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
@@ -544,11 +555,15 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
       encaminhamento_medico:  encaminhamentoMedico,
       encaminhamento_detalhe: encaminhamentoDetalhe.trim() || '',
     };
+    const retornoSugeridoPayload = retornoDias
+      ? { dias_sugeridos: parseInt(retornoDias, 10), observacao: retornoObs.trim() || null }
+      : null;
     const data = await doAction('concluir', {
       observacoes: observacoes.trim(),
       motivo:      motivo.trim() || null,
       receita:     itensValidos,
       finalizacao,
+      retorno_sugerido: retornoSugeridoPayload,
     });
     if (data) {
       setConsulta((p) => ({ ...p, status: 'concluido', receita: itensValidos }));
@@ -569,6 +584,27 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
     const data = await doAction('devolver', { motivo: motivoDevolver.trim() || null });
     if (data) { onUpdated?.(); onClose(); }
     setShowDevolverConfirm(false);
+  };
+
+  const handleSemContato = async () => {
+    setSemContatoLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/consulta/${id}/sem-contato`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tipo }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setShowSemContatoConfirm(false);
+        onUpdated?.();
+        onClose();
+      } else {
+        setError(data.error || 'Erro ao registrar sem contato.');
+        setShowSemContatoConfirm(false);
+      }
+    } catch { setError('Falha de conexão.'); setShowSemContatoConfirm(false); }
+    finally   { setSemContatoLoading(false); }
   };
 
   const handleSalvarRascunho = async () => {
@@ -701,6 +737,33 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                   </div>
                 )}
 
+                {/* Contato preferido para esta consulta */}
+                {isActive && !isVisualizacao && (
+                  consulta.modalidadeAtend === 'meet' ? (
+                    <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '7px 12px' }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', margin: 0 }}>
+                        📹 Paciente prefere Google Meet
+                      </p>
+                      <p style={{ fontSize: 11, color: '#0284c7', margin: '2px 0 0' }}>
+                        Envie o link de Meet por e-mail ao paciente.
+                      </p>
+                    </div>
+                  ) : consulta.whatsappContato ? (
+                    <a
+                      href={`https://wa.me/55${consulta.whatsappContato.replace(/\D/g, '')}`}
+                      target="_blank" rel="noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: '#25D366', color: 'white',
+                        padding: '6px 14px', borderRadius: 8,
+                        fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                      }}
+                    >
+                      📱 Chamar no WhatsApp ({consulta.whatsappContato})
+                    </a>
+                  ) : null
+                )}
+
                 {consulta.farmaceuticoNome && (
                   <p className="text-xs text-gray-500">
                     Farmacêutico(a):{' '}
@@ -765,6 +828,47 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                       className="flex-1 py-2 text-sm font-bold bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition"
                     >
                       {actionLoading === 'devolver' ? '...' : 'Sim, devolver'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Não consegui contato */}
+              {isActive && !isVisualizacao && !showSemContatoConfirm && !showDevolverConfirm && (
+                <div className="flex">
+                  <button
+                    onClick={() => setShowSemContatoConfirm(true)}
+                    disabled={!!actionLoading}
+                    className="px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-bold rounded-xl hover:bg-red-50 disabled:opacity-50 transition"
+                  >
+                    📵 Não consegui contato
+                  </button>
+                </div>
+              )}
+              {showSemContatoConfirm && !isVisualizacao && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-red-800">Confirmar: não conseguiu contato com o paciente?</p>
+                  <p className="text-xs text-red-600">
+                    A consulta será cancelada e o crédito devolvido integralmente ao paciente.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowSemContatoConfirm(false)}
+                      className="flex-1 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      onClick={handleSemContato}
+                      disabled={semContatoLoading}
+                      style={{
+                        flex: 1, padding: '8px 0', background: '#dc2626', color: 'white',
+                        border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700,
+                        cursor: semContatoLoading ? 'not-allowed' : 'pointer',
+                        opacity: semContatoLoading ? 0.5 : 1,
+                      }}
+                    >
+                      {semContatoLoading ? '...' : 'Sim, confirmar'}
                     </button>
                   </div>
                 </div>
@@ -852,6 +956,40 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                   encaminhamentoDetalhe={encaminhamentoDetalhe} setEncaminhamentoDetalhe={setEncaminhamentoDetalhe}
                   onChangeAny={() => setFinalizacaoError(false)}
                 />
+              )}
+
+              {/* Sugerir retorno (opcional, só no checklist de conclusão) */}
+              {canConcluir && (
+                <div style={{ border: '1px solid #d1fae5', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', background: '#f0fdf4', borderBottom: '1px solid #d1fae5' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                      🔄 Sugerir retorno{' '}
+                      <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 12 }}>(opcional)</span>
+                    </span>
+                  </div>
+                  <div style={{ padding: '12px 14px', background: 'white', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <label style={{ fontSize: 13, color: '#374151', flexShrink: 0 }}>Retorno em</label>
+                      <input
+                        type="number" min="1" max="365"
+                        value={retornoDias}
+                        onChange={(e) => setRetornoDias(e.target.value)}
+                        placeholder="ex: 30"
+                        style={{ width: 80, border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', fontSize: 14, outline: 'none', fontFamily: 'inherit' }}
+                      />
+                      <span style={{ fontSize: 13, color: '#6b7280' }}>dias</span>
+                    </div>
+                    {retornoDias && (
+                      <textarea
+                        value={retornoObs}
+                        onChange={(e) => setRetornoObs(e.target.value)}
+                        placeholder="Observação para o retorno (opcional)"
+                        rows={2}
+                        style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'none', fontFamily: 'inherit', outline: 'none' }}
+                      />
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Receita Farmacêutica */}

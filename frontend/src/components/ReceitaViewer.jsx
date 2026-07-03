@@ -153,6 +153,8 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
   const [pdfState,     setPdfState]     = useState(hasReceitaPdf ? 'loading' : 'fallback');
   const [blobUrl,      setBlobUrl]      = useState(null);
   const [downloading,  setDownloading]  = useState(false);
+  const [sharing,      setSharing]      = useState(false);
+  const [shareToast,   setShareToast]   = useState('');
 
   // Parceiros "Onde comprar"
   const [parceiros,      setParceiros]      = useState([]);
@@ -230,6 +232,50 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
     }
   };
 
+  const handleShare = async () => {
+    setSharing(true);
+    setShareToast('');
+    try {
+      let blob;
+      if (blobUrl) {
+        blob = await fetch(blobUrl).then((r) => r.blob());
+      } else {
+        const r = await fetch(`${API_URL}/api/paciente/consulta/${consultaId}/pdf?tipo=${tipo}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) throw new Error('PDF não disponível.');
+        blob = await r.blob();
+      }
+
+      const file = new File([blob], `receita-${consultaId}.pdf`, { type: 'application/pdf' });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Receita Farmacêutica',
+          text: 'Receita da consulta farmacêutica.',
+        });
+      } else {
+        // Fallback: download + instrução
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `receita-${consultaId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setShareToast('PDF baixado — compartilhe pelo seu gerenciador de arquivos.');
+        setTimeout(() => setShareToast(''), 5000);
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        setShareToast('Não foi possível compartilhar. Tente baixar o PDF.');
+        setTimeout(() => setShareToast(''), 5000);
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const MODAL_STYLE = isMobile
     ? { position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', background: 'white' }
     : {
@@ -284,18 +330,32 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
 
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
             {hasReceitaPdf && (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                style={{
-                  padding: '6px 12px', background: '#7c3aed', color: 'white',
-                  border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {downloading ? 'Baixando...' : '⬇ Baixar PDF'}
-              </button>
+              <>
+                <button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  style={{
+                    padding: '6px 12px', background: 'white', color: '#7c3aed',
+                    border: '1.5px solid #7c3aed', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    cursor: sharing ? 'wait' : 'pointer', opacity: sharing ? 0.7 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {sharing ? '...' : '↗ Compartilhar'}
+                </button>
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  style={{
+                    padding: '6px 12px', background: '#7c3aed', color: 'white',
+                    border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {downloading ? 'Baixando...' : '⬇ Baixar PDF'}
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -305,6 +365,16 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
             </button>
           </div>
         </div>
+
+        {/* Share fallback toast */}
+        {shareToast && (
+          <div style={{
+            padding: '8px 16px', background: '#fef3c7', borderBottom: '1px solid #fde68a',
+            fontSize: 12, color: '#92400e', flexShrink: 0,
+          }}>
+            {shareToast}
+          </div>
+        )}
 
         {/* Corpo */}
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>

@@ -7,6 +7,8 @@ import TriagemForm from './TriagemForm';
 import { formatIdade } from '../utils/formatIdade.js';
 import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
 import OnboardingSlider from './OnboardingSlider';
+import TermoConsentimento from './TermoConsentimento';
+import MeusDocumentos from './MeusDocumentos';
 
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PRECO_CONSULTA = 50;
@@ -176,6 +178,7 @@ const PatientDashboard = () => {
 
   // ── Extrato ──────────────────────────────────────────────────────────────
   const [showExtrato,   setShowExtrato]   = useState(false);
+  const [showDocumentos, setShowDocumentos] = useState(false);
   const [extrato,       setExtrato]       = useState(null);
   const [extratoLoading, setExtratoLoading] = useState(false);
   const [passarAgoraMsg, setPassarAgoraMsg] = useState(null);
@@ -183,6 +186,12 @@ const PatientDashboard = () => {
   const [addingCredito, setAddingCredito] = useState(false);
   const [creditoToast, setCreditoToast]   = useState(null);
   const [showTriagemUrgente, setShowTriagemUrgente] = useState(false);
+  const [showConsentUrgente, setShowConsentUrgente] = useState(false);
+  const [consentUrgenteOk, setConsentUrgenteOk]     = useState(null);
+
+  // ── Retorno sugerido ────────────────────────────────────────────────────────
+  const [retornoSugerido, setRetornoSugerido] = useState(null);
+  const [dispensandoRetorno, setDispensandoRetorno] = useState(false);
 
   // ── Dependentes ─────────────────────────────────────────────────────────────
   const [dependentes, setDependentes] = useState([]);
@@ -347,6 +356,16 @@ const PatientDashboard = () => {
     } catch {}
   }, [token]);
 
+  const fetchRetornoSugerido = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/paciente/retorno-sugerido`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setRetornoSugerido(await res.json());
+    } catch {}
+  }, [token]);
+
   const fetchExtrato = async () => {
     setExtratoLoading(true);
     try {
@@ -379,6 +398,7 @@ const PatientDashboard = () => {
   useEffect(() => { fetchSistemaAberto(); },           [fetchSistemaAberto]);
   useEffect(() => { fetchProximaConsulta(); },         [fetchProximaConsulta]);
   useEffect(() => { fetchAvaliacaoPendente(); },       [fetchAvaliacaoPendente]);
+  useEffect(() => { fetchRetornoSugerido(); },         [fetchRetornoSugerido]);
 
   useEffect(() => {
     const id = setInterval(fetchProximaConsulta, 5 * 60 * 1000);
@@ -416,7 +436,12 @@ const PatientDashboard = () => {
           if (data.urgente.status === 'aguardando') {
             setPassarAgoraMsg({ type: 'waiting' });
           } else if (data.urgente.status === 'aceito') {
-            setPassarAgoraMsg({ type: 'success', farmaceutico: data.urgente.farmaceutico });
+            setPassarAgoraMsg({
+              type: 'success',
+              farmaceutico: data.urgente.farmaceutico,
+              whatsappContato: data.urgente.whatsappContato,
+              modalidadeAtend: data.urgente.modalidadeAtend,
+            });
           }
         }
       } catch {}
@@ -505,6 +530,20 @@ const PatientDashboard = () => {
     finally { setAddingCredito(false); }
   };
 
+  const handleDispensarRetorno = async () => {
+    if (!retornoSugerido) return;
+    setDispensandoRetorno(true);
+    try {
+      const res = await fetch(`${API_URL}/api/consulta/${retornoSugerido.consultaId}/dispensar-retorno`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: retornoSugerido.tipo }),
+      });
+      if (res.ok) setRetornoSugerido(null);
+    } catch {}
+    finally { setDispensandoRetorno(false); }
+  };
+
   const handleCancelarUrgente = async () => {
     const id = urgentIdRef.current;
     if (!id) return;
@@ -567,7 +606,12 @@ const PatientDashboard = () => {
         const data = await res.json();
         if (data.status === 'aceito') {
           urgentIdRef.current = null;
-          setPassarAgoraMsg({ type: 'success', farmaceutico: data.farmaceutico });
+          setPassarAgoraMsg({
+            type: 'success',
+            farmaceutico: data.farmaceutico,
+            whatsappContato: data.whatsappContato,
+            modalidadeAtend: data.modalidadeAtend,
+          });
           fetchWalletBalance();
           setAppointmentsRefreshKey((k) => k + 1);
         } else if (data.status === 'expirado') {
@@ -976,6 +1020,72 @@ const PatientDashboard = () => {
         );
       })()}
 
+      {/* Card de retorno sugerido */}
+      {retornoSugerido && (() => {
+        const rs = retornoSugerido.retornoSugerido;
+        const diasSugeridos = rs?.dias_sugeridos;
+        const observacao = rs?.observacao;
+        const dataEstimada = diasSugeridos
+          ? new Date(Date.now() + diasSugeridos * 86400000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+          : null;
+
+        return (
+          <div style={{
+            background: '#f0fdf4', border: '1.5px solid #86efac',
+            borderRadius: 12, padding: '14px 16px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                  🔄 Retorno sugerido{dataEstimada ? ` para ~${dataEstimada}` : ''}
+                </p>
+                {retornoSugerido.farmaceuticoNome && (
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#16a34a' }}>
+                    Por {retornoSugerido.farmaceuticoNome.split(' ')[0]}
+                    {diasSugeridos ? ` · em ${diasSugeridos} dias` : ''}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleDispensarRetorno}
+                disabled={dispensandoRetorno}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86efac', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}
+                aria-label="Dispensar sugestão"
+              >
+                ×
+              </button>
+            </div>
+            {observacao && (
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: '#166534', fontStyle: 'italic' }}>
+                "{observacao}"
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setRetornoSugerido(null); setShowDataModal(true); }}
+                style={{
+                  flex: 2, padding: '8px 0', background: '#16a34a', color: 'white',
+                  border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                Agendar retorno
+              </button>
+              <button
+                onClick={handleDispensarRetorno}
+                disabled={dispensandoRetorno}
+                style={{
+                  flex: 1, padding: '8px 0', background: 'white', color: '#16a34a',
+                  border: '1px solid #86efac', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                  opacity: dispensandoRetorno ? 0.6 : 1,
+                }}
+              >
+                {dispensandoRetorno ? '...' : 'Dispensar'}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Banner de status do sistema — só exibe quando fechado */}
       {sistemaAberto === false && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -1020,7 +1130,16 @@ const PatientDashboard = () => {
                     📅 Agendar Consulta
                   </button>
                   <button
-                    onClick={() => setShowTriagemUrgente(true)}
+                    onClick={async () => {
+                      // Verifica consent antes de abrir triagem urgente
+                      if (consentUrgenteOk === true) { setShowTriagemUrgente(true); return; }
+                      try {
+                        const r = await fetch(`${API_URL}/api/consent/telefarmacia`, { headers: { Authorization: `Bearer ${token}` } });
+                        const d = r.ok ? await r.json() : null;
+                        if (d?.aceito) { setConsentUrgenteOk(true); setShowTriagemUrgente(true); }
+                        else           { setConsentUrgenteOk(false); setShowConsentUrgente(true); }
+                      } catch { setShowTriagemUrgente(true); }
+                    }}
                     disabled={passarAgoraLoading || saldoInsuficiente || urgenteBloqueado}
                     title={
                       urgenteBloqueado  ? 'Você já tem um atendimento urgente em andamento' :
@@ -1098,9 +1217,28 @@ const PatientDashboard = () => {
                     <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#15803d', margin: '0 0 4px 0' }}>
                       ✓ Farmacêutico aceitou!
                     </p>
-                    <p style={{ fontSize: '13px', color: '#166534', margin: 0 }}>
+                    <p style={{ fontSize: '13px', color: '#166534', margin: '0 0 8px 0' }}>
                       {passarAgoraMsg.farmaceutico} está pronto para seu atendimento.
                     </p>
+                    {passarAgoraMsg.modalidadeAtend === 'meet' ? (
+                      <p style={{ fontSize: '13px', color: '#166534', margin: 0 }}>
+                        📹 Atendimento via <strong>Google Meet</strong> — aguarde o link no chat ou e-mail.
+                      </p>
+                    ) : passarAgoraMsg.whatsappContato ? (
+                      <a
+                        href={`https://wa.me/55${passarAgoraMsg.whatsappContato.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          fontSize: '13px', fontWeight: 700, color: '#fff',
+                          background: '#16a34a', borderRadius: 8,
+                          padding: '6px 14px', textDecoration: 'none',
+                        }}
+                      >
+                        📱 Abrir WhatsApp
+                      </a>
+                    ) : null}
                   </>
                 )}
                 {(passarAgoraMsg.type === 'unavailable' || passarAgoraMsg.type === 'error') && (
@@ -1167,6 +1305,14 @@ const PatientDashboard = () => {
           {addingCredito ? '...' : '+ Adicionar créditos'}
         </button>
       </div>
+
+      {/* Consentimento — gate para urgência */}
+      {showConsentUrgente && (
+        <TermoConsentimento
+          onAceito={() => { setConsentUrgenteOk(true); setShowConsentUrgente(false); setShowTriagemUrgente(true); }}
+          onFechar={() => setShowConsentUrgente(false)}
+        />
+      )}
 
       {/* Modal: triagem para atendimento urgente */}
       {showTriagemUrgente && (
@@ -1333,7 +1479,19 @@ const PatientDashboard = () => {
 
       {/* My appointments */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h3 className="font-semibold text-gray-800 text-sm mb-4">Minhas consultas</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 className="font-semibold text-gray-800 text-sm" style={{ margin: 0 }}>Minhas consultas</h3>
+          <button
+            onClick={() => setShowDocumentos(true)}
+            style={{
+              background: 'none', border: '1.5px solid #e5e7eb', borderRadius: 8,
+              padding: '5px 10px', fontSize: 12, fontWeight: 600, color: '#7c3aed',
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            📄 Meus documentos
+          </button>
+        </div>
         <MyAppointments onCancelled={fetchWalletBalance} selectedPerson={selectedPerson} refreshKey={appointmentsRefreshKey} />
       </div>
 
@@ -1406,6 +1564,9 @@ const PatientDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Sheet: meus documentos */}
+      {showDocumentos && <MeusDocumentos onClose={() => setShowDocumentos(false)} />}
 
       {/* Modal de detalhes aberto pelo card de lembrete */}
       {reminderDetalhes && (

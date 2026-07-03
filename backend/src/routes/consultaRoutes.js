@@ -10,6 +10,11 @@ import {
   gerarReceitaPdf,
   getHistoricoPaciente,
   getHistoricoCompleto,
+  semContato,
+  remarcarConsulta,
+  proporRemarcacao,
+  responderRemarcacao,
+  dispensarRetorno,
 } from '../controllers/ConsultaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
@@ -26,5 +31,18 @@ router.get('/consulta/:id/detalhes',              authMiddleware, getDetalhesCon
 router.get('/consulta/:id/historico-completo',    authMiddleware, getHistoricoCompleto);
 // 3 segmentos — não conflita com /paciente/historico (2 segmentos)
 router.get('/paciente/:id/historico',             authMiddleware, getHistoricoPaciente);
+
+// WhatsApp / sem-contato
+router.patch('/consulta/:id/sem-contato',         authMiddleware, semContato);
+
+// Remarcação — paciente
+router.patch('/consulta/:id/remarcar',            authMiddleware, remarcarConsulta);
+router.patch('/consulta/:id/responder-remarcacao', authMiddleware, responderRemarcacao);
+
+// Remarcação — farmacêutico
+router.patch('/consulta/:id/propor-remarcacao',   authMiddleware, proporRemarcacao);
+
+// Retorno sugerido — dispensar (paciente)
+router.patch('/consulta/:id/dispensar-retorno',   authMiddleware, dispensarRetorno);
 
 export default router;

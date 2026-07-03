@@ -64,6 +64,7 @@ export const createDependente = async (req, res) => {
   const erroData = validateDataNascimento(dataNascimento);
   if (erroData) return res.status(400).json({ error: erroData, field: 'dataNascimento' });
   if (!sexo?.trim()) return res.status(400).json({ error: 'Sexo é obrigatório.', field: 'sexo' });
+  if (!aceitouResponsabilidade) return res.status(400).json({ error: 'É necessário aceitar a responsabilidade pelo dependente.', field: 'aceitouResponsabilidade' });
 
   try {
     const count = await prisma.dependentProfile.count({ where: { ownerId, ativo: true } });

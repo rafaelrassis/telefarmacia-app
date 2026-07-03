@@ -464,22 +464,33 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
     }
 
     let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
-        motivoCancelamento = null, finalizacao = null, pessoaNome = null;
+        motivoCancelamento = null, finalizacao = null, pessoaNome = null,
+        whatsappContato = null, modalidadeAtend = 'whatsapp',
+        remarcacoes = 0, remarcacaoPendente = null, retornoSugerido = null, retornoDispensado = false;
     try {
       const rows = await prisma.$queryRawUnsafe(
         `SELECT "observacoes", "motivo", "receita", "receita_pdf_url",
                 "motivo_cancelamento", "finalizacao",
-                triagem->>'paciente_nome' AS pessoa_nome
+                triagem->>'paciente_nome' AS pessoa_nome,
+                "whatsapp_contato", "modalidade_atend",
+                "remarcacoes", "remarcacao_pendente",
+                "retorno_sugerido", "retorno_dispensado"
          FROM "${tableName}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
-        observacoes        = rows[0].observacoes         ?? null;
-        motivo             = rows[0].motivo              ?? null;
-        receita            = rows[0].receita             ?? [];
-        receitaPdfUrl      = rows[0].receita_pdf_url     ?? null;
-        motivoCancelamento = rows[0].motivo_cancelamento ?? null;
-        finalizacao        = rows[0].finalizacao         ?? null;
-        pessoaNome         = rows[0].pessoa_nome         ?? null;
+        observacoes        = rows[0].observacoes          ?? null;
+        motivo             = rows[0].motivo               ?? null;
+        receita            = rows[0].receita              ?? [];
+        receitaPdfUrl      = rows[0].receita_pdf_url      ?? null;
+        motivoCancelamento = rows[0].motivo_cancelamento  ?? null;
+        finalizacao        = rows[0].finalizacao          ?? null;
+        pessoaNome         = rows[0].pessoa_nome          ?? null;
+        whatsappContato    = rows[0].whatsapp_contato     ?? null;
+        modalidadeAtend    = rows[0].modalidade_atend     ?? 'whatsapp';
+        remarcacoes        = Number(rows[0].remarcacoes   ?? 0);
+        remarcacaoPendente = rows[0].remarcacao_pendente  ?? null;
+        retornoSugerido    = rows[0].retorno_sugerido     ?? null;
+        retornoDispensado  = rows[0].retorno_dispensado   ?? false;
       }
     } catch {}
 
@@ -498,6 +509,12 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
       motivoCancelamento,
       finalizacao,
       farmaceutico:      fila.farmaceutico ? { nome: fila.farmaceutico.name } : null,
+      whatsappContato,
+      modalidadeAtend,
+      remarcacoes,
+      remarcacaoPendente,
+      retornoSugerido,
+      retornoDispensado,
     });
   } catch (err) {
     console.error('getConsultaDetalhesPaciente error:', err);
@@ -618,6 +635,148 @@ export const getExtrato = async (req, res) => {
   } catch (err) {
     console.error('getExtrato error:', err);
     return res.status(500).json({ error: 'Erro ao buscar extrato.' });
+  }
+};
+
+// GET /api/paciente/retorno-sugerido
+export const getRetornoSugerido = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  const pacienteId = req.user.id;
+  try {
+    const agendadaRows = await prisma.$queryRawUnsafe(`
+      SELECT fa.id, fa."dataHora", fa."retorno_sugerido", fa."farmaceuticoId",
+             u.name AS farmaceutico_nome
+      FROM "FilaAgendada" fa
+      JOIN "User" u ON u.id = fa."farmaceuticoId"
+      WHERE fa."pacienteId" = $1
+        AND fa.status = 'concluido'
+        AND fa."retorno_sugerido" IS NOT NULL
+        AND (fa."retorno_dispensado" IS NULL OR fa."retorno_dispensado" = false)
+      ORDER BY fa."dataHora" DESC
+      LIMIT 1
+    `, pacienteId);
+
+    if (agendadaRows.length > 0) {
+      const r = agendadaRows[0];
+      return res.json({
+        tipo: 'agendada', consultaId: r.id,
+        retornoSugerido: r.retorno_sugerido,
+        farmaceuticoId: r.farmaceuticoid,
+        farmaceuticoNome: r.farmaceutico_nome,
+      });
+    }
+
+    const urgenteRows = await prisma.$queryRawUnsafe(`
+      SELECT fu.id, fu."criadoEm" AS data_hora, fu."retorno_sugerido", fu."farmaceuticoId",
+             u.name AS farmaceutico_nome
+      FROM "FilaUrgente" fu
+      JOIN "User" u ON u.id = fu."farmaceuticoId"
+      WHERE fu."pacienteId" = $1
+        AND fu.status = 'concluido'
+        AND fu."retorno_sugerido" IS NOT NULL
+        AND (fu."retorno_dispensado" IS NULL OR fu."retorno_dispensado" = false)
+      ORDER BY fu."criadoEm" DESC
+      LIMIT 1
+    `, pacienteId);
+
+    if (urgenteRows.length > 0) {
+      const r = urgenteRows[0];
+      return res.json({
+        tipo: 'urgente', consultaId: r.id,
+        retornoSugerido: r.retorno_sugerido,
+        farmaceuticoId: r.farmaceuticoid,
+        farmaceuticoNome: r.farmaceutico_nome,
+      });
+    }
+
+    return res.json(null);
+  } catch (err) {
+    console.error('getRetornoSugerido error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar retorno sugerido.' });
+  }
+};
+
+// GET /api/paciente/documentos
+export const getMeusDocumentos = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  const pacienteId = req.user.id;
+  const { dependentId, titular } = req.query;
+
+  try {
+    // Build per-table WHERE clause fragments and params
+    const baseParams = [pacienteId];
+    let agendadaFilter = '';
+    let urgenteFilter  = '';
+
+    if (titular === '1') {
+      agendadaFilter = `AND fa."dependentId" IS NULL`;
+      urgenteFilter  = `AND fu."dependentId" IS NULL`;
+    } else if (dependentId) {
+      baseParams.push(dependentId);
+      agendadaFilter = `AND fa."dependentId" = $2`;
+      urgenteFilter  = `AND fu."dependentId" = $2`;
+    }
+
+    const rows = await prisma.$queryRawUnsafe(`
+      SELECT * FROM (
+        SELECT
+          fa.id,
+          'agendada'::text                                            AS tipo,
+          fa."dataHora"                                              AS data_hora,
+          COALESCE(fa.triagem->>'paciente_nome', '')                 AS pessoa_nome,
+          u.name                                                     AS farmaceutico_nome,
+          fa.observacoes,
+          fa.motivo,
+          fa.receita_pdf_url,
+          fa.receita                                                 AS receita,
+          (fa.receita IS NOT NULL
+            AND jsonb_typeof(fa.receita) = 'array'
+            AND jsonb_array_length(fa.receita) > 0)                 AS has_receita
+        FROM "FilaAgendada" fa
+        LEFT JOIN "User" u ON u.id = fa."farmaceuticoId"
+        WHERE fa."pacienteId" = $1
+          AND fa.status = 'concluido'
+          ${agendadaFilter}
+
+        UNION ALL
+
+        SELECT
+          fu.id,
+          'urgente'::text                                            AS tipo,
+          fu."criadoEm"                                             AS data_hora,
+          COALESCE(fu.triagem->>'paciente_nome', '')                AS pessoa_nome,
+          u.name                                                    AS farmaceutico_nome,
+          fu.observacoes,
+          fu.motivo,
+          fu.receita_pdf_url,
+          fu.receita                                                AS receita,
+          (fu.receita IS NOT NULL
+            AND jsonb_typeof(fu.receita) = 'array'
+            AND jsonb_array_length(fu.receita) > 0)                AS has_receita
+        FROM "FilaUrgente" fu
+        LEFT JOIN "User" u ON u.id = fu."farmaceuticoId"
+        WHERE fu."pacienteId" = $1
+          AND fu.status = 'concluido'
+          ${urgenteFilter}
+      ) docs
+      ORDER BY data_hora DESC
+    `, ...baseParams);
+
+    return res.json(rows.map((r) => ({
+      id:              r.id,
+      tipo:            r.tipo,
+      dataHora:        r.data_hora,
+      pessoaNome:      r.pessoa_nome || null,
+      farmaceuticoNome: r.farmaceutico_nome ?? null,
+      observacoes:     r.observacoes ?? null,
+      motivo:          r.motivo ?? null,
+      receitaPdfUrl:   r.receita_pdf_url ?? null,
+      receita:         Array.isArray(r.receita) ? r.receita : [],
+      hasReceita:      Boolean(r.has_receita),
+    })));
+  } catch (err) {
+    console.error('getMeusDocumentos error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar documentos.' });
   }
 };
 

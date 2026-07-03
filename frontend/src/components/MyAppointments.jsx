@@ -17,12 +17,13 @@ const STATUS_CONFIG = {
   CANCELADO:          { label: 'Cancelado',             cls: 'text-red-500',    dot: 'bg-red-400' },
   EXPIRADA:           { label: 'Expirada',              cls: 'text-gray-400',   dot: 'bg-gray-300' },
   // Fila nova — lowercase
-  aguardando:         { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
-  aceito:             { label: 'Confirmado',              cls: 'text-blue-600',    dot: 'bg-blue-500' },
-  em_atendimento:     { label: 'Em atendimento',          cls: 'text-green-600',   dot: 'bg-green-500' },
-  concluido:          { label: 'Concluído',               cls: 'text-violet-600',  dot: 'bg-violet-500' },
-  cancelado:          { label: 'Cancelado',               cls: 'text-red-500',     dot: 'bg-red-400' },
-  expirado:           { label: 'Expirado',                cls: 'text-gray-400',    dot: 'bg-gray-300' },
+  aguardando:           { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
+  aceito:               { label: 'Confirmado',              cls: 'text-blue-600',    dot: 'bg-blue-500' },
+  em_atendimento:       { label: 'Em atendimento',          cls: 'text-green-600',   dot: 'bg-green-500' },
+  concluido:            { label: 'Concluído',               cls: 'text-violet-600',  dot: 'bg-violet-500' },
+  cancelado:            { label: 'Cancelado',               cls: 'text-red-500',     dot: 'bg-red-400' },
+  expirado:             { label: 'Expirado',                cls: 'text-gray-400',    dot: 'bg-gray-300' },
+  remarcacao_pendente:  { label: 'Remarcação pendente',     cls: 'text-amber-600',   dot: 'bg-amber-400' },
 };
 
 const TIPO_BADGE = {
@@ -587,7 +588,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               const nomeFarm        = app.farmaceutico?.name ?? app.pharmacist?.name;
               const isLegacy        = tipo === 'appointment';
               const isCancelled     = app.status === 'cancelado' || app.status === 'CANCELADO';
-              const canCancelFila   = !isPharmacist && !isLegacy && ['aguardando', 'aceito'].includes(app.status);
+              const canCancelFila   = !isPharmacist && !isLegacy && ['aguardando', 'aceito'].includes(app.status) && app.status !== 'remarcacao_pendente';
               const eAgora          = !isPharmacist && isEAgora(app);
 
               return (
@@ -648,6 +649,13 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                     {!isLegacy && app.creditoDebitado != null && (
                       <p className="text-xs text-gray-400 mt-0.5">
                         R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
+                      </p>
+                    )}
+
+                    {/* Aviso de remarcação pendente */}
+                    {!isPharmacist && app.status === 'remarcacao_pendente' && (
+                      <p style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 6, padding: '4px 8px', marginTop: 6, display: 'inline-block' }}>
+                        📅 Farmacêutico propôs novo horário — veja os detalhes
                       </p>
                     )}
 

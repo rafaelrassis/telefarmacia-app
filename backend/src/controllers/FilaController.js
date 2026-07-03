@@ -22,7 +22,7 @@ function timeStr(date) {
 // ── POST /api/fila/agendar ───────────────────────────────────────────────────
 
 export const agendarConsulta = async (req, res) => {
-  const { data_hora, triagem, dependentId } = req.body;
+  const { data_hora, triagem, dependentId, whatsapp_contato, modalidade_atend } = req.body;
   if (!data_hora) return res.status(400).json({ error: 'data_hora é obrigatória.' });
 
   // Parse date components directly from string to avoid TZ issues in day-of-week check
@@ -88,11 +88,16 @@ export const agendarConsulta = async (req, res) => {
           consultaId: nova.id,
         },
       });
-      if (triagem) {
+      if (triagem || whatsapp_contato || modalidade_atend) {
+        const sets = [];
+        const vals = [];
+        if (triagem)          { sets.push(`triagem = $${vals.length+1}::jsonb`);          vals.push(JSON.stringify(triagem)); }
+        if (whatsapp_contato) { sets.push(`whatsapp_contato = $${vals.length+1}`);        vals.push(whatsapp_contato.replace(/\D/g,'')); }
+        if (modalidade_atend) { sets.push(`modalidade_atend = $${vals.length+1}`);        vals.push(modalidade_atend); }
         try {
           await tx.$executeRawUnsafe(
-            `UPDATE "FilaAgendada" SET triagem = $1::jsonb WHERE id = $2`,
-            JSON.stringify(triagem), nova.id
+            `UPDATE "FilaAgendada" SET ${sets.join(', ')} WHERE id = $${vals.length+1}`,
+            ...vals, nova.id
           );
         } catch {}
       }
@@ -114,7 +119,7 @@ export const agendarConsulta = async (req, res) => {
 // ── POST /api/fila/urgente ───────────────────────────────────────────────────
 
 export const agendarUrgente = async (req, res) => {
-  const { triagem, dependentId } = req.body;
+  const { triagem, dependentId, whatsapp_contato, modalidade_atend } = req.body;
   const patientId = req.user.id;
 
   try {
@@ -184,11 +189,16 @@ export const agendarUrgente = async (req, res) => {
           consultaId: nova.id,
         },
       });
-      if (triagem) {
+      if (triagem || whatsapp_contato || modalidade_atend) {
+        const sets = [];
+        const vals = [];
+        if (triagem)          { sets.push(`triagem = $${vals.length+1}::jsonb`);   vals.push(JSON.stringify(triagem)); }
+        if (whatsapp_contato) { sets.push(`whatsapp_contato = $${vals.length+1}`); vals.push(whatsapp_contato.replace(/\D/g,'')); }
+        if (modalidade_atend) { sets.push(`modalidade_atend = $${vals.length+1}`); vals.push(modalidade_atend); }
         try {
           await tx.$executeRawUnsafe(
-            `UPDATE "FilaUrgente" SET triagem = $1::jsonb WHERE id = $2`,
-            JSON.stringify(triagem), nova.id
+            `UPDATE "FilaUrgente" SET ${sets.join(', ')} WHERE id = $${vals.length+1}`,
+            ...vals, nova.id
           );
         } catch {}
       }
@@ -215,11 +225,24 @@ export const statusUrgente = async (req, res) => {
     });
     if (!fila) return res.status(404).json({ error: 'Solicitação não encontrada.' });
 
+    let whatsappContato = null, modalidadeAtend = 'whatsapp';
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT whatsapp_contato, modalidade_atend FROM "FilaUrgente" WHERE id = $1`, id
+      );
+      if (rows.length > 0) {
+        whatsappContato = rows[0].whatsapp_contato ?? null;
+        modalidadeAtend = rows[0].modalidade_atend ?? 'whatsapp';
+      }
+    } catch {}
+
     return res.status(200).json({
       id: fila.id,
       status: fila.status,
       farmaceutico: fila.farmaceutico?.name ?? null,
       aceitoEm: fila.aceitoEm,
+      whatsappContato,
+      modalidadeAtend,
     });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao consultar status.' });
@@ -368,10 +391,27 @@ export const minhaUrgenteAtiva = async (req, res) => {
       include: { farmaceutico: { select: { name: true } } },
       orderBy: { criadoEm: 'desc' },
     });
+    if (!urgente) return res.status(200).json({ urgente: null });
+
+    let whatsappContato = null, modalidadeAtend = 'whatsapp';
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT whatsapp_contato, modalidade_atend FROM "FilaUrgente" WHERE id = $1`, urgente.id
+      );
+      if (rows.length > 0) {
+        whatsappContato = rows[0].whatsapp_contato ?? null;
+        modalidadeAtend = rows[0].modalidade_atend ?? 'whatsapp';
+      }
+    } catch {}
+
     return res.status(200).json({
-      urgente: urgente
-        ? { id: urgente.id, status: urgente.status, farmaceutico: urgente.farmaceutico?.name ?? null }
-        : null,
+      urgente: {
+        id: urgente.id,
+        status: urgente.status,
+        farmaceutico: urgente.farmaceutico?.name ?? null,
+        whatsappContato,
+        modalidadeAtend,
+      },
     });
   } catch (err) {
     console.error(err);

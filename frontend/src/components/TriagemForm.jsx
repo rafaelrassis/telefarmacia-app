@@ -159,7 +159,8 @@ const TriagemForm = ({
       .finally(() => setLoadingSlots(false));
   }, [isAgendado, selectedDate]);
 
-  // Carrega perfil do titular
+  // Carrega perfil do titular (inclui telefone para pré-preencher WhatsApp)
+  const [perfilTelefone, setPerfilTelefone] = useState('');
   useEffect(() => {
     fetch(`${API_URL}/api/pacientes/perfil`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -167,16 +168,27 @@ const TriagemForm = ({
         if (!d) return;
         const sexoVal = d.genero?.toLowerCase() || '';
         setPerfilSexo(sexoVal);
-        if (d.data_nascimento) {
-          setPerfilIdade(calcIdade(d.data_nascimento));
-        }
-        if (d.peso) {
-          const pesoStr = String(d.peso);
-          setPerfilPeso(pesoStr);
-        }
+        if (d.data_nascimento) setPerfilIdade(calcIdade(d.data_nascimento));
+        if (d.peso)            setPerfilPeso(String(d.peso));
+        if (d.telefone)        { setPerfilTelefone(d.telefone); setWhatsappContato(d.telefone); }
       })
       .catch(() => {});
   }, [token]);
+
+  // ── Contato e modalidade ─────────────────────────────────────────────────────
+  const [whatsappContato,  setWhatsappContato]  = useState('');
+  const [modalidadeAtend,  setModalidadeAtend]  = useState('whatsapp'); // 'whatsapp' | 'meet'
+  const [whatsappError,    setWhatsappError]    = useState('');
+
+  const maskWhatsapp = (v) =>
+    v.replace(/\D/g, '').slice(0, 11)
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2');
+
+  const validarWhatsapp = (v) => {
+    const digits = v.replace(/\D/g, '');
+    return digits.length === 10 || digits.length === 11;
+  };
 
   // ── Campos de triagem ────────────────────────────────────────────────────────
   const [sexo, setSexo] = useState('');
@@ -191,8 +203,7 @@ const TriagemForm = ({
   const [intensidade, setIntensidade] = useState(0);
   const [febre, setFebre] = useState(false);
   const [temperatura, setTemperatura] = useState('');
-  const [dor, setDor] = useState(false);
-  const [intensidadeDor, setIntensidadeDor] = useState(0);
+
   const [outrosSintomas, setOutrosSintomas] = useState('');
 
   const [doencaCronica, setDoencaCronica] = useState(false);
@@ -253,8 +264,10 @@ const TriagemForm = ({
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data_hora,
-          triagem: triagem || null,
-          dependentId: selectedPerson?.id ?? undefined,
+          triagem:          triagem || null,
+          dependentId:      selectedPerson?.id ?? undefined,
+          whatsapp_contato: triagem?.whatsapp_contato ?? null,
+          modalidade_atend: triagem?.modalidade_atend ?? 'whatsapp',
         }),
       });
       const data = await res.json();
@@ -274,6 +287,11 @@ const TriagemForm = ({
 
   const handleConfirm = () => {
     if (!tipoConsulta || bloqueadoPorAlerta) return;
+    if (whatsappContato && !validarWhatsapp(whatsappContato)) {
+      setWhatsappError('WhatsApp inválido. Informe DDD + número (10 ou 11 dígitos).');
+      return;
+    }
+    setWhatsappError('');
     const isTrat = tipoConsulta === 'tratamento';
     const triagem = {
       dependent_id:             selectedPerson?.id ?? null,
@@ -291,8 +309,6 @@ const TriagemForm = ({
       intensidade:       isTrat ? intensidade : null,
       febre:             isTrat ? febre : null,
       temperatura:       (isTrat && febre) ? temperatura || null : null,
-      dor:               isTrat ? dor : null,
-      intensidade_dor:   (isTrat && dor) ? intensidadeDor : null,
       outros_sintomas:   isTrat ? outrosSintomas || null : null,
       doenca_cronica:    isTrat ? doencaCronica : null,
       qual_doenca:       (isTrat && doencaCronica) ? qualDoenca || null : null,
@@ -308,8 +324,10 @@ const TriagemForm = ({
       quais_alergias:      alergiasMedicamento ? quaisAlergias || null : null,
       outras_alergias:     outrasAlergias,
       quais_outras_alergias: outrasAlergias ? quaisOutrasAlergias || null : null,
-      sinais_alerta:  sinaisAlerta,
-      receita_anexo:  temReceita,
+      sinais_alerta:    sinaisAlerta,
+      receita_anexo:    temReceita,
+      whatsapp_contato: whatsappContato ? whatsappContato.replace(/\D/g,'') : null,
+      modalidade_atend: modalidadeAtend,
     };
     if (isAgendado) { handleAgendadoConfirm(triagem); } else { onConfirm(triagem); }
   };
@@ -605,11 +623,44 @@ const TriagemForm = ({
           </div>
         </div>
 
+        {/* Contato e preferência de atendimento */}
+        <p style={sec}>Contato para o atendimento</p>
+        <div style={{ marginBottom: 10 }}>
+          <label style={lbl}>WhatsApp / Telefone para contato <span style={{ color: '#9ca3af', fontWeight: 400 }}>(o farmacêutico vai usar este número)</span></label>
+          <input
+            type="tel"
+            value={maskWhatsapp(whatsappContato)}
+            onChange={(e) => { setWhatsappContato(e.target.value.replace(/\D/g,'')); setWhatsappError(''); }}
+            placeholder="(11) 99999-9999"
+            style={{ ...inp, borderColor: whatsappError ? '#ef4444' : '#e5e7eb' }}
+          />
+          {whatsappError && <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>{whatsappError}</p>}
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={lbl}>Prefiro ser atendido por</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[{ val: 'whatsapp', label: '💬 WhatsApp / Telefone' }, { val: 'meet', label: '📹 Vídeo (Google Meet)' }].map(({ val, label }) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setModalidadeAtend(val)}
+                style={{
+                  flex: 1, padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  border: `2px solid ${modalidadeAtend === val ? '#7c3aed' : '#e5e7eb'}`,
+                  background: modalidadeAtend === val ? '#f5f3ff' : 'white',
+                  color: modalidadeAtend === val ? '#7c3aed' : '#6b7280',
+                  cursor: 'pointer',
+                }}
+              >{label}</button>
+            ))}
+          </div>
+        </div>
+
         {/* Objetivo */}
         <p style={sec}>Objetivo da consulta</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
           {btnTipo('tratamento', '💊 Orientação de tratamento')}
-          {btnTipo('duvida', '❓ Tirar uma dúvida')}
+          {btnTipo('interpretacao_receita', '🔍 Interpretação de receita')}
         </div>
 
         {/* Sections only for 'tratamento' */}
@@ -657,12 +708,6 @@ const TriagemForm = ({
               <div style={{ paddingLeft: 16, borderLeft: '2px solid #e5e7eb', marginBottom: 8, marginTop: 4 }}>
                 <label style={lbl}>Temperatura (°C)</label>
                 <input type="text" value={temperatura} onChange={(e) => setTemperatura(e.target.value)} placeholder="Ex: 38,5" style={inp} />
-              </div>
-            )}
-            <Toggle value={dor} onChange={setDor} label="Há dor?" />
-            {dor && (
-              <div style={{ paddingLeft: 16, borderLeft: '2px solid #e5e7eb', marginTop: 4 }}>
-                <Slider value={intensidadeDor} onChange={setIntensidadeDor} label="Intensidade da dor" />
               </div>
             )}
             <div style={{ marginTop: 12 }}>
