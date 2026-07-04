@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatIdade } from '../utils/formatIdade.js';
+import TemplatePicker from './TemplatePicker';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -77,6 +78,16 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
             )}
           </div>
 
+          {/* Triagem */}
+          {item.triagem && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-1.5">Triagem / Sinais e sintomas</p>
+              <div className="bg-gray-50 rounded-xl px-4 py-3">
+                <TriagemDisplay triagem={item.triagem} solicitanteNome={null} />
+              </div>
+            </div>
+          )}
+
           {/* Motivo */}
           {item.motivo && (
             <div>
@@ -93,7 +104,7 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
             </div>
           )}
 
-          {!item.motivo && !item.observacoes && (
+          {!item.triagem && !item.motivo && !item.observacoes && (
             <p className="text-sm text-gray-400 italic text-center py-2">Sem registros clínicos para este atendimento.</p>
           )}
 
@@ -438,6 +449,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   const [semContatoLoading, setSemContatoLoading]         = useState(false);
   const [retornoDias, setRetornoDias]   = useState('');
   const [retornoObs, setRetornoObs]     = useState('');
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const timerRef = useRef(null);
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
@@ -917,9 +929,34 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Observações do atendimento{canConcluir && <span className="text-red-500 ml-0.5">*</span>}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-gray-600">
+                      Observações do atendimento{canConcluir && <span className="text-red-500 ml-0.5">*</span>}
+                    </label>
+                    {podeEditar && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplatePicker((v) => !v)}
+                          className="text-xs text-violet-600 hover:text-violet-800 font-semibold border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+                        >
+                          📋 Usar template
+                        </button>
+                        {showTemplatePicker && (
+                          <TemplatePicker
+                            pacienteNome={consulta?.pacienteNome}
+                            triagem={triagem}
+                            onInsert={(text) => {
+                              setObservacoes((prev) => prev ? `${prev}\n\n${text}` : text);
+                              if (obsError) setObsError(false);
+                              setShowTemplatePicker(false);
+                            }}
+                            onClose={() => setShowTemplatePicker(false)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <textarea
                     value={observacoes}
                     onChange={(e) => { setObservacoes(e.target.value); if (obsError) setObsError(false); }}
@@ -995,7 +1032,31 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
               {/* Receita Farmacêutica */}
               {(receitaEditable || receitaReadonly) && (
                 <div className="border-t border-gray-100 pt-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700">💊 Receita Farmacêutica</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-700">💊 Receita Farmacêutica</h3>
+                    {receitaEditable && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplatePicker((v) => !v)}
+                          className="text-xs text-violet-600 hover:text-violet-800 font-semibold border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+                        >
+                          📋 Usar template
+                        </button>
+                        {showTemplatePicker && (
+                          <TemplatePicker
+                            pacienteNome={consulta?.pacienteNome}
+                            triagem={triagem}
+                            onInsert={(text) => {
+                              setObservacoes((prev) => prev ? `${prev}\n\n${text}` : text);
+                              setShowTemplatePicker(false);
+                            }}
+                            onClose={() => setShowTemplatePicker(false)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {receitaEditable ? (
                     <div className="space-y-2">

@@ -49,6 +49,7 @@ model User {
   notificacoes                 Notificacao[]       @relation("UserNotificacoes")
   consentRecords               ConsentRecord[]
   bloqueiosAgenda              BloqueioAgenda[] @relation("FarmaceuticoBloqueios")
+  templatesOrientacao          TemplateOrientacao[] @relation("FarmaceuticoTemplates")
 }
 
 model Notificacao {
@@ -275,6 +276,16 @@ model AffiliateClick {
   pharmacy   PartnerPharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
   consultaId String?
   createdAt  DateTime        @default(now())
+}
+
+model TemplateOrientacao {
+  id           String   @id @default(uuid())
+  pharmacistId String
+  pharmacist   User     @relation("FarmaceuticoTemplates", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  titulo       String
+  conteudo     String   @db.Text
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
 }
 
 model BloqueioAgenda {

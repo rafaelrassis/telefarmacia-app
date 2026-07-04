@@ -16,6 +16,7 @@ import {
   getUrgentesAceitas,
 } from '../controllers/PharmacistController.js';
 import { listarBloqueios, criarBloqueio, excluirBloqueio } from '../controllers/BloqueioController.js';
+import { listarTemplates, criarTemplate, atualizarTemplate, excluirTemplate } from '../controllers/TemplateController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { uploadDocs } from '../utils/multerConfig.js';
 
@@ -52,8 +53,14 @@ router.get('/farmaceutico/ganhos', authMiddleware, getGanhosFarmaceutico);
 router.get('/farmaceutico/urgentes-aceitas', authMiddleware, getUrgentesAceitas);
 
 // Bloqueios de agenda
-router.get('/farmaceutico/bloqueios',      authMiddleware, listarBloqueios);
-router.post('/farmaceutico/bloqueios',     authMiddleware, criarBloqueio);
+router.get('/farmaceutico/bloqueios',        authMiddleware, listarBloqueios);
+router.post('/farmaceutico/bloqueios',       authMiddleware, criarBloqueio);
 router.delete('/farmaceutico/bloqueios/:id', authMiddleware, excluirBloqueio);
+
+// Templates de orientação/receita
+router.get('/farmaceutico/templates',          authMiddleware, listarTemplates);
+router.post('/farmaceutico/templates',         authMiddleware, criarTemplate);
+router.put('/farmaceutico/templates/:id',      authMiddleware, atualizarTemplate);
+router.delete('/farmaceutico/templates/:id',   authMiddleware, excluirTemplate);
 
 export default router;

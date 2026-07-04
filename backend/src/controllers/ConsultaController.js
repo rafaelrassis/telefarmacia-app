@@ -862,15 +862,39 @@ export const getHistoricoCompleto = async (req, res) => {
 
   try {
     const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
-    const consulta = await model.findUnique({ where: { id }, select: { pacienteId: true, farmaceuticoId: true } });
+    const consulta = await model.findUnique({
+      where:  { id },
+      select: { pacienteId: true, farmaceuticoId: true, status: true, dependentId: true },
+    });
     if (!consulta) return res.status(404).json({ error: 'Consulta não encontrada.' });
 
-    // Só o farmacêutico responsável pode ver o histórico completo do paciente
-    if (consulta.farmaceuticoId && consulta.farmaceuticoId !== req.user.id) {
+    // Acesso permitido apenas ao farmacêutico responsável com consulta ATIVA
+    if (consulta.farmaceuticoId !== req.user.id) {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
+    if (!['aceito', 'em_atendimento'].includes(consulta.status)) {
+      return res.status(403).json({ error: 'O histórico do paciente só é acessível durante consultas ativas.' });
+    }
 
-    const patientId = consulta.pacienteId;
+    // Audit log
+    await logAction(prisma, {
+      consultaId: id,
+      usuarioId:  req.user.id,
+      role:       'FARMACEUTICO',
+      acao:       'acesso_historico',
+      detalhes:   { pacienteId: consulta.pacienteId, dependentId: consulta.dependentId ?? null },
+    });
+
+    const patientId  = consulta.pacienteId;
+    const dependentId = consulta.dependentId ?? null;
+
+    // Filtro por dependente: históricos separados por pessoa atendida
+    const depFilterAg = dependentId
+      ? `AND fa."dependentId" = '${dependentId}'`
+      : `AND fa."dependentId" IS NULL`;
+    const depFilterUr = dependentId
+      ? `AND fu."dependentId" = '${dependentId}'`
+      : `AND fu."dependentId" IS NULL`;
 
     let agendadas = [], urgentes = [];
 
@@ -882,6 +906,7 @@ export const getHistoricoCompleto = async (req, res) => {
                 fa.status,
                 fa."observacoes",
                 fa."motivo",
+                fa."triagem",
                 fa."receita",
                 fa."receita_pdf_url",
                 fa."finalizacao",
@@ -889,18 +914,20 @@ export const getHistoricoCompleto = async (req, res) => {
          FROM "FilaAgendada" fa
          LEFT JOIN "User" u ON u.id = fa."farmaceuticoId"
          WHERE fa."pacienteId" = $1
+           AND fa.id != $2
            AND fa.status IN ('concluido', 'cancelado')
+           ${depFilterAg}
          ORDER BY fa."criadoEm" DESC
          LIMIT 30`,
-        patientId
+        patientId, id
       );
     } catch {
       const rows = await prisma.filaAgendada.findMany({
-        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] }, NOT: { id } },
         select:  { id: true, dataHora: true, status: true, criadoEm: true },
         orderBy: { criadoEm: 'desc' }, take: 30,
       });
-      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
     }
 
     try {
@@ -911,6 +938,7 @@ export const getHistoricoCompleto = async (req, res) => {
                 fu.status,
                 fu."observacoes",
                 fu."motivo",
+                fu."triagem",
                 fu."receita",
                 fu."receita_pdf_url",
                 fu."finalizacao",
@@ -918,18 +946,20 @@ export const getHistoricoCompleto = async (req, res) => {
          FROM "FilaUrgente" fu
          LEFT JOIN "User" u ON u.id = fu."farmaceuticoId"
          WHERE fu."pacienteId" = $1
+           AND fu.id != $2
            AND fu.status IN ('concluido', 'cancelado')
+           ${depFilterUr}
          ORDER BY fu."criadoEm" DESC
          LIMIT 30`,
-        patientId
+        patientId, id
       );
     } catch {
       const rows = await prisma.filaUrgente.findMany({
-        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] }, NOT: { id } },
         select:  { id: true, criadoEm: true, status: true },
         orderBy: { criadoEm: 'desc' }, take: 30,
       });
-      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
     }
 
     const normalized = [...agendadas, ...urgentes]
@@ -943,6 +973,7 @@ export const getHistoricoCompleto = async (req, res) => {
         farmaceuticoNome: r.farmaceutico_nome ?? null,
         motivo:           r.motivo            ?? null,
         observacoes:      r.observacoes        ?? null,
+        triagem:          r.triagem            ?? null,
         receita:          Array.isArray(r.receita) ? r.receita : [],
         receitaPdfUrl:    r.receita_pdf_url    ?? null,
         finalizacao:      r.finalizacao        ?? null,
