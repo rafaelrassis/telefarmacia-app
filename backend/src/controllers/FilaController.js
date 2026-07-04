@@ -23,7 +23,7 @@ async function countFarmDisponiveis(maxSimult) {
     FROM "PharmacistProfile" pp
     WHERE pp."isApproved" = true
       AND pp."isOnline" = true
-      AND pp."disponivelUrgencias" = true
+      AND pp."disponivel_urgencias" = true
       AND pp."isSuspended" = false
       AND (
         SELECT COUNT(*) FROM "FilaUrgente" fu
