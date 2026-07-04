@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { notifyPatientCancelamento } from '../services/emailService.js';
+import { logAction } from '../utils/logAction.js';
 
 const prisma = new PrismaClient();
 
@@ -623,5 +624,86 @@ export const getVisaoFinanceira = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao buscar visão financeira.' });
+  }
+};
+
+// ── POST /api/admin/farmaceuticos/:id/suspender ──────────────────────────────
+
+export const suspenderFarmaceutico = async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.user?.id ?? 'admin';
+  try {
+    const user = await prisma.user.findUnique({
+      where:   { id },
+      include: { pharmacistProfile: true },
+    });
+    if (!user?.pharmacistProfile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
+    if (user.pharmacistProfile.isSuspended) return res.status(400).json({ error: 'Farmacêutico já está suspenso.' });
+
+    let consultasCanceladas = [];
+    await prisma.$transaction(async (tx) => {
+      consultasCanceladas = await cancelarConsultasFuturas(tx, id);
+
+      // Cancela FilaAgendada futuras aceitas
+      await tx.$executeRawUnsafe(
+        `UPDATE "FilaAgendada" SET status = 'cancelado' WHERE "farmaceuticoId" = $1 AND status IN ('aceito') AND "dataHora" > NOW()`,
+        id
+      );
+
+      await tx.pharmacistProfile.update({
+        where: { userId: id },
+        data:  { isApproved: false, isSuspended: true, disponivelUrgencias: false },
+      });
+    });
+
+    notificarPacientesAsync(consultasCanceladas, user.name);
+
+    await logAction(prisma, {
+      consultaId: null,
+      usuarioId:  adminId,
+      role:       'ADMIN',
+      acao:       'farmaceutico_suspenso',
+      detalhes:   { farmaceuticoId: id, consultasCanceladas: consultasCanceladas.length },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Farmacêutico suspenso. ${consultasCanceladas.length} consulta(s) futura(s) cancelada(s).`,
+    });
+  } catch (err) {
+    console.error('suspenderFarmaceutico error:', err);
+    return res.status(500).json({ error: 'Erro ao suspender farmacêutico.' });
+  }
+};
+
+// ── POST /api/admin/farmaceuticos/:id/reativar ───────────────────────────────
+
+export const reativarFarmaceutico = async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.user?.id ?? 'admin';
+  try {
+    const user = await prisma.user.findUnique({
+      where:   { id },
+      include: { pharmacistProfile: true },
+    });
+    if (!user?.pharmacistProfile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
+
+    await prisma.pharmacistProfile.update({
+      where: { userId: id },
+      data:  { isApproved: true, isSuspended: false, disponivelUrgencias: true },
+    });
+
+    await logAction(prisma, {
+      consultaId: null,
+      usuarioId:  adminId,
+      role:       'ADMIN',
+      acao:       'farmaceutico_reativado',
+      detalhes:   { farmaceuticoId: id },
+    });
+
+    return res.status(200).json({ success: true, message: 'Farmacêutico reativado com sucesso.' });
+  } catch (err) {
+    console.error('reativarFarmaceutico error:', err);
+    return res.status(500).json({ error: 'Erro ao reativar farmacêutico.' });
   }
 };

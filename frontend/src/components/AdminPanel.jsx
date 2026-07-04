@@ -404,10 +404,37 @@ const AdminPanel = () => {
   const [ondeComprarAtivo,   setOndeComprarAtivo]   = useState(false);
   const [togglingOC,         setTogglingOC]         = useState(false);
   const [metricasParceiros,  setMetricasParceiros]  = useState([]);
-  const [parceirosForm,      setParceirosForm]      = useState(null);   // null | {} | {id,...}
+  const [parceirosForm,      setParceirosForm]      = useState(null);
   const [parceirosFormErr,   setParceirosFormErr]   = useState('');
   const [savingParceiro,     setSavingParceiro]     = useState(false);
   const [confirmDelParceiro, setConfirmDelParceiro] = useState(null);
+
+  // Repasses
+  const [repasseFarmId,       setRepasseFarmId]       = useState('');
+  const [repasseDe,           setRepasseDe]           = useState('');
+  const [repasseAte,          setRepasseAte]          = useState('');
+  const [repassePreview,      setRepassePreview]       = useState(null);
+  const [repassePreviewErr,   setRepassePreviewErr]   = useState('');
+  const [repasseLoading,      setRepasseLoading]      = useState(false);
+  const [repasseRef,          setRepasseRef]          = useState('');
+  const [repasseConfirming,   setRepasseConfirming]   = useState(false);
+  const [repasseHistorico,    setRepasseHistorico]    = useState([]);
+  const [repasseHistLoading,  setRepasseHistLoading]  = useState(false);
+  const [repasseExpanded,     setRepasseExpanded]     = useState({});
+
+  // Convites de farmacêuticos
+  const [convites,        setConvites]        = useState([]);
+  const [convitesLoading, setConvitesLoading] = useState(false);
+  const [conviteForm,     setConviteForm]     = useState(null); // null | {}
+  const [conviteNome,     setConviteNome]     = useState('');
+  const [conviteEmail,    setConviteEmail]    = useState('');
+  const [conviteErr,      setConviteErr]      = useState('');
+  const [savingConvite,   setSavingConvite]   = useState(false);
+  const [conviteLink,     setConviteLink]     = useState(null);
+
+  // Suspender farmacêutico
+  const [confirmSuspend,  setConfirmSuspend]  = useState(null);
+  const [suspendLoading,  setSuspendLoading]  = useState(false);
 
   const api = useCallback(
     (path, opts = {}) =>
@@ -595,6 +622,145 @@ const AdminPanel = () => {
 
   useEffect(() => { if (tab === 'parceiros') loadParceiros(); }, [tab, loadParceiros]);
 
+  // ── Repasses ─────────────────────────────────────────────────────────────────
+  const loadRepasseHistorico = useCallback(async (farmId) => {
+    setRepasseHistLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (farmId) params.set('pharmacistId', farmId);
+      const res = await api(`/api/admin/repasses?${params}`);
+      if (res.ok) setRepasseHistorico((await res.json()).items ?? []);
+    } catch {}
+    finally { setRepasseHistLoading(false); }
+  }, [api]);
+
+  useEffect(() => {
+    if (tab === 'repasses') loadRepasseHistorico(repasseFarmId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const handlePreviewRepasse = async () => {
+    if (!repasseFarmId || !repasseDe || !repasseAte) {
+      setRepassePreviewErr('Selecione farmacêutico e período.');
+      return;
+    }
+    setRepasseLoading(true);
+    setRepassePreviewErr('');
+    setRepassePreview(null);
+    try {
+      const params = new URLSearchParams({ pharmacistId: repasseFarmId, de: repasseDe, ate: repasseAte });
+      const res = await api(`/api/admin/repasses/preview?${params}`);
+      const d   = await res.json();
+      if (res.ok) { setRepassePreview(d); setRepasseRef(''); }
+      else setRepassePreviewErr(d.error || 'Erro ao carregar prévia.');
+    } catch { setRepassePreviewErr('Falha de conexão.'); }
+    finally { setRepasseLoading(false); }
+  };
+
+  const handleConfirmarRepasse = async () => {
+    if (!repassePreview) return;
+    setRepasseConfirming(true);
+    try {
+      const res  = await api('/api/admin/repasses', {
+        method: 'POST',
+        body: JSON.stringify({ pharmacistId: repasseFarmId, de: repasseDe, ate: repasseAte, referenciaTransacao: repasseRef }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        showToast('success', `Repasse de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valorTotal)} registrado.`);
+        setRepassePreview(null);
+        loadRepasseHistorico(repasseFarmId);
+      } else {
+        showToast('error', d.error || 'Erro ao registrar repasse.');
+      }
+    } catch { showToast('error', 'Falha de conexão.'); }
+    finally { setRepasseConfirming(false); }
+  };
+
+  // ── Convites ──────────────────────────────────────────────────────────────────
+  const loadConvites = useCallback(async () => {
+    setConvitesLoading(true);
+    try {
+      const res = await api('/api/admin/convites');
+      if (res.ok) setConvites(await res.json());
+    } catch {}
+    finally { setConvitesLoading(false); }
+  }, [api]);
+
+  useEffect(() => {
+    if (tab === 'convites') loadConvites();
+  }, [tab, loadConvites]);
+
+  const handleCriarConvite = async (e) => {
+    e.preventDefault();
+    if (!conviteNome.trim() || !conviteEmail.trim()) { setConviteErr('Nome e e-mail são obrigatórios.'); return; }
+    setSavingConvite(true);
+    setConviteErr('');
+    try {
+      const res = await api('/api/admin/convites', {
+        method: 'POST',
+        body: JSON.stringify({ nome: conviteNome.trim(), email: conviteEmail.trim() }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setConviteLink(d.link);
+        setConvites((prev) => [d.convite, ...prev]);
+        setConviteNome('');
+        setConviteEmail('');
+      } else {
+        setConviteErr(d.error || 'Erro ao criar convite.');
+      }
+    } catch { setConviteErr('Falha de conexão.'); }
+    finally { setSavingConvite(false); }
+  };
+
+  const handleRevogarConvite = async (id) => {
+    try {
+      const res = await api(`/api/admin/convites/${id}`, { method: 'DELETE' });
+      if (res.ok) setConvites((prev) => prev.filter((c) => c.id !== id));
+      else { const d = await res.json(); showToast('error', d.error || 'Erro ao revogar.'); }
+    } catch { showToast('error', 'Falha de conexão.'); }
+  };
+
+  // ── Suspender / Reativar ──────────────────────────────────────────────────────
+  const handleSuspender = async (userId) => {
+    setSuspendLoading(true);
+    try {
+      const res  = await api(`/api/admin/farmaceuticos/${userId}/suspender`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setPharmacists((prev) => prev.map((p) =>
+          p.id === userId
+            ? { ...p, pharmacistProfile: { ...p.pharmacistProfile, isApproved: false, isSuspended: true } }
+            : p
+        ));
+        showToast('success', data.message || 'Farmacêutico suspenso.');
+      } else {
+        showToast('error', data.error || 'Erro ao suspender.');
+      }
+    } catch { showToast('error', 'Falha de conexão.'); }
+    finally { setSuspendLoading(false); setConfirmSuspend(null); }
+  };
+
+  const handleReativar = async (userId) => {
+    setBtnLoading(userId + '_reat', true);
+    try {
+      const res  = await api(`/api/admin/farmaceuticos/${userId}/reativar`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setPharmacists((prev) => prev.map((p) =>
+          p.id === userId
+            ? { ...p, pharmacistProfile: { ...p.pharmacistProfile, isApproved: true, isSuspended: false } }
+            : p
+        ));
+        showToast('success', data.message || 'Farmacêutico reativado.');
+      } else {
+        showToast('error', data.error || 'Erro ao reativar.');
+      }
+    } catch { showToast('error', 'Falha de conexão.'); }
+    finally { setBtnLoading(userId + '_reat', false); }
+  };
+
   const handleToggleOC = async () => {
     setTogglingOC(true);
     try {
@@ -646,6 +812,8 @@ const AdminPanel = () => {
     { id: 'patients',     label: `Pacientes (${patients.length})` },
     { id: 'logs',         label: 'Logs' },
     { id: 'financeiro',   label: '💰 Financeiro' },
+    { id: 'repasses',     label: '💳 Repasses' },
+    { id: 'convites',     label: '✉️ Convites' },
     { id: 'parceiros',    label: '🤝 Parceiros' },
   ];
 
@@ -836,9 +1004,10 @@ const AdminPanel = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {pharmacists.map((p) => {
-                    const prof    = p.pharmacistProfile;
-                    const approved = prof?.isApproved;
-                    const docBase  = API_URL;
+                    const prof       = p.pharmacistProfile;
+                    const approved   = prof?.isApproved;
+                    const suspended  = prof?.isSuspended;
+                    const docBase    = API_URL;
                     return (
                       <tr key={p.id} className="hover:bg-gray-50 transition">
                         <td className="px-4 py-3">
@@ -866,21 +1035,42 @@ const AdminPanel = () => {
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmt(p.createdAt)}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                            suspended  ? 'bg-red-50 text-red-700'
+                            : approved ? 'bg-green-50 text-green-700'
+                                       : 'bg-amber-50 text-amber-700'
                           }`}>
-                            {approved ? 'Ativo' : 'Pendente'}
+                            {suspended ? '🔴 Suspenso' : approved ? 'Ativo' : 'Pendente'}
                           </span>
+                          {prof?.chavePix && (
+                            <p className="text-[10px] text-gray-400 mt-1">PIX: {prof.chavePix}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            {approved ? (
+                            {suspended ? (
                               <button
-                                onClick={() => setConfirmRevoke(p)}
-                                disabled={actionLoading[p.id + '_rev']}
-                                className="text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
+                                onClick={() => handleReativar(p.id)}
+                                disabled={actionLoading[p.id + '_reat']}
+                                className="text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
                               >
-                                {actionLoading[p.id + '_rev'] ? '...' : 'Inativar'}
+                                {actionLoading[p.id + '_reat'] ? '...' : 'Reativar'}
                               </button>
+                            ) : approved ? (
+                              <>
+                                <button
+                                  onClick={() => setConfirmSuspend(p)}
+                                  className="text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg transition"
+                                >
+                                  Suspender
+                                </button>
+                                <button
+                                  onClick={() => setConfirmRevoke(p)}
+                                  disabled={actionLoading[p.id + '_rev']}
+                                  className="text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
+                                >
+                                  {actionLoading[p.id + '_rev'] ? '...' : 'Inativar'}
+                                </button>
+                              </>
                             ) : (
                               <button
                                 onClick={() => activate(p.id)}
@@ -1485,6 +1675,276 @@ const AdminPanel = () => {
         </div>
       )}
 
+      {/* ── ABA REPASSES ── */}
+      {tab === 'repasses' && (
+        <div className="space-y-6">
+
+          {/* Formulário de prévia */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-5">
+            <h3 className="font-bold text-gray-800 text-sm mb-4">Registrar repasse</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Farmacêutico</label>
+                <select
+                  value={repasseFarmId}
+                  onChange={(e) => { setRepasseFarmId(e.target.value); setRepassePreview(null); }}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="">Selecionar...</option>
+                  {pharmacists.filter((p) => p.pharmacistProfile?.isApproved || p.pharmacistProfile?.isSuspended).map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">De</label>
+                <input type="date" value={repasseDe} onChange={(e) => { setRepasseDe(e.target.value); setRepassePreview(null); }}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Até</label>
+                <input type="date" value={repasseAte} onChange={(e) => { setRepasseAte(e.target.value); setRepassePreview(null); }}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+            </div>
+            {repassePreviewErr && (
+              <p className="text-xs text-red-600 mb-3">{repassePreviewErr}</p>
+            )}
+            <button
+              onClick={handlePreviewRepasse}
+              disabled={repasseLoading}
+              className="bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold px-5 py-2 rounded-xl transition disabled:opacity-50"
+            >
+              {repasseLoading ? 'Carregando...' : 'Pré-visualizar'}
+            </button>
+
+            {/* Prévia */}
+            {repassePreview && (
+              <div className="mt-5 border border-violet-200 rounded-xl overflow-hidden">
+                <div className="bg-violet-50 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="font-bold text-violet-800 text-sm">{repassePreview.farmaceutico.nome}</p>
+                    <p className="text-xs text-violet-600">{repassePreview.farmaceutico.email}</p>
+                    {repassePreview.farmaceutico.chavePix && (
+                      <p className="text-xs text-violet-700 mt-0.5">PIX: <strong>{repassePreview.farmaceutico.chavePix}</strong></p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-violet-800">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(repassePreview.valorTotal)}
+                    </p>
+                    <p className="text-xs text-violet-600">{repassePreview.items.length} consultas · {repassePreview.percentual}% comissão</p>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+                  {repassePreview.items.map((item) => (
+                    <div key={item.id} className="px-5 py-2.5 flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium text-gray-800">{item.paciente}</p>
+                        <p className="text-xs text-gray-400">{new Date(item.data).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })} · {item.tipo}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-violet-700">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorLiquido)}</p>
+                        <p className="text-[10px] text-gray-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorBruto)} bruto</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="px-5 py-4 border-t border-violet-100 bg-violet-50 flex items-end gap-3 flex-wrap">
+                  <div className="flex-1 min-w-48">
+                    <label className="block text-xs font-semibold text-violet-700 mb-1">Referência do pagamento (opcional)</label>
+                    <input
+                      type="text"
+                      value={repasseRef}
+                      onChange={(e) => setRepasseRef(e.target.value)}
+                      placeholder="ID da transferência, comprovante..."
+                      className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+                  </div>
+                  <button
+                    onClick={handleConfirmarRepasse}
+                    disabled={repasseConfirming}
+                    className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50 shrink-0"
+                  >
+                    {repasseConfirming ? 'Registrando...' : '✓ Confirmar repasse'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Histórico de repasses */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800 text-sm">Histórico de repasses</h3>
+              <button onClick={() => loadRepasseHistorico(repasseFarmId)} className="text-xs text-violet-600 hover:underline">
+                Atualizar
+              </button>
+            </div>
+            {repasseHistLoading ? (
+              <p className="text-sm text-gray-400 text-center py-8">Carregando...</p>
+            ) : repasseHistorico.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8 italic">Nenhum repasse registrado.</p>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {repasseHistorico.map((r) => (
+                  <div key={r.id} className="px-5 py-3">
+                    <div className="flex items-center justify-between gap-3 cursor-pointer" onClick={() => setRepasseExpanded((e) => ({ ...e, [r.id]: !e[r.id] }))}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800">{r.pharmacist?.name ?? '—'}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(r.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {r.referenciaTransacao && ` · ref: ${r.referenciaTransacao}`}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-green-700">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.valorTotal)}</p>
+                        <p className="text-[10px] text-gray-400">{r.itensCount} consulta{r.itensCount !== 1 ? 's' : ''} · {repasseExpanded[r.id] ? '▲' : '▼'}</p>
+                      </div>
+                    </div>
+                    {repasseExpanded[r.id] && r.itens?.length > 0 && (
+                      <div className="mt-2 border border-gray-100 rounded-xl overflow-hidden">
+                        {r.itens.map((it) => (
+                          <div key={it.id} className="flex items-center justify-between px-4 py-2 text-xs border-b border-gray-50 last:border-0">
+                            <span className="text-gray-600">{it.consultaTipo} · {it.consultaId.slice(0, 8)}...</span>
+                            <span className="font-semibold text-violet-700">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(it.valorLiquido)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── ABA CONVITES ── */}
+      {tab === 'convites' && (
+        <div className="space-y-6">
+          <div className="bg-white border border-gray-200 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-sm">Convidar farmacêutico</h3>
+                <p className="text-xs text-gray-400 mt-0.5">O link de convite é válido por 7 dias.</p>
+              </div>
+              {!conviteForm && (
+                <button
+                  onClick={() => { setConviteForm({}); setConviteNome(''); setConviteEmail(''); setConviteErr(''); setConviteLink(null); }}
+                  className="bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition"
+                >
+                  + Novo convite
+                </button>
+              )}
+            </div>
+
+            {conviteForm !== null && (
+              <form onSubmit={handleCriarConvite} className="border border-violet-100 rounded-xl p-4 bg-violet-50 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-violet-700 mb-1">Nome completo</label>
+                    <input type="text" value={conviteNome} onChange={(e) => setConviteNome(e.target.value)}
+                      placeholder="Dra. Fulana da Silva"
+                      className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-violet-700 mb-1">E-mail</label>
+                    <input type="email" value={conviteEmail} onChange={(e) => setConviteEmail(e.target.value)}
+                      placeholder="farmaceutico@exemplo.com"
+                      className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                </div>
+                {conviteErr && <p className="text-xs text-red-600">{conviteErr}</p>}
+                {conviteLink && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-green-700 mb-1">✓ Convite criado! Copie o link:</p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-white border border-green-200 rounded px-2 py-1 flex-1 truncate">
+                        {window.location.origin}{conviteLink}
+                      </code>
+                      <button type="button"
+                        onClick={() => navigator.clipboard.writeText(window.location.origin + conviteLink)}
+                        className="text-xs text-green-700 border border-green-300 rounded-lg px-2 py-1 hover:bg-green-100 transition shrink-0"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <button type="button" onClick={() => { setConviteForm(null); setConviteLink(null); }}
+                    className="text-sm text-gray-500 border border-gray-200 rounded-xl px-4 py-2 hover:bg-gray-50 transition">
+                    Fechar
+                  </button>
+                  <button type="submit" disabled={savingConvite}
+                    className="text-sm font-bold bg-violet-700 hover:bg-violet-800 text-white px-5 py-2 rounded-xl transition disabled:opacity-50">
+                    {savingConvite ? 'Enviando...' : 'Gerar convite'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* Lista de convites */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-800 text-sm">Convites enviados</h3>
+            </div>
+            {convitesLoading ? (
+              <p className="text-sm text-gray-400 text-center py-8">Carregando...</p>
+            ) : convites.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8 italic">Nenhum convite enviado.</p>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {convites.map((c) => {
+                  const expired = new Date(c.expiresAt) < new Date();
+                  const status  = c.usado ? 'usado' : expired ? 'expirado' : 'pendente';
+                  return (
+                    <div key={c.id} className="px-5 py-3 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800">{c.nome}</p>
+                        <p className="text-xs text-gray-400">{c.email}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Expira em {new Date(c.expiresAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          status === 'usado'     ? 'bg-green-100 text-green-700'
+                          : status === 'expirado' ? 'bg-gray-100 text-gray-500'
+                          :                        'bg-amber-100 text-amber-700'
+                        }`}>
+                          {status === 'usado' ? '✓ Usado' : status === 'expirado' ? 'Expirado' : '⏳ Pendente'}
+                        </span>
+                        {status === 'pendente' && (
+                          <>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(window.location.origin + '/convite/' + c.token)}
+                              className="text-xs text-violet-600 border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+                            >
+                              Copiar link
+                            </button>
+                            <button
+                              onClick={() => handleRevogarConvite(c.id)}
+                              className="text-xs text-red-500 border border-red-100 rounded-lg px-2 py-1 hover:bg-red-50 transition"
+                            >
+                              Revogar
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Dialog: confirmar exclusão de parceiro */}
       {confirmDelParceiro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1502,6 +1962,36 @@ const AdminPanel = () => {
               <button onClick={() => handleDeleteParceiro(confirmDelParceiro.id)}
                 className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 transition">
                 Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog: confirmar suspensão */}
+      {confirmSuspend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmSuspend(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="font-bold text-gray-900 mb-2">Suspender farmacêutico?</h3>
+            <p className="text-sm text-gray-600 mb-1">
+              <strong>{confirmSuspend.name}</strong> deixará de receber novas consultas imediatamente.
+            </p>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 mb-5 mt-3">
+              <p className="text-xs text-orange-800 font-semibold">
+                ⚠️ Consultas agendadas futuras serão canceladas e os pacientes notificados.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmSuspend(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleSuspender(confirmSuspend.id)}
+                disabled={suspendLoading}
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-60 transition">
+                {suspendLoading ? 'Suspendendo...' : 'Confirmar'}
               </button>
             </div>
           </div>

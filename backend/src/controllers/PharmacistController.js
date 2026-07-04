@@ -166,13 +166,14 @@ export const updateProfile = async (req, res) => {
     if (req.user.role !== 'FARMACEUTICO') {
       return res.status(403).json({ error: 'Acesso restrito a farmacêuticos.' });
     }
-    const { bio, tags, calendarEmbedUrl } = req.body;
+    const { bio, tags, calendarEmbedUrl, chavePix } = req.body;
     const updated = await prisma.pharmacistProfile.update({
       where: { userId: req.user.id },
       data: {
         ...(bio !== undefined && { bio: bio.trim() }),
         ...(Array.isArray(tags) && { tags }),
         ...(calendarEmbedUrl !== undefined && { calendarEmbedUrl: calendarEmbedUrl?.trim() || null }),
+        ...(chavePix !== undefined && { chavePix: chavePix?.trim() || null }),
       },
     });
     return res.status(200).json({ message: 'Perfil atualizado com sucesso.', profile: updated });
@@ -648,6 +649,64 @@ export const getGanhosFarmaceutico = async (req, res) => {
       }),
     ].sort((a, b) => new Date(b.data) - new Date(a.data));
 
+    // Marca status de repasse por item (repassado / a receber)
+    if (allItems.length > 0) {
+      const allIds = allItems.map((i) => i.id);
+      const repasseRows = await prisma.$queryRawUnsafe(
+        `SELECT ri."consultaId", ri."consultaTipo", r."criadoEm" AS "repassadoEm"
+         FROM "RepasseItem" ri
+         JOIN "Repasse" r ON r.id = ri."repasseId"
+         WHERE ri."consultaId" = ANY($1::text[])`,
+        allIds
+      ).catch(() => []);
+      const repasseMap = {};
+      for (const ri of repasseRows) {
+        repasseMap[`${ri.consultaId}-${ri.consultaTipo}`] = ri.repassadoEm;
+      }
+      for (const item of allItems) {
+        const key = `${item.id}-${item.tipo}`;
+        item.repassado   = key in repasseMap;
+        item.repassadoEm = repasseMap[key] ?? null;
+      }
+    }
+
+    // Totalizadores globais (independentes do período filtrado)
+    const [aReceberRows, repassadoMesRows, totalAnoRows] = await Promise.all([
+      prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(fa."creditoDebitado"), 0)::float AS total FROM "FilaAgendada" fa
+         LEFT JOIN "RepasseItem" ri ON ri."consultaId" = fa.id AND ri."consultaTipo" = 'agendada'
+         WHERE fa."farmaceuticoId" = $1 AND fa.status = 'concluido' AND ri.id IS NULL
+         UNION ALL
+         SELECT COALESCE(SUM(fu."creditoDebitado"), 0)::float AS total FROM "FilaUrgente" fu
+         LEFT JOIN "RepasseItem" ri ON ri."consultaId" = fu.id AND ri."consultaTipo" = 'urgente'
+         WHERE fu."farmaceuticoId" = $1 AND fu.status = 'concluido' AND ri.id IS NULL`,
+        pharmacistId
+      ).catch(() => [{ total: 0 }, { total: 0 }]),
+      prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(ri."valorLiquido"), 0)::float AS total
+         FROM "RepasseItem" ri JOIN "Repasse" r ON r.id = ri."repasseId"
+         WHERE r."pharmacistId" = $1
+           AND DATE_TRUNC('month', r."criadoEm") = DATE_TRUNC('month', NOW())`,
+        pharmacistId
+      ).catch(() => [{ total: 0 }]),
+      prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(fa."creditoDebitado"), 0)::float AS total FROM "FilaAgendada" fa
+         WHERE fa."farmaceuticoId" = $1 AND fa.status = 'concluido'
+           AND EXTRACT(YEAR FROM fa."dataHora") = EXTRACT(YEAR FROM NOW())
+         UNION ALL
+         SELECT COALESCE(SUM(fu."creditoDebitado"), 0)::float AS total FROM "FilaUrgente" fu
+         WHERE fu."farmaceuticoId" = $1 AND fu.status = 'concluido'
+           AND EXTRACT(YEAR FROM fu."criadoEm") = EXTRACT(YEAR FROM NOW())`,
+        pharmacistId
+      ).catch(() => [{ total: 0 }, { total: 0 }]),
+    ]);
+
+    const aReceberBruto = Number(aReceberRows[0]?.total ?? 0) + Number(aReceberRows[1]?.total ?? 0);
+    const aReceber      = Math.round(aReceberBruto * (percentual / 100) * 100) / 100;
+    const repassadoMes  = Math.round(Number(repassadoMesRows[0]?.total ?? 0) * 100) / 100;
+    const totalAnoBruto = Number(totalAnoRows[0]?.total ?? 0) + Number(totalAnoRows[1]?.total ?? 0);
+    const totalAno      = Math.round(totalAnoBruto * (percentual / 100) * 100) / 100;
+
     // Métricas — totalRecebido é o líquido (após comissão)
     const totalBruto          = allItems.reduce((s, i) => s + i.valor, 0);
     const totalRecebido       = allItems.reduce((s, i) => s + i.ganho, 0);
@@ -684,6 +743,9 @@ export const getGanhosFarmaceutico = async (req, res) => {
         ticketMedio:          Math.round(ticketMedio * 100) / 100,
         comparativo:          Math.round(comparativo * 10) / 10,
         prevTotal:            Math.round(prevTotal * 100) / 100,
+        aReceber,
+        repassadoMes,
+        totalAno,
       },
       grafico,
       lista: {

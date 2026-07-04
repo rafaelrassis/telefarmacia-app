@@ -50,6 +50,7 @@ model User {
   consentRecords               ConsentRecord[]
   bloqueiosAgenda              BloqueioAgenda[] @relation("FarmaceuticoBloqueios")
   templatesOrientacao          TemplateOrientacao[] @relation("FarmaceuticoTemplates")
+  repasses                     Repasse[] @relation("FarmaceuticoRepasses")
 }
 
 model Notificacao {
@@ -95,6 +96,7 @@ model PharmacistProfile {
   bio               String
   tags              String[]
   isApproved        Boolean   @default(false)
+  isSuspended       Boolean   @default(false)
   isOnline          Boolean   @default(false)
   calendarEmbedUrl  String?
   urlDocIdentidade  String?
@@ -102,6 +104,7 @@ model PharmacistProfile {
   dataEnvioDoc      DateTime?
   precoConsulta        Decimal?  @db.Decimal(10, 2)
   disponivelUrgencias  Boolean   @default(true)
+  chavePix             String?
 }
 
 model Pagamento {
@@ -296,6 +299,43 @@ model BloqueioAgenda {
   dataFim      DateTime
   motivo       String?
   criadoEm     DateTime @default(now())
+}
+
+model Repasse {
+  id                   String        @id @default(uuid())
+  pharmacistId         String
+  pharmacist           User          @relation("FarmaceuticoRepasses", fields: [pharmacistId], references: [id], onDelete: Restrict)
+  adminId              String
+  referenciaTransacao  String?
+  valorTotal           Decimal       @db.Decimal(10, 2)
+  periodoInicio        DateTime
+  periodoFim           DateTime
+  criadoEm             DateTime      @default(now())
+  itens                RepasseItem[]
+}
+
+model RepasseItem {
+  id           String   @id @default(uuid())
+  repasseId    String
+  repasse      Repasse  @relation(fields: [repasseId], references: [id], onDelete: Cascade)
+  consultaId   String
+  consultaTipo String
+  valorBruto   Decimal  @db.Decimal(10, 2)
+  percentual   Decimal  @db.Decimal(5, 2)
+  valorLiquido Decimal  @db.Decimal(10, 2)
+
+  @@unique([consultaId, consultaTipo])
+}
+
+model ConviteFarmaceutico {
+  id        String   @id @default(uuid())
+  email     String
+  nome      String
+  token     String   @unique
+  usado     Boolean  @default(false)
+  expiresAt DateTime
+  criadoEm  DateTime @default(now())
+  adminId   String
 }
 
 model ConsentRecord {
