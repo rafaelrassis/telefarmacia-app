@@ -424,6 +424,10 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   const [obsError, setObsError]           = useState(false);
   const [receita, setReceita]             = useState([]);
   const [receitaPdfUrl, setReceitaPdfUrl] = useState(null);
+  const [encaminhamentoPdfUrl, setEncaminhamentoPdfUrl] = useState(null);
+  const [showEncaminhForm, setShowEncaminhForm]         = useState(false);
+  const [encaminhEspecialidade, setEncaminhEspecialidade] = useState('');
+  const [encaminhResumo, setEncaminhResumo]               = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmCancel, setConfirmCancel]             = useState(false);
   const [motivoCancelamento, setMotivoCancelamento]   = useState('');
@@ -469,6 +473,8 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
           setObservacoes(data.observacoes || '');
           setReceita(Array.isArray(data.receita) && data.receita.length > 0 ? data.receita : []);
           setReceitaPdfUrl(data.receitaPdfUrl ?? null);
+          setEncaminhamentoPdfUrl(data.encaminhamentoPdfUrl ?? null);
+          if (data.finalizacao?.encaminhamento_detalhe) setEncaminhResumo(data.finalizacao.encaminhamento_detalhe);
           setTriagem(data.triagem ?? null);
           if (data.finalizacao) {
             const f = data.finalizacao;
@@ -650,6 +656,32 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
         setError(data.error || 'Erro ao gerar PDF.');
       }
     } catch { setError('Falha ao gerar PDF.'); }
+    finally   { setActionLoading(null); }
+  };
+
+  // ── Encaminhamento PDF ─────────────────────────────────────────────────────
+  const handleGerarEncaminhamento = async () => {
+    if (!encaminhEspecialidade.trim()) {
+      setError('Informe a especialidade / serviço de destino.');
+      return;
+    }
+    setError('');
+    setActionLoading('encaminh');
+    try {
+      const res = await fetch(`${API_URL}/api/consulta/${id}/encaminhamento/pdf`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tipo, especialidade: encaminhEspecialidade, resumoClinico: encaminhResumo }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setEncaminhamentoPdfUrl(data.url);
+        setShowEncaminhForm(false);
+        window.open(`${API_URL}${data.url}`, '_blank');
+      } else {
+        setError(data.error || 'Erro ao gerar encaminhamento.');
+      }
+    } catch { setError('Falha ao gerar encaminhamento.'); }
     finally   { setActionLoading(null); }
   };
 
@@ -1167,6 +1199,87 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── Encaminhamento ── */}
+              {consulta?.status === 'concluido' && isAssigned && !isVisualizacao && (
+                <div className="border-t border-gray-100 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-700">Documento de Encaminhamento</p>
+                    {encaminhamentoPdfUrl && (
+                      <a
+                        href={`${API_URL}${encaminhamentoPdfUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-violet-700 border border-violet-200 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition"
+                      >
+                        📋 Ver encaminhamento
+                      </a>
+                    )}
+                  </div>
+                  {!showEncaminhForm ? (
+                    <button
+                      onClick={() => setShowEncaminhForm(true)}
+                      className="w-full px-4 py-2.5 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition"
+                    >
+                      {encaminhamentoPdfUrl ? '↺ Re-gerar encaminhamento' : '📋 Gerar encaminhamento'}
+                    </button>
+                  ) : (
+                    <div className="space-y-3 bg-teal-50 border border-teal-200 rounded-xl p-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">
+                          Especialidade / serviço de destino <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={encaminhEspecialidade}
+                          onChange={(e) => setEncaminhEspecialidade(e.target.value)}
+                          placeholder="Ex: Cardiologia, Endocrinologia, UBS..."
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Resumo clínico (opcional)</label>
+                        <textarea
+                          value={encaminhResumo}
+                          onChange={(e) => setEncaminhResumo(e.target.value)}
+                          placeholder="Motivo do encaminhamento, histórico relevante..."
+                          rows={3}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowEncaminhForm(false)}
+                          className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleGerarEncaminhamento}
+                          disabled={actionLoading === 'encaminh'}
+                          className="flex-1 px-4 py-2 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 transition"
+                        >
+                          {actionLoading === 'encaminh' ? '⏳ Gerando...' : '📋 Gerar PDF'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Visualizar encaminhamento (modo visualização / paciente) */}
+              {isVisualizacao && encaminhamentoPdfUrl && (
+                <div className="border-t border-gray-100 pt-4">
+                  <a
+                    href={`${API_URL}${encaminhamentoPdfUrl}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-sm font-bold text-teal-700 border border-teal-200 rounded-xl px-4 py-2.5 hover:bg-teal-50 transition w-full justify-center"
+                  >
+                    📋 Ver documento de encaminhamento
+                  </a>
                 </div>
               )}
 

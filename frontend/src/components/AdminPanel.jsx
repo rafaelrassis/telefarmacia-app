@@ -392,6 +392,7 @@ const AdminPanel = () => {
   const [finVisaoLoading, setFinVisaoLoading] = useState(false);
   const [finPreco, setFinPreco]             = useState('');
   const [finComissao, setFinComissao]       = useState('');
+  const [finMaxUrg, setFinMaxUrg]           = useState('1');
   const [finSaving, setFinSaving]           = useState(false);
   const [finPeriodoDe, setFinPeriodoDe]     = useState('');
   const [finPeriodoAte, setFinPeriodoAte]   = useState('');
@@ -482,6 +483,7 @@ const AdminPanel = () => {
         setFinConfig(d);
         setFinPreco(String(d.preco));
         setFinComissao(String(d.comissaoPadrao));
+        setFinMaxUrg(String(d.maxUrgenciasSimult ?? 1));
       }
     } finally { setFinLoading(false); }
   }, [api]);
@@ -1286,23 +1288,45 @@ const AdminPanel = () => {
                   </div>
                 </div>
 
+                {/* Limite de urgências simultâneas */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 6 }}>
+                    Limite de urgências simultâneas por farmacêutico
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    step="1"
+                    value={finMaxUrg}
+                    onChange={(e) => setFinMaxUrg(e.target.value)}
+                    style={{ width: '100%', maxWidth: 120, border: '1px solid #e5e7eb', borderRadius: 12, padding: '10px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="1"
+                  />
+                  <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                    Farmacêutico no limite não recebe novas urgências. Default: 1.
+                  </p>
+                </div>
+
                 {/* Botão único salvar ambos */}
                 <button
                   disabled={finSaving}
                   onClick={async () => {
                     const preco      = parseFloat(finPreco);
                     const percentual = parseFloat(finComissao);
-                    if (isNaN(preco) || preco <= 0)              { showToast('error', 'Preço inválido.'); return; }
+                    const maxUrg     = parseInt(finMaxUrg, 10);
+                    if (isNaN(preco) || preco <= 0)                              { showToast('error', 'Preço inválido.'); return; }
                     if (isNaN(percentual) || percentual < 0 || percentual > 100) { showToast('error', 'Comissão inválida (0–100).'); return; }
+                    if (isNaN(maxUrg) || maxUrg < 1 || maxUrg > 20)             { showToast('error', 'Limite de urgências inválido (1–20).'); return; }
                     setFinSaving(true);
                     try {
                       const res = await api('/api/admin/config', {
                         method: 'PUT',
-                        body: JSON.stringify({ preco_consulta: preco, comissao_padrao: percentual }),
+                        body: JSON.stringify({ preco_consulta: preco, comissao_padrao: percentual, max_urgencias_simultaneas: maxUrg }),
                       });
                       if (res.ok) {
                         showToast('success', '✅ Configurações salvas!');
-                        setFinConfig((prev) => prev ? { ...prev, preco, comissaoPadrao: percentual } : prev);
+                        setFinConfig((prev) => prev ? { ...prev, preco, comissaoPadrao: percentual, maxUrgenciasSimult: maxUrg } : prev);
                       } else {
                         const d = await res.json().catch(() => ({}));
                         showToast('error', d.error || 'Erro ao salvar.');

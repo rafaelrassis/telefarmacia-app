@@ -144,10 +144,11 @@ const ReceitaHtml = ({ receita, farmaceuticoNome, dataHora }) => {
 const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
   const { token } = useAuth();
 
-  const hasReceita       = Array.isArray(data?.receita) && data.receita.length > 0;
-  const hasReceitaPdf    = Boolean(data?.receitaPdfUrl);
-  const hasOrientacoes   = Boolean(data?.observacoes?.trim());
-  const showTabs         = hasOrientacoes; // mostra abas sempre que há orientações
+  const hasReceita             = Array.isArray(data?.receita) && data.receita.length > 0;
+  const hasReceitaPdf          = Boolean(data?.receitaPdfUrl);
+  const hasEncaminhamentoPdf   = Boolean(data?.encaminhamentoPdfUrl);
+  const hasOrientacoes         = Boolean(data?.observacoes?.trim());
+  const showTabs               = hasOrientacoes || hasEncaminhamentoPdf;
 
   const [activeTab,    setActiveTab]    = useState('receita');
   const [pdfState,     setPdfState]     = useState(hasReceitaPdf ? 'loading' : 'fallback');
@@ -309,19 +310,23 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
             </span>
             {/* Abas */}
             {showTabs && (
-              <div style={{ display: 'flex', gap: 4 }}>
-                {['receita', 'orientacoes'].map((tab) => (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {[
+                  { key: 'receita', label: 'Receita' },
+                  ...(hasOrientacoes ? [{ key: 'orientacoes', label: 'Orientações' }] : []),
+                  ...(hasEncaminhamentoPdf ? [{ key: 'encaminhamento', label: '📋 Encaminhamento' }] : []),
+                ].map(({ key, label }) => (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    key={key}
+                    onClick={() => setActiveTab(key)}
                     style={{
                       padding: '4px 10px', border: 'none', borderRadius: 20, fontSize: 12,
                       fontWeight: 600, cursor: 'pointer',
-                      background: activeTab === tab ? '#7c3aed' : '#f3f4f6',
-                      color:      activeTab === tab ? 'white'    : '#6b7280',
+                      background: activeTab === key ? '#7c3aed' : '#f3f4f6',
+                      color:      activeTab === key ? 'white'    : '#6b7280',
                     }}
                   >
-                    {tab === 'receita' ? 'Receita' : 'Orientações'}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -441,6 +446,32 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
                 <p style={{ fontSize: 14, color: '#15803d', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
                   {data?.observacoes}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'encaminhamento' && hasEncaminhamentoPdf && (
+            <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 12, padding: '20px 24px', textAlign: 'center', maxWidth: 360, width: '100%' }}>
+                <p style={{ fontSize: 32, margin: '0 0 8px' }}>📋</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: '#0f766e', margin: '0 0 4px' }}>
+                  Documento de Encaminhamento
+                </p>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>
+                  Clique abaixo para baixar o PDF do encaminhamento gerado pelo farmacêutico.
+                </p>
+                <a
+                  href={`${API_URL}/api/paciente/consulta/${consultaId}/pdf?tipo=${tipo}&doc=encaminhamento`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-block', padding: '10px 24px',
+                    background: '#0d9488', color: 'white', borderRadius: 10,
+                    fontSize: 14, fontWeight: 700, textDecoration: 'none',
+                  }}
+                >
+                  ⬇ Baixar encaminhamento
+                </a>
               </div>
             </div>
           )}
