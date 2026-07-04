@@ -98,7 +98,8 @@ model PharmacistProfile {
   urlDocIdentidade  String?
   urlDocCrf         String?
   dataEnvioDoc      DateTime?
-  precoConsulta     Decimal?  @db.Decimal(10, 2)
+  precoConsulta        Decimal?  @db.Decimal(10, 2)
+  disponivelUrgencias  Boolean   @default(true)
 }
 
 model Pagamento {

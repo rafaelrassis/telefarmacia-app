@@ -278,10 +278,10 @@ export const saveWeeklySchedule = async (req, res) => {
 export const setDisponibilidade = async (req, res) => {
   try {
     const pharmacistId = req.user.id;
-    const { isOnline } = req.body;
+    const { isOnline, disponivelUrgencias } = req.body;
 
-    if (typeof isOnline !== 'boolean') {
-      return res.status(400).json({ error: 'isOnline deve ser true ou false.' });
+    if (typeof isOnline !== 'boolean' && typeof disponivelUrgencias !== 'boolean') {
+      return res.status(400).json({ error: 'isOnline ou disponivelUrgencias devem ser fornecidos.' });
     }
 
     const profile = await prisma.pharmacistProfile.findUnique({ where: { userId: pharmacistId } });
@@ -289,9 +289,24 @@ export const setDisponibilidade = async (req, res) => {
       return res.status(403).json({ error: 'Conta não aprovada pelo administrador.' });
     }
 
+    // Toggle de disponibilidade para urgências (independente do isOnline)
+    if (typeof disponivelUrgencias === 'boolean' && typeof isOnline !== 'boolean') {
+      await prisma.pharmacistProfile.update({
+        where: { userId: pharmacistId },
+        data: { disponivelUrgencias },
+      });
+      return res.status(200).json({ success: true, disponivelUrgencias });
+    }
+
     if (!isOnline) {
       await prisma.$transaction([
-        prisma.pharmacistProfile.update({ where: { userId: pharmacistId }, data: { isOnline: false } }),
+        prisma.pharmacistProfile.update({
+          where: { userId: pharmacistId },
+          data: {
+            isOnline: false,
+            ...(typeof disponivelUrgencias === 'boolean' && { disponivelUrgencias }),
+          },
+        }),
         prisma.availability.deleteMany({
           where: { pharmacistId, isBooked: false, dateTime: { gte: new Date() } },
         }),

@@ -116,6 +116,20 @@ export const agendarConsulta = async (req, res) => {
   }
 };
 
+// ── GET /api/fila/urgente/disponibilidade (público) ─────────────────────────
+
+export const verificarDisponibilidade = async (req, res) => {
+  try {
+    const count = await prisma.pharmacistProfile.count({
+      where: { isApproved: true, isOnline: true, disponivelUrgencias: true },
+    });
+    return res.status(200).json({ disponivel: count > 0, total: count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao verificar disponibilidade.' });
+  }
+};
+
 // ── POST /api/fila/urgente ───────────────────────────────────────────────────
 
 export const agendarUrgente = async (req, res) => {
@@ -137,6 +151,17 @@ export const agendarUrgente = async (req, res) => {
     if (agora < horario.horaInicio || agora >= horario.horaFim) {
       return res.status(400).json({
         error: `Fora do horário. O sistema funciona das ${horario.horaInicio} às ${horario.horaFim}.`,
+      });
+    }
+
+    // Verifica se há farmacêutico disponível antes de criar/cobrar
+    const dispCount = await prisma.pharmacistProfile.count({
+      where: { isApproved: true, isOnline: true, disponivelUrgencias: true },
+    });
+    if (dispCount === 0) {
+      return res.status(503).json({
+        error: 'Nenhum farmacêutico disponível para urgências no momento. Tente agendar um horário.',
+        code: 'nenhum_disponivel',
       });
     }
 
@@ -345,6 +370,14 @@ export const aceitarUrgente = async (req, res) => {
   const pharmacistId = req.user.id;
 
   try {
+    const perfil = await prisma.pharmacistProfile.findUnique({
+      where: { userId: pharmacistId },
+      select: { disponivelUrgencias: true },
+    });
+    if (!perfil?.disponivelUrgencias) {
+      return res.status(403).json({ error: 'Você está marcado como indisponível para urgências. Ative o toggle para aceitar.' });
+    }
+
     const [agEmAt, urEmAt] = await Promise.all([
       prisma.filaAgendada.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
       prisma.filaUrgente.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),

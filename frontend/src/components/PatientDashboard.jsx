@@ -1131,6 +1131,15 @@ const PatientDashboard = () => {
                   </button>
                   <button
                     onClick={async () => {
+                      // Verifica disponibilidade antes de mostrar triagem
+                      try {
+                        const dr = await fetch(`${API_URL}/api/fila/urgente/disponibilidade`);
+                        const dd = dr.ok ? await dr.json() : null;
+                        if (dd && !dd.disponivel) {
+                          setPassarAgoraMsg({ type: 'nenhum_disponivel' });
+                          return;
+                        }
+                      } catch {}
                       // Verifica consent antes de abrir triagem urgente
                       if (consentUrgenteOk === true) { setShowTriagemUrgente(true); return; }
                       try {
@@ -1176,12 +1185,14 @@ const PatientDashboard = () => {
             <div style={{
               padding: '12px 16px',
               borderRadius: '8px',
-              background: passarAgoraMsg.type === 'success' ? '#f0fdf4'
-                        : passarAgoraMsg.type === 'waiting'  ? '#eff6ff'
+              background: passarAgoraMsg.type === 'success'          ? '#f0fdf4'
+                        : passarAgoraMsg.type === 'waiting'           ? '#eff6ff'
+                        : passarAgoraMsg.type === 'nenhum_disponivel' ? '#fff7ed'
                         : '#fef2f2',
               border: `1px solid ${
-                passarAgoraMsg.type === 'success' ? '#86efac'
-                : passarAgoraMsg.type === 'waiting' ? '#bfdbfe'
+                passarAgoraMsg.type === 'success'          ? '#86efac'
+                : passarAgoraMsg.type === 'waiting'        ? '#bfdbfe'
+                : passarAgoraMsg.type === 'nenhum_disponivel' ? '#fed7aa'
                 : '#fca5a5'
               }`,
               display: 'flex',
@@ -1240,6 +1251,26 @@ const PatientDashboard = () => {
                       </a>
                     ) : null}
                   </>
+                )}
+                {passarAgoraMsg.type === 'nenhum_disponivel' && (
+                  <div>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#b91c1c', margin: '0 0 6px 0' }}>
+                      Nenhum profissional disponível no momento
+                    </p>
+                    <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 8px 0' }}>
+                      Todos os farmacêuticos estão ocupados ou offline. Tente mais tarde ou agende um horário.
+                    </p>
+                    <button
+                      onClick={() => { setPassarAgoraMsg(null); setShowDataModal(true); }}
+                      style={{
+                        fontSize: '13px', fontWeight: 700, color: '#fff',
+                        background: '#2563eb', border: 'none', borderRadius: '6px',
+                        padding: '6px 14px', cursor: 'pointer',
+                      }}
+                    >
+                      📅 Agendar horário
+                    </button>
+                  </div>
                 )}
                 {(passarAgoraMsg.type === 'unavailable' || passarAgoraMsg.type === 'error') && (
                   <p style={{ fontSize: '14px', color: '#b91c1c', margin: 0 }}>
