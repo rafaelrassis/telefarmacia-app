@@ -41,7 +41,7 @@ const fmtTime = (iso) =>
 // delta de navegação por modo
 const NAV_DELTA = { today: 1, '2days': 2, '5days': 7, '7days': 7 };
 
-const WeekCalendar = ({ appointments = [], onEventClick }) => {
+const WeekCalendar = ({ appointments = [], blocks = [], onEventClick }) => {
   const [viewMode, setViewMode] = useState('7days');
   const [anchor,   setAnchor]   = useState(() => getMonday(new Date()));
 
@@ -92,7 +92,25 @@ const WeekCalendar = ({ appointments = [], onEventClick }) => {
     return `${fmt(days[0])} – ${last.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
   })();
 
-  const hasAnyAppt = Object.keys(grid).length > 0;
+  // Marca células cobertas por bloqueio: "dayIndex-hour" → motivo
+  const blockedCells = {};
+  blocks.forEach((b) => {
+    const bStart = new Date(b.dataInicio);
+    const bEnd   = new Date(b.dataFim);
+    days.forEach((d, dayIdx) => {
+      HOURS.forEach((hour) => {
+        const cellStart = new Date(d);
+        cellStart.setHours(hour, 0, 0, 0);
+        const cellEnd = new Date(d);
+        cellEnd.setHours(hour, 59, 59, 999);
+        if (cellStart <= bEnd && cellEnd >= bStart) {
+          blockedCells[`${dayIdx}-${hour}`] = b.motivo || 'Bloqueado';
+        }
+      });
+    });
+  });
+
+  const hasAnyAppt = Object.keys(grid).length > 0 || Object.keys(blockedCells).length > 0;
   const colTemplate = `52px repeat(${days.length}, 1fr)`;
 
   return (
@@ -162,13 +180,26 @@ const WeekCalendar = ({ appointments = [], onEventClick }) => {
                 {String(hour).padStart(2, '0')}h
               </div>
               {days.map((d, dayIdx) => {
-                const isToday = d.toDateString() === today.toDateString();
-                const appts   = grid[`${dayIdx}-${hour}`] || [];
+                const isToday   = d.toDateString() === today.toDateString();
+                const appts     = grid[`${dayIdx}-${hour}`] || [];
+                const motivo    = blockedCells[`${dayIdx}-${hour}`];
                 return (
                   <div
                     key={dayIdx}
-                    className={`border-l border-gray-100 p-1 ${isToday ? 'bg-violet-50/40' : ''}`}
+                    className={`border-l border-gray-100 p-1 relative ${isToday ? 'bg-violet-50/40' : ''}`}
                   >
+                    {motivo && (
+                      <div
+                        title={motivo}
+                        style={{
+                          position: 'absolute', inset: 0,
+                          background: 'repeating-linear-gradient(-45deg,#d1d5db,#d1d5db 2px,#f3f4f6 2px,#f3f4f6 8px)',
+                          opacity: 0.7,
+                          zIndex: 0,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    )}
                     {appts.map((appt) => {
                       const cfg      = STATUS[appt.status] || STATUS.AGENDADO;
                       const isFila   = appt.status?.startsWith('FILA_');
@@ -177,6 +208,7 @@ const WeekCalendar = ({ appointments = [], onEventClick }) => {
                         <div
                           key={appt.id}
                           onClick={clickable ? () => onEventClick(appt) : undefined}
+                          style={{ position: 'relative', zIndex: 1 }}
                           className={`rounded border px-1.5 py-1 mb-0.5 ${cfg.cls} ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
                         >
                           <p className="text-xs font-semibold truncate leading-tight">

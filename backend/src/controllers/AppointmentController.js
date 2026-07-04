@@ -226,6 +226,18 @@ export const reservarSlot = async (req, res) => {
     });
     if (!slot || slot.isBooked) return res.status(400).json({ error: 'Horário indisponível.' });
 
+    // Verifica bloqueio de agenda do farmacêutico neste horário
+    const bloqueioAtivo = await prisma.bloqueioAgenda.findFirst({
+      where: {
+        pharmacistId: slot.pharmacistId,
+        dataInicio: { lte: slot.dateTime },
+        dataFim:    { gte: slot.dateTime },
+      },
+    });
+    if (bloqueioAtivo) {
+      return res.status(400).json({ error: 'O farmacêutico está indisponível neste horário. Por favor escolha outro.' });
+    }
+
     const preco = parseFloat(slot.pharmacist?.pharmacistProfile?.precoConsulta ?? PRECO_PADRAO);
 
     // Verifica saldo

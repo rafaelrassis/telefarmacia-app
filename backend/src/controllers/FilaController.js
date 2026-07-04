@@ -332,6 +332,23 @@ export const aceitarAgendada = async (req, res) => {
       return res.status(400).json({ error: 'Conclua o atendimento atual antes de aceitar outro.' });
     }
 
+    // Verifica se o horário da consulta cai em bloqueio de agenda do farmacêutico
+    const consulta = await prisma.filaAgendada.findUnique({ where: { id }, select: { dataHora: true } });
+    if (consulta) {
+      const bloqueioAtivo = await prisma.bloqueioAgenda.findFirst({
+        where: {
+          pharmacistId,
+          dataInicio: { lte: consulta.dataHora },
+          dataFim:    { gte: consulta.dataHora },
+        },
+      });
+      if (bloqueioAtivo) {
+        return res.status(409).json({
+          error: 'Você tem um bloqueio de agenda neste horário. Remova o bloqueio antes de aceitar esta consulta.',
+        });
+      }
+    }
+
     const result = await prisma.filaAgendada.updateMany({
       where: { id, status: 'aguardando' },
       data: { status: 'aceito', farmaceuticoId: pharmacistId },

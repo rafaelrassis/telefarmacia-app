@@ -48,6 +48,7 @@ model User {
   dependentes                  DependentProfile[]  @relation("TitularDependentes")
   notificacoes                 Notificacao[]       @relation("UserNotificacoes")
   consentRecords               ConsentRecord[]
+  bloqueiosAgenda              BloqueioAgenda[] @relation("FarmaceuticoBloqueios")
 }
 
 model Notificacao {
@@ -274,6 +275,16 @@ model AffiliateClick {
   pharmacy   PartnerPharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
   consultaId String?
   createdAt  DateTime        @default(now())
+}
+
+model BloqueioAgenda {
+  id           String   @id @default(uuid())
+  pharmacistId String
+  pharmacist   User     @relation("FarmaceuticoBloqueios", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  dataInicio   DateTime
+  dataFim      DateTime
+  motivo       String?
+  criadoEm     DateTime @default(now())
 }
 
 model ConsentRecord {

@@ -15,6 +15,7 @@ import {
   getGanhosFarmaceutico,
   getUrgentesAceitas,
 } from '../controllers/PharmacistController.js';
+import { listarBloqueios, criarBloqueio, excluirBloqueio } from '../controllers/BloqueioController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { uploadDocs } from '../utils/multerConfig.js';
 
@@ -49,5 +50,10 @@ router.get('/farmaceutico/ganhos', authMiddleware, getGanhosFarmaceutico);
 
 // Urgentes aceitas pelo farmacêutico logado
 router.get('/farmaceutico/urgentes-aceitas', authMiddleware, getUrgentesAceitas);
+
+// Bloqueios de agenda
+router.get('/farmaceutico/bloqueios',      authMiddleware, listarBloqueios);
+router.post('/farmaceutico/bloqueios',     authMiddleware, criarBloqueio);
+router.delete('/farmaceutico/bloqueios/:id', authMiddleware, excluirBloqueio);
 
 export default router;

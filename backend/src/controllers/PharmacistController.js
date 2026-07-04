@@ -65,11 +65,24 @@ export const getPharmacists = async (req, res) => {
 export const getPharmacistAvailability = async (req, res) => {
   try {
     const { id } = req.params;
-    const availabilities = await prisma.availability.findMany({
-      where: { pharmacistId: id, isBooked: false, dateTime: { gte: new Date() } },
-      orderBy: { dateTime: 'asc' },
-    });
-    return res.status(200).json(availabilities);
+    const now = new Date();
+
+    const [availabilities, bloqueios] = await Promise.all([
+      prisma.availability.findMany({
+        where: { pharmacistId: id, isBooked: false, dateTime: { gte: now } },
+        orderBy: { dateTime: 'asc' },
+      }),
+      prisma.bloqueioAgenda.findMany({
+        where: { pharmacistId: id, dataFim: { gte: now } },
+        select: { dataInicio: true, dataFim: true },
+      }),
+    ]);
+
+    const filtered = availabilities.filter(
+      (slot) => !bloqueios.some((b) => slot.dateTime >= b.dataInicio && slot.dateTime <= b.dataFim)
+    );
+
+    return res.status(200).json(filtered);
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao buscar horários.' });
   }
@@ -228,6 +241,21 @@ export const saveWeeklySchedule = async (req, res) => {
     const DAYS_AHEAD = 28;
     const SLOT_MS = 45 * 60 * 1000; // 30 min consultation + 15 min buffer
 
+    // Busca horários da plataforma e bloqueios ativos do farmacêutico de uma vez
+    const agora = new Date();
+    const limiteHorizon = new Date(agora);
+    limiteHorizon.setDate(limiteHorizon.getDate() + DAYS_AHEAD);
+
+    const [sistemaHorarios, bloqueiosAtivos] = await Promise.all([
+      prisma.sistemaHorario.findMany({ where: { ativo: true } }),
+      prisma.bloqueioAgenda.findMany({
+        where: { pharmacistId, dataFim: { gte: agora }, dataInicio: { lte: limiteHorizon } },
+        select: { dataInicio: true, dataFim: true },
+      }),
+    ]);
+
+    const sistemaMap = Object.fromEntries(sistemaHorarios.map((h) => [h.diaSemana, h]));
+
     for (let d = 0; d < DAYS_AHEAD; d++) {
       const date = new Date();
       date.setDate(date.getDate() + d);
@@ -237,23 +265,38 @@ export const saveWeeklySchedule = async (req, res) => {
       const daySchedule = activeDays.find((s) => s.dayOfWeek === dow);
       if (!daySchedule) continue;
 
+      // Intersecção com horário da plataforma
+      const sistemaHorario = sistemaMap[dow];
+      if (!sistemaHorario) continue;
+
       const [sH, sM] = daySchedule.startTime.split(':').map(Number);
       const [eH, eM] = daySchedule.endTime.split(':').map(Number);
+      const [phH, phM] = sistemaHorario.horaInicio.split(':').map(Number);
+      const [pfH, pfM] = sistemaHorario.horaFim.split(':').map(Number);
 
-      if (sH * 60 + sM >= eH * 60 + eM) continue;
+      // Clipa o horário do farmacêutico dentro do horário da plataforma
+      const efStartMin = Math.max(sH * 60 + sM, phH * 60 + phM);
+      const efEndMin   = Math.min(eH * 60 + eM, pfH * 60 + pfM);
+      if (efStartMin >= efEndMin) continue;
 
       const start = new Date(date);
-      start.setHours(sH, sM, 0, 0);
+      start.setHours(Math.floor(efStartMin / 60), efStartMin % 60, 0, 0);
       const end = new Date(date);
-      end.setHours(eH, eM, 0, 0);
+      end.setHours(Math.floor(efEndMin / 60), efEndMin % 60, 0, 0);
 
-      // For today, skip slots that have already passed (+ 1 hour buffer)
+      // Para hoje, pula slots que já passaram (+ 1 hora de buffer)
       const minTime = d === 0 ? Date.now() + 60 * 60 * 1000 : 0;
 
       let cur = new Date(start);
       while (cur < end) {
         if (cur.getTime() >= minTime) {
-          slots.push({ pharmacistId, dateTime: new Date(cur) });
+          // Exclui slots que caem em bloqueio ativo
+          const emBloqueio = bloqueiosAtivos.some(
+            (b) => cur >= b.dataInicio && cur <= b.dataFim
+          );
+          if (!emBloqueio) {
+            slots.push({ pharmacistId, dateTime: new Date(cur) });
+          }
         }
         cur = new Date(cur.getTime() + SLOT_MS);
       }
