@@ -120,7 +120,7 @@ export const getPerfil = async (req, res) => {
 };
 
 // ── GET /api/paciente/historico ──────────────────────────────────────────────
-// UNION das três fontes: Appointment (legado) + FilaAgendada + FilaUrgente
+// UNION das fontes: FilaAgendada + FilaUrgente
 
 export const getHistorico = async (req, res) => {
   if (req.user.role !== 'PACIENTE') {
@@ -129,15 +129,7 @@ export const getHistorico = async (req, res) => {
   const patientId = req.user.id;
 
   try {
-    const [appointments, agendadas, urgentes] = await Promise.all([
-      prisma.appointment.findMany({
-        where: { patientId },
-        include: {
-          pharmacist: { select: { name: true } },
-          avaliacao:  { select: { nota: true, comentario: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
+    const [agendadas, urgentes] = await Promise.all([
       prisma.filaAgendada.findMany({
         where: { pacienteId: patientId },
         include: { farmaceutico: { select: { name: true } } },
@@ -151,17 +143,6 @@ export const getHistorico = async (req, res) => {
     ]);
 
     const normalized = [
-      ...appointments.map((a) => ({
-        id:              a.id,
-        tipo:            'appointment',
-        dataHora:        a.dateTime,
-        criadoEm:        a.createdAt,
-        status:          a.status,
-        farmaceutico:    a.pharmacist ? { name: a.pharmacist.name } : null,
-        recommendations: a.recommendations ?? null,
-        avaliacao:       a.avaliacao ?? null,
-        creditoDebitado: null,
-      })),
       ...agendadas.map((f) => ({
         id:              f.id,
         tipo:            'agendada',
@@ -221,18 +202,7 @@ export const getAgendamentos = async (req, res) => {
     // Filtro de dependentId: null = IS NULL (titular), string = valor exato
     const depFilter = dependentId ? dependentId : null;
 
-    const [appointments, agendadas, urgentes] = await Promise.all([
-      // Appointments legados não têm dependentId — exibir somente para titular
-      dependentId
-        ? Promise.resolve([])
-        : prisma.appointment.findMany({
-            where: { patientId },
-            include: {
-              pharmacist: { select: { name: true } },
-              avaliacao:  { select: { nota: true, comentario: true } },
-            },
-            orderBy: { createdAt: 'desc' },
-          }),
+    const [agendadas, urgentes] = await Promise.all([
       prisma.filaAgendada.findMany({
         where: { pacienteId: patientId, dependentId: depFilter },
         include: { farmaceutico: { select: { name: true } } },
@@ -276,17 +246,6 @@ export const getAgendamentos = async (req, res) => {
     } catch {}
 
     let normalized = [
-      ...appointments.map((a) => ({
-        id: a.id, tipo: 'appointment',
-        dataHora: a.dateTime, criadoEm: a.createdAt,
-        status: a.status,
-        farmaceutico:    a.pharmacist ? { name: a.pharmacist.name } : null,
-        recommendations: a.recommendations ?? null,
-        avaliacao:       a.avaliacao ?? null,
-        creditoDebitado: null,
-        receitaPdfUrl:   null,
-        meetLink:        a.googleMeetLink ?? null,
-      })),
       ...agendadas.map((f) => ({
         id: f.id, tipo: 'agendada',
         dataHora: f.dataHora, criadoEm: f.criadoEm,
@@ -325,11 +284,6 @@ export const getAgendamentos = async (req, res) => {
 
     const total = normalized.length;
     const items = normalized.slice(skip, skip + limitNum);
-
-    console.log('[getAgendamentos] retornando', total, 'registro(s) para userId:', patientId);
-    console.log('[getAgendamentos] pacienteIds agendadas:', agendadas.map((f) => f.pacienteId));
-    console.log('[getAgendamentos] pacienteIds urgentes:', urgentes.map((f) => f.pacienteId));
-    console.log('[getAgendamentos] patientIds appointments:', appointments.map((a) => a.patientId));
 
     return res.status(200).json({
       items,
@@ -410,7 +364,7 @@ export const updatePerfil = async (req, res) => {
   }
 };
 
-// ── GET /api/paciente/consulta/:id?tipo=agendada|urgente|appointment ─────────
+// ── GET /api/paciente/consulta/:id?tipo=agendada|urgente ─────────
 
 export const getConsultaDetalhesPaciente = async (req, res) => {
   if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
@@ -418,35 +372,11 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
   const { tipo }   = req.query;
   const patientId  = req.user.id;
 
-  if (!['agendada', 'urgente', 'appointment'].includes(tipo)) {
+  if (!['agendada', 'urgente'].includes(tipo)) {
     return res.status(400).json({ error: 'tipo inválido.' });
   }
 
   try {
-    if (tipo === 'appointment') {
-      const a = await prisma.appointment.findFirst({
-        where:   { id, patientId },
-        include: { pharmacist: { select: { name: true } } },
-      });
-      if (!a) return res.status(404).json({ error: 'Consulta não encontrada.' });
-      return res.status(200).json({
-        id, tipo,
-        dataHora:          a.dateTime,
-        status:            a.status,
-        pessoaNome:        null,
-        dependentId:       null,
-        creditoDebitado:   null,
-        meetLink:          a.googleMeetLink ?? null,
-        observacoes:       a.recommendations ?? null,
-        motivo:            null,
-        receita:           [],
-        receitaPdfUrl:     null,
-        motivoCancelamento: null,
-        finalizacao:       null,
-        farmaceutico:      a.pharmacist ? { nome: a.pharmacist.name } : null,
-      });
-    }
-
     const tableName = tipo === 'urgente' ? 'FilaUrgente' : 'FilaAgendada';
     const model     = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
 
@@ -501,7 +431,6 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
       pessoaNome:        pessoaNome ?? fila.dependent?.nome ?? null,
       dependentId:       fila.dependentId ?? null,
       creditoDebitado:   Number(fila.creditoDebitado),
-      meetLink:          null,
       observacoes,
       motivo,
       receita:           Array.isArray(receita) ? receita : [],

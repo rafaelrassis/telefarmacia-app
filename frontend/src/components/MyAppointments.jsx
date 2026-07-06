@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import CompleteAppointmentModal from './CompleteAppointmentModal';
 import ConsultaModal from './ConsultaModal';
 import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
 import ReceitaViewer from './ReceitaViewer';
@@ -10,13 +9,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  // Legado (Appointment) — uppercase
-  PENDENTE_PAGAMENTO: { label: 'Aguardando pagamento', cls: 'text-orange-500', dot: 'bg-orange-400' },
-  AGENDADO:           { label: 'Confirmado',            cls: 'text-green-600',  dot: 'bg-green-500' },
-  CONCLUIDO:          { label: 'Concluído',             cls: 'text-violet-600', dot: 'bg-violet-500' },
-  CANCELADO:          { label: 'Cancelado',             cls: 'text-red-500',    dot: 'bg-red-400' },
-  EXPIRADA:           { label: 'Expirada',              cls: 'text-gray-400',   dot: 'bg-gray-300' },
-  // Fila nova — lowercase
   aguardando:           { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
   aceito:               { label: 'Confirmado',              cls: 'text-blue-600',    dot: 'bg-blue-500' },
   em_atendimento:       { label: 'Em atendimento',          cls: 'text-green-600',   dot: 'bg-green-500' },
@@ -29,7 +21,6 @@ const STATUS_CONFIG = {
 const TIPO_BADGE = {
   agendada:    { label: 'Agendada',   cls: 'bg-violet-100 text-violet-700' },
   urgente:     { label: 'Urgente',    cls: 'bg-red-100 text-red-700' },
-  appointment: { label: 'Consulta',   cls: 'bg-gray-100 text-gray-600' },
 };
 
 // Status efetivo: "aceito" em agendada futura ≠ "em atendimento" (item 4)
@@ -40,18 +31,6 @@ const getEffectiveStatus = (app) => {
   }
   return app.status;
 };
-
-const Stars = ({ value, onChange, readonly = false, size = 'text-xl' }) => (
-  <div className="flex gap-0.5">
-    {[1, 2, 3, 4, 5].map((star) => (
-      <button key={star} type="button"
-        onClick={() => !readonly && onChange && onChange(star)}
-        className={`${size} transition leading-none ${star <= value ? 'text-yellow-400' : 'text-gray-200'} ${!readonly ? 'hover:text-yellow-300 cursor-pointer' : 'cursor-default'}`}>
-        ★
-      </button>
-    ))}
-  </div>
-);
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
@@ -84,16 +63,6 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
 
   // Timer para contagem regressiva / destaque "É agora"
   const [agoraNow, setAgoraNow] = useState(Date.now());
-
-  // Estado legado
-  const [completingAppointment, setCompletingAppointment] = useState(null);
-  const [cancellingId,   setCancellingId]   = useState(null);
-  const [confirmCancel,  setConfirmCancel]  = useState(null);
-  const [ratingForm,       setRatingForm]       = useState(null);
-  const [ratingNota,       setRatingNota]       = useState(0);
-  const [ratingComentario, setRatingComentario] = useState('');
-  const [ratingLoading,    setRatingLoading]    = useState(false);
-  const [ratingError,      setRatingError]      = useState('');
 
   // Ver detalhes (farmacêutico)
   const [viewingConsulta, setViewingConsulta] = useState(null);
@@ -215,57 +184,6 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
     }
   };
 
-  // ── Handlers legados ──────────────────────────────────────────────────────
-  const handleCompleted = (updated) => {
-    setAppointments((prev) => prev.map((a) => a.id === updated.id ? { ...a, ...updated } : a));
-    setCompletingAppointment(null);
-  };
-
-  const handleCancelLegacy = async (id) => {
-    setCancellingId(id);
-    try {
-      const res = await fetch(`${API_URL}/api/appointments/${id}/cancel`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: 'CANCELADO' } : a));
-      }
-    } finally {
-      setCancellingId(null);
-      setConfirmCancel(null);
-    }
-  };
-
-  const openRatingForm = (app) => {
-    setRatingForm({ appointmentId: app.id, pharmacistName: app.farmaceutico?.name ?? app.pharmacist?.name });
-    setRatingNota(0); setRatingComentario(''); setRatingError('');
-  };
-
-  const handleRating = async () => {
-    if (!ratingNota) { setRatingError('Selecione uma nota.'); return; }
-    setRatingLoading(true); setRatingError('');
-    try {
-      const res = await fetch(`${API_URL}/api/avaliacoes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ appointment_id: ratingForm.appointmentId, nota: ratingNota, comentario: ratingComentario || undefined }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setAppointments((prev) =>
-          prev.map((a) => a.id === ratingForm.appointmentId
-            ? { ...a, avaliacao: { nota: ratingNota, comentario: ratingComentario || null } }
-            : a)
-        );
-        setRatingForm(null);
-      } else {
-        setRatingError(data.error || 'Erro ao enviar avaliação.');
-      }
-    } catch { setRatingError('Erro de conexão.'); }
-    finally  { setRatingLoading(false); }
-  };
-
   // ── Handler cancelamento de fila ──────────────────────────────────────────
   const handleCancelFila = async () => {
     if (!confirmCancelFila) return;
@@ -297,7 +215,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
   // ── Helpers "É agora" ────────────────────────────────────────────────────
   const isEAgora = (app) => {
     if (isPharmacist) return false;
-    if (!['aceito', 'em_atendimento', 'AGENDADO'].includes(app.status)) return false;
+    if (!['aceito', 'em_atendimento'].includes(app.status)) return false;
     if (!app.dataHora) return false;
     const dt = new Date(app.dataHora).getTime();
     return dt >= agoraNow - 30 * 60 * 1000 && dt <= agoraNow + 15 * 60 * 1000;
@@ -357,35 +275,6 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
         </div>
       )}
 
-      {/* Modal: confirmar cancelamento legado */}
-      {confirmCancel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmCancel(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-gray-900 mb-2">Cancelar consulta?</h3>
-            <p className="text-sm text-gray-600 mb-1">
-              {new Date(confirmCancel.dataHora ?? confirmCancel.dateTime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-            </p>
-            <p className="text-xs text-gray-400 mb-6">
-              {confirmCancel.status === 'AGENDADO'
-                ? 'O horário será liberado e seus créditos serão reembolsados automaticamente.'
-                : 'O agendamento será cancelado antes do pagamento.'}
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmCancel(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
-                Manter
-              </button>
-              <button onClick={() => handleCancelLegacy(confirmCancel.id)}
-                disabled={cancellingId === confirmCancel.id}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 transition">
-                {cancellingId === confirmCancel.id ? 'Cancelando...' : 'Cancelar consulta'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal: confirmar cancelamento de fila (com reembolso) */}
       {confirmCancelFila && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -416,43 +305,6 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
             </div>
           </div>
         </div>
-      )}
-
-      {/* Modal: avaliar consulta */}
-      {ratingForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setRatingForm(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-gray-900 mb-1">Avaliar consulta</h3>
-            {ratingForm.pharmacistName && <p className="text-sm text-gray-500 mb-4">com {ratingForm.pharmacistName}</p>}
-            <Stars value={ratingNota} onChange={setRatingNota} size="text-3xl" />
-            <p className="text-xs text-gray-400 mt-1 mb-3">
-              {ratingNota === 0 ? 'Toque nas estrelas para avaliar' : ['','Ruim','Regular','Bom','Muito bom','Excelente'][ratingNota]}
-            </p>
-            <textarea value={ratingComentario} onChange={(e) => setRatingComentario(e.target.value)}
-              placeholder="Comentário opcional (máx. 500 caracteres)" maxLength={500} rows={3}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-violet-500 outline-none" />
-            {ratingError && <p className="text-sm text-red-600 mt-2">{ratingError}</p>}
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setRatingForm(null)}
-                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
-                Cancelar
-              </button>
-              <button onClick={handleRating} disabled={!ratingNota || ratingLoading}
-                className="flex-1 py-2.5 bg-violet-700 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-violet-800 transition">
-                {ratingLoading ? 'Enviando...' : 'Enviar avaliação'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {completingAppointment && (
-        <CompleteAppointmentModal
-          appointment={completingAppointment}
-          onClose={() => setCompletingAppointment(null)}
-          onCompleted={handleCompleted}
-        />
       )}
 
       {viewingConsulta && (
@@ -580,15 +432,14 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
         <>
           <div className="space-y-4">
             {sortedAppointments.map((app) => {
-              const tipo            = app.tipo ?? 'appointment';
+              const tipo            = app.tipo;
               const effectiveStatus = getEffectiveStatus(app);
               const statusCfg       = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, cls: 'text-gray-500', dot: 'bg-gray-400' };
               const tipoBadge       = TIPO_BADGE[tipo];
-              const dataHora        = app.dataHora ?? app.dateTime;
-              const nomeFarm        = app.farmaceutico?.name ?? app.pharmacist?.name;
-              const isLegacy        = tipo === 'appointment';
-              const isCancelled     = app.status === 'cancelado' || app.status === 'CANCELADO';
-              const canCancelFila   = !isPharmacist && !isLegacy && ['aguardando', 'aceito'].includes(app.status) && app.status !== 'remarcacao_pendente';
+              const dataHora        = app.dataHora;
+              const nomeFarm        = app.farmaceutico?.name;
+              const isCancelled     = app.status === 'cancelado';
+              const canCancelFila   = !isPharmacist && ['aguardando', 'aceito'].includes(app.status) && app.status !== 'remarcacao_pendente';
               const eAgora          = !isPharmacist && isEAgora(app);
 
               return (
@@ -625,12 +476,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
 
                     {/* Farmacêutico ou paciente */}
                     {isPharmacist ? (
-                      <>
-                        <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
-                        {isLegacy && app.status === 'AGENDADO' && app.patient?.pacienteProfile?.telefone && (
-                          <p className="text-xs text-gray-400 mt-0.5">Contato: {app.patient.pacienteProfile.telefone}</p>
-                        )}
-                      </>
+                      <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
                     ) : (
                       <>
                         <p className="text-sm text-gray-600">
@@ -646,7 +492,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                     </p>
 
                     {/* Crédito debitado (fila) */}
-                    {!isLegacy && app.creditoDebitado != null && (
+                    {app.creditoDebitado != null && (
                       <p className="text-xs text-gray-400 mt-0.5">
                         R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
                       </p>
@@ -659,70 +505,13 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                       </p>
                     )}
 
-                    {/* Recomendações (apenas appointments legados concluídos) */}
-                    {isLegacy && app.status === 'CONCLUIDO' && app.recommendations && (
-                      <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
-                        <p className="font-semibold text-gray-600 mb-1 text-xs uppercase tracking-wide">
-                          Recomendações do farmacêutico
-                        </p>
-                        <p className="italic">"{app.recommendations}"</p>
-                      </div>
-                    )}
-
-                    {/* Avaliação (appointments legados concluídos, paciente) */}
-                    {isLegacy && app.status === 'CONCLUIDO' && !isPharmacist && (
-                      <div className="mt-2">
-                        {app.avaliacao ? (
-                          <div className="flex items-center gap-2">
-                            <Stars value={app.avaliacao.nota} readonly size="text-base" />
-                            <span className="text-xs text-gray-400">Sua avaliação</span>
-                          </div>
-                        ) : (
-                          <button onClick={() => openRatingForm(app)}
-                            className="text-xs text-violet-600 hover:text-violet-800 font-semibold hover:underline transition">
-                            ★ Avaliar esta consulta
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Botões de ação */}
                   <div className="flex gap-2 shrink-0 flex-wrap">
 
-                    {/* Ações legadas (farmacêutico / legacy appointment) */}
-                    {isLegacy && (
-                      <>
-                        {app.status === 'AGENDADO' && isPharmacist && (() => {
-                          const tel = app.patient?.pacienteProfile?.telefone;
-                          if (!tel) return null;
-                          const waNum = `55${tel.replace(/\D/g, '')}`;
-                          return (
-                            <a href={`https://wa.me/${waNum}`} target="_blank" rel="noreferrer"
-                              className="px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 transition text-sm">
-                              WhatsApp Paciente
-                            </a>
-                          );
-                        })()}
-
-                        {app.status === 'AGENDADO' && isPharmacist && (
-                          <button onClick={() => setCompletingAppointment(app)}
-                            className="px-4 py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 transition text-sm">
-                            Encerrar Consulta
-                          </button>
-                        )}
-
-                        {(app.status === 'AGENDADO' || app.status === 'PENDENTE_PAGAMENTO') && (
-                          <button onClick={() => setConfirmCancel(app)}
-                            className="px-4 py-2 bg-white border border-red-200 text-red-500 font-bold rounded hover:bg-red-50 transition text-sm">
-                            Cancelar
-                          </button>
-                        )}
-                      </>
-                    )}
-
                     {/* Ver detalhes (farmacêutico, fila) */}
-                    {isPharmacist && !isLegacy && (
+                    {isPharmacist && (
                       <button
                         onClick={() => setViewingConsulta({ id: app.id, tipo })}
                         style={{
@@ -751,22 +540,6 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                       </button>
                     )}
 
-                    {/* Entrar na consulta — apenas quando "é agora" e tem meetLink */}
-                    {eAgora && app.meetLink && (
-                      <a
-                        href={app.meetLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          padding: '8px 14px', background: '#16a34a', color: 'white',
-                          borderRadius: 8, fontSize: 13, fontWeight: 700,
-                          textDecoration: 'none', whiteSpace: 'nowrap',
-                        }}
-                      >
-                        🎥 Entrar na consulta
-                      </a>
-                    )}
-
                     {/* Detalhes (paciente) */}
                     {!isPharmacist && (
                       <button
@@ -783,7 +556,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                     )}
 
                     {/* Ver receita (paciente, fila concluída com receita) */}
-                    {!isPharmacist && !isLegacy && app.status === 'concluido' &&
+                    {!isPharmacist && app.status === 'concluido' &&
                       (Array.isArray(app.receita) && app.receita.length > 0 || app.receitaPdfUrl) && (
                       <button
                         onClick={() => setViewingReceita({ id: app.id, tipo, data: app })}

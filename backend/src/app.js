@@ -10,8 +10,6 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import pharmacistRoutes from './routes/pharmacistRoutes.js';
 import pacienteRoutes from './routes/pacienteRoutes.js';
-import appointmentRoutes from './routes/appointmentRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js';
 import pagamentoRoutes from './routes/pagamentoRoutes.js';
 import avaliacaoRoutes from './routes/avaliacaoRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -44,15 +42,6 @@ const authLimiter = rateLimit({
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
 
-// Rate limiting para webhook: 60 req/min por IP (proteção mínima sem bloquear gateway)
-const webhookLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Limite de requisições excedido.' },
-});
-
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 app.use('/uploads', express.static(UPLOAD_DIR));
 
@@ -61,12 +50,9 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/payments/webhook', webhookLimiter);
 app.use('/api', userRoutes);
 app.use('/api', pharmacistRoutes);
 app.use('/api', pacienteRoutes);
-app.use('/api', appointmentRoutes);
-app.use('/api', paymentRoutes);
 app.use('/api', pagamentoRoutes);
 app.use('/api', avaliacaoRoutes);
 app.use('/api', adminRoutes);

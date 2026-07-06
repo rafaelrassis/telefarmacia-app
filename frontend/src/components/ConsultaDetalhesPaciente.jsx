@@ -13,22 +13,15 @@ const STATUS_LABEL = {
   cancelado:            'Cancelada',
   expirado:             'Expirada',
   remarcacao_pendente:  'Remarcação pendente',
-  AGENDADO:             'Confirmada',
-  CONCLUIDO:            'Concluída',
-  CANCELADO:            'Cancelada',
-  PENDENTE_PAGAMENTO:   'Aguardando pagamento',
-  EXPIRADA:             'Expirada',
 };
 
 const STATUS_DOT = {
   aguardando: '#9ca3af', aceito: '#2563eb', em_atendimento: '#16a34a',
   concluido: '#7c3aed', cancelado: '#dc2626', expirado: '#9ca3af',
   remarcacao_pendente: '#d97706',
-  AGENDADO: '#2563eb', CONCLUIDO: '#7c3aed', CANCELADO: '#dc2626',
-  PENDENTE_PAGAMENTO: '#d97706', EXPIRADA: '#9ca3af',
 };
 
-const TIPO_LABEL = { urgente: 'Urgente', agendada: 'Agendada', appointment: 'Consulta' };
+const TIPO_LABEL = { urgente: 'Urgente', agendada: 'Agendada' };
 
 const fmtDateTime = (iso) =>
   iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' }) : '—';
@@ -204,10 +197,10 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
     finally   { setRespondendoLoading(false); }
   };
 
-  const isFuture    = data && ['aguardando', 'aceito', 'remarcacao_pendente', 'AGENDADO', 'PENDENTE_PAGAMENTO'].includes(data.status);
-  const isConcluded = data && ['concluido', 'CONCLUIDO'].includes(data.status);
-  const isCancelled = data && ['cancelado', 'CANCELADO', 'expirado', 'EXPIRADA'].includes(data.status);
-  const canCancel   = isFuture && tipo !== 'appointment';
+  const isFuture    = data && ['aguardando', 'aceito', 'remarcacao_pendente'].includes(data.status);
+  const isConcluded = data && data.status === 'concluido';
+  const isCancelled = data && ['cancelado', 'expirado'].includes(data.status);
+  const canCancel   = isFuture;
   const dotColor    = STATUS_DOT[data?.status] ?? '#9ca3af';
   const hasReceita  = data && (Array.isArray(data.receita) && data.receita.length > 0);
 
@@ -371,24 +364,11 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                   {/* Ações normais (exceto quando remarcacao_pendente) */}
                   {data.status !== 'remarcacao_pendente' && (
                     <>
-                      {data.meetLink ? (
-                        <a
-                          href={data.meetLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: 'block', textAlign: 'center', padding: '12px 0',
-                            background: '#1a73e8', color: 'white', borderRadius: 10,
-                            fontWeight: 700, fontSize: 14, textDecoration: 'none',
-                          }}
-                        >
-                          🎥 Entrar no Google Meet
-                        </a>
-                      ) : (
-                        <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '4px 0' }}>
-                          O link da reunião será informado pelo farmacêutico.
-                        </p>
-                      )}
+                      <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '4px 0' }}>
+                        {data.status === 'em_atendimento'
+                          ? 'O farmacêutico está com você. Fique atento ao contato.'
+                          : 'O farmacêutico entrará em contato no horário da consulta.'}
+                      </p>
 
                       {/* Remarcar consulta (paciente-iniciado) */}
                       {data.status === 'aceito' && tipo === 'agendada' && (data.remarcacoes ?? 0) < 2 && !showRemarcarForm && (
@@ -514,7 +494,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                   )}
 
                   {/* Botão Ver receita (inline viewer) */}
-                  {hasReceita && tipo !== 'appointment' && (
+                  {hasReceita && (
                     <button
                       onClick={() => setShowReceita(true)}
                       style={{
@@ -528,7 +508,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                   )}
 
                   {/* Botão Baixar PDF separado (quando PDF está gerado) */}
-                  {data.receitaPdfUrl && tipo !== 'appointment' && (
+                  {data.receitaPdfUrl && (
                     <button
                       onClick={handleDownloadPdf}
                       disabled={downloading}

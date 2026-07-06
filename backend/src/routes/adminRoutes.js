@@ -1,10 +1,8 @@
 import { Router } from 'express';
 import {
-  getStats,
   getMetricas,
   listPharmacists,
   listPatients,
-  listAllAppointments,
   approvePharmacist,
   revokePharmacist,
   deletePharmacist,
@@ -36,10 +34,8 @@ const router = Router();
 const guard = [authMiddleware, adminMiddleware];
 
 // Existentes
-router.get('/admin/stats',                          ...guard, getStats);
 router.get('/admin/pharmacists',                    ...guard, listPharmacists);
 router.get('/admin/patients',                       ...guard, listPatients);
-router.get('/admin/appointments',                   ...guard, listAllAppointments);
 router.patch('/admin/pharmacists/:userId/approve',  ...guard, approvePharmacist);
 router.patch('/admin/pharmacists/:userId/revoke',   ...guard, revokePharmacist);
 router.delete('/admin/pharmacists/:userId',         ...guard, deletePharmacist);

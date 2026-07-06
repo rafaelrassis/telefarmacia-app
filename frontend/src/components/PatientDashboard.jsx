@@ -13,13 +13,6 @@ import MeusDocumentos from './MeusDocumentos';
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PRECO_CONSULTA = 50;
 
-const AVATAR_COLORS = [
-  'from-violet-500 to-purple-600',
-  'from-orange-400 to-rose-500',
-  'from-emerald-500 to-teal-600',
-  'from-blue-500 to-indigo-600',
-];
-
 const DEP_COLORS = [
   'from-pink-400 to-rose-500',
   'from-amber-400 to-orange-500',
@@ -29,13 +22,8 @@ const DEP_COLORS = [
   'from-fuchsia-400 to-purple-500',
 ];
 
-const DOW_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
 const initials = (name = '') =>
   name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
-
-const fmtTime = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
 
 const DIAS_SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 const fmtWhen = (iso) => {
@@ -67,88 +55,10 @@ const PARENTESCO_LABEL = Object.fromEntries(
   PARENTESCO_OPTS.filter(o => o.value).map(o => [o.value, o.label])
 );
 
-const ScheduleSummary = ({ weeklySchedule }) => {
-  if (!weeklySchedule?.length) return null;
-  const active = weeklySchedule.filter((d) => d.isActive);
-  if (!active.length) return null;
-  const days = active.map((d) => DOW_SHORT[d.dayOfWeek]).join(' · ');
-  const first = active[0];
-  return (
-    <p className="text-xs text-slate-500 mb-3">
-      <span className="font-medium">{days}</span>
-      {first && <span className="text-slate-400"> · {first.startTime}–{first.endTime}</span>}
-    </p>
-  );
-};
-
-const PharmacistCard = ({ pharm, index, onAgendar, showToday }) => {
-  const profile = pharm.pharmacistProfile;
-  const count = pharm._count?.appointmentsAsPharmacist ?? 0;
-  const nextSlot = pharm.availabilities?.[0];
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-violet-300 hover:shadow-sm transition duration-150 flex flex-col">
-      <div className="flex items-start gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${AVATAR_COLORS[index % AVATAR_COLORS.length]} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-          {initials(pharm.name)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-gray-900 text-sm">{pharm.name}</p>
-          </div>
-          <p className="text-xs text-gray-400">CRF {profile?.crfNumber}/{profile?.crfUF}</p>
-          {pharm.avgNota && (
-            <p className="text-xs text-yellow-600 font-semibold mt-0.5">
-              ★ {pharm.avgNota.toFixed(1)}
-              <span className="text-gray-400 font-normal"> ({pharm.totalAvaliacoes})</span>
-            </p>
-          )}
-        </div>
-        {count > 0 && (
-          <span className="text-xs text-gray-400 shrink-0">{count} consultas</span>
-        )}
-      </div>
-
-      {profile?.bio && (
-        <p className="text-xs text-gray-500 italic mb-3 line-clamp-2">"{profile.bio}"</p>
-      )}
-
-      {profile?.tags?.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {profile.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <ScheduleSummary weeklySchedule={pharm.weeklySchedule} />
-
-      {showToday && nextSlot && (
-        <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2 py-1.5 rounded-lg mb-3">
-          <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-          Disponível hoje às {fmtTime(nextSlot.dateTime)}
-        </div>
-      )}
-
-      <button
-        onClick={onAgendar}
-        className="mt-auto w-full text-sm font-bold py-2 rounded-lg transition bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white"
-      >
-        Agendar Consulta
-      </button>
-    </div>
-  );
-};
-
 const EMPTY_CADASTRO = { nome: '', dataNascimento: '', sexo: '', parentesco: '', aceito: false };
 
 const PatientDashboard = () => {
   const { token, user, refreshUser } = useAuth();
-  const [pharmacists, setPharmacists] = useState([]);
-  const [filter, setFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
   const [showWalletTopup, setShowWalletTopup] = useState(false);
   const [showDataModal, setShowDataModal] = useState(false);
   const [walletBalance, setWalletBalance] = useState(null);
@@ -312,18 +222,6 @@ const PatientDashboard = () => {
     } catch {}
   }, [token]);
 
-  const fetchPharmacists = useCallback(async (mode = 'all') => {
-    setLoading(true);
-    try {
-      let url = `${API_URL}/api/pharmacists`;
-      if (mode === 'today') url += '?today=true';
-      const res = await fetch(url);
-      if (res.ok) setPharmacists(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const fetchProximaConsulta = useCallback(async () => {
     if (!token) return;
     try {
@@ -393,7 +291,6 @@ const PatientDashboard = () => {
     }
   }, []);
 
-  useEffect(() => { fetchPharmacists(filter); },      [filter, fetchPharmacists]);
   useEffect(() => { fetchWalletBalance(); },           [fetchWalletBalance]);
   useEffect(() => { fetchSistemaAberto(); },           [fetchSistemaAberto]);
   useEffect(() => { fetchProximaConsulta(); },         [fetchProximaConsulta]);

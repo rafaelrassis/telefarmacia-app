@@ -1,64 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { notifyPatientCancelamento } from '../services/emailService.js';
 
 const prisma = new PrismaClient();
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-async function cancelarConsultasFuturas(tx, pharmacistId) {
-  const futuras = await tx.appointment.findMany({
-    where: { pharmacistId, status: 'AGENDADO', dateTime: { gt: new Date() } },
-    include: { patient: true },
-  });
-
-  if (futuras.length > 0) {
-    await tx.appointment.updateMany({
-      where: { id: { in: futuras.map((c) => c.id) } },
-      data: { status: 'CANCELADO' },
-    });
-  }
-
-  return futuras;
-}
-
-function notificarPacientesAsync(consultas, nomePharmaceutico) {
-  for (const c of consultas) {
-    notifyPatientCancelamento({
-      email:              c.patient.email,
-      nomePaciente:       c.patient.name,
-      nomePharmaceutico,
-      dateTime:           c.dateTime,
-    }).catch(() => {});
-  }
-}
-
 // ── endpoints existentes ─────────────────────────────────────────────────────
-
-export const getStats = async (req, res) => {
-  try {
-    const [totalPatients, totalPharmacists, pendingApprovals, appointmentsByStatus] = await Promise.all([
-      prisma.user.count({ where: { role: 'PACIENTE' } }),
-      prisma.user.count({ where: { role: 'FARMACEUTICO' } }),
-      prisma.pharmacistProfile.count({ where: { isApproved: false } }),
-      prisma.appointment.groupBy({ by: ['status'], _count: { id: true } }),
-    ]);
-
-    const statusMap = {};
-    appointmentsByStatus.forEach(({ status, _count }) => { statusMap[status] = _count.id; });
-
-    return res.status(200).json({
-      totalPatients,
-      totalPharmacists,
-      pendingApprovals,
-      totalAppointments:     Object.values(statusMap).reduce((a, b) => a + b, 0),
-      completedAppointments: statusMap['CONCLUIDO']  || 0,
-      scheduledAppointments: statusMap['AGENDADO']   || 0,
-      cancelledAppointments: statusMap['CANCELADO']  || 0,
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao buscar métricas.' });
-  }
-};
 
 export const listPharmacists = async (req, res) => {
   try {
@@ -66,11 +10,20 @@ export const listPharmacists = async (req, res) => {
       where: { role: 'FARMACEUTICO' },
       include: {
         pharmacistProfile: true,
-        _count: { select: { appointmentsAsPharmacist: true } },
+        _count: {
+          select: {
+            filaAgendadaComoFarmaceutico: { where: { status: 'concluido' } },
+            filaUrgenteComoFarmaceutico:  { where: { status: 'concluido' } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
-    return res.status(200).json(pharmacists);
+    const result = pharmacists.map((p) => {
+      const { _count, ...rest } = p;
+      return { ...rest, consultasCount: _count.filaAgendadaComoFarmaceutico + _count.filaUrgenteComoFarmaceutico };
+    });
+    return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao buscar farmacêuticos.' });
   }
@@ -80,32 +33,23 @@ export const listPatients = async (req, res) => {
   try {
     const patients = await prisma.user.findMany({
       where: { role: 'PACIENTE' },
-      include: { _count: { select: { appointmentsAsPatient: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
-    return res.status(200).json(patients);
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao buscar pacientes.' });
-  }
-};
-
-export const listAllAppointments = async (req, res) => {
-  try {
-    const page  = Math.max(1, parseInt(req.query.page  || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '50')));
-
-    const appointments = await prisma.appointment.findMany({
       include: {
-        patient:    { select: { id: true, name: true, email: true } },
-        pharmacist: { select: { id: true, name: true, email: true } },
+        _count: {
+          select: {
+            filaAgendadaComoPaciente: { where: { status: 'concluido' } },
+            filaUrgenteComoPaciente:  { where: { status: 'concluido' } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
-      skip:  (page - 1) * limit,
-      take:  limit,
     });
-    return res.status(200).json(appointments);
+    const result = patients.map((p) => {
+      const { _count, ...rest } = p;
+      return { ...rest, consultasCount: _count.filaAgendadaComoPaciente + _count.filaUrgenteComoPaciente };
+    });
+    return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao buscar consultas.' });
+    return res.status(500).json({ error: 'Erro ao buscar pacientes.' });
   }
 };
 
@@ -144,20 +88,13 @@ export const deletePharmacist = async (req, res) => {
       return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
     }
 
-    let consultasCanceladas = [];
-
     await prisma.$transaction(async (tx) => {
-      consultasCanceladas = await cancelarConsultasFuturas(tx, userId);
-      await tx.availability.deleteMany({ where: { pharmacistId: userId } });
       await tx.pharmacistProfile.delete({ where: { userId } });
       await tx.user.update({ where: { id: userId }, data: { role: 'PACIENTE' } });
     });
 
-    notificarPacientesAsync(consultasCanceladas, user.name);
-
     return res.status(200).json({
       message: 'Farmacêutico descadastrado. Conta convertida para paciente.',
-      consultasCanceladas: consultasCanceladas.length,
     });
   } catch (error) {
     console.error(error);
@@ -170,20 +107,27 @@ export const deletePharmacist = async (req, res) => {
 export const getMetricas = async (req, res) => {
   try {
     const [
-      consultasRealizadas,
-      consultasAgendadas,
-      consultasCanceladas,
+      agendadaConcluidas, urgenteConcluidas,
+      agendadaAbertas, urgenteAbertas,
+      agendadaCanceladas, urgenteCanceladas,
       pacientes,
       farmaceuticosAtivos,
       farmaceuticosPendentes,
     ] = await Promise.all([
-      prisma.appointment.count({ where: { status: 'CONCLUIDO' } }),
-      prisma.appointment.count({ where: { status: 'AGENDADO' } }),
-      prisma.appointment.count({ where: { status: 'CANCELADO' } }),
+      prisma.filaAgendada.count({ where: { status: 'concluido' } }),
+      prisma.filaUrgente.count({ where: { status: 'concluido' } }),
+      prisma.filaAgendada.count({ where: { status: { in: ['aguardando', 'aceito'] } } }),
+      prisma.filaUrgente.count({ where: { status: { in: ['aguardando', 'aceito'] } } }),
+      prisma.filaAgendada.count({ where: { status: 'cancelado' } }),
+      prisma.filaUrgente.count({ where: { status: 'cancelado' } }),
       prisma.user.count({ where: { role: 'PACIENTE' } }),
       prisma.pharmacistProfile.count({ where: { isApproved: true } }),
       prisma.pharmacistProfile.count({ where: { isApproved: false } }),
     ]);
+
+    const consultasRealizadas = agendadaConcluidas + urgenteConcluidas;
+    const consultasAgendadas  = agendadaAbertas + urgenteAbertas;
+    const consultasCanceladas = agendadaCanceladas + urgenteCanceladas;
 
     return res.status(200).json({
       consultas_realizadas:   consultasRealizadas,
@@ -230,27 +174,14 @@ export const setStatus = async (req, res) => {
     if (!user?.pharmacistProfile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
 
     const isAtivando = status === 'Ativo';
-    let consultasCanceladas = [];
 
-    if (!isAtivando) {
-      // Inativando: cancela consultas futuras dentro de uma transação
-      await prisma.$transaction(async (tx) => {
-        consultasCanceladas = await cancelarConsultasFuturas(tx, id);
-        await tx.pharmacistProfile.update({ where: { userId: id }, data: { isApproved: false } });
-      });
-
-      // Notifica pacientes afetados de forma assíncrona
-      notificarPacientesAsync(consultasCanceladas, user.name);
-    } else {
-      await prisma.pharmacistProfile.update({ where: { userId: id }, data: { isApproved: true } });
-    }
+    await prisma.pharmacistProfile.update({ where: { userId: id }, data: { isApproved: isAtivando } });
 
     return res.status(200).json({
       success: true,
       message: isAtivando
         ? 'Cadastro ativado com sucesso. Profissional liberado.'
-        : `Farmacêutico inativado. ${consultasCanceladas.length} consulta(s) futura(s) cancelada(s).`,
-      consultasCanceladas: consultasCanceladas.length,
+        : 'Farmacêutico inativado.',
     });
   } catch (error) {
     console.error(error);

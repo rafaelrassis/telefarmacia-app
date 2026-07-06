@@ -11,34 +11,6 @@ const getTransporter = () => {
   });
 };
 
-export const notifyPatientCancelamento = async ({ email, nomePaciente, nomePharmaceutico, dateTime }) => {
-  if (!email) return;
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('[email] SMTP não configurado — notificação de cancelamento não enviada.');
-    return;
-  }
-  const dataFormatada = new Date(dateTime).toLocaleString('pt-BR', {
-    dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo',
-  });
-  try {
-    await transporter.sendMail({
-      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: 'Sua consulta foi cancelada — FarmaConsulta',
-      html: `
-        <h2>Consulta cancelada</h2>
-        <p>Olá, ${nomePaciente}.</p>
-        <p>Informamos que sua consulta agendada para <strong>${dataFormatada}</strong> foi cancelada.</p>
-        <p>Por favor, acesse a plataforma e agende uma nova consulta com outro farmacêutico disponível.</p>
-        <p>Pedimos desculpas pelo inconveniente.</p>
-      `,
-    });
-  } catch (err) {
-    console.error('[email] Falha ao notificar paciente:', err.message);
-  }
-};
-
 export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
   const to = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!to) {

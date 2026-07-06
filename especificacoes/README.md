@@ -9,12 +9,9 @@ Documentação gerada por engenharia reversa do código em Jun/2026, atualizada 
 | Spec | Módulo(s) relacionado(s) | Link |
 |---|---|---|
 | Auth e Onboarding | `AuthController` · `authRoutes` · `authMiddleware` · login e-mail/senha · Google OAuth | [spec-auth.md](spec-auth.md) |
-| Farmacêutico: Perfil, Agenda e Ativação | `PharmacistController` · `pharmacistRoutes` · upload de docs · cron de slots | [spec-farmaceutico.md](spec-farmaceutico.md) |
-| Agendamentos e Consultas | `AppointmentController` · `appointmentRoutes` · `EXPIRADA` · reserva via créditos | [spec-agendamento.md](spec-agendamento.md) |
-| Tela de Agendamento (Wizard) | `BookingWizard.jsx` · wizard 3 etapas · botão no dashboard | [spec-booking-wizard.md](spec-booking-wizard.md) |
-| Pagamento Simulado e Carteira | `PagamentoController` · `PaymentController` · model `Carteira` · model `Pagamento` | [spec-pagamento.md](spec-pagamento.md) |
 | Painel Administrativo | `AdminController` · `adminRoutes` · `adminMiddleware` · métricas · órfãs | [spec-admin.md](spec-admin.md) |
-| Google Meet (legado, removido) | `googleCalendarService` · integração removida no módulo 4 | [spec-google-meet.md](spec-google-meet.md) |
+
+> O fluxo legado de agendamento por farmacêutico específico (`AppointmentController`, `BookingWizard.jsx`, agenda semanal/slots do farmacêutico, integração Google Meet) foi removido — o único fluxo de consulta é o sistema de filas (`FilaController`), sem spec própria ainda.
 
 ---
 
@@ -40,6 +37,4 @@ Documentação gerada por engenharia reversa do código em Jun/2026, atualizada 
 
 ## Backlog
 
-| # | Módulo | Problema |
-|---|---|---|
-| 1 | Farmacêutico | Salvar agenda semanal apaga todos os slots livres futuros |
+_Sem itens pendentes no momento._

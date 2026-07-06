@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import HeroSection from '../components/home/HeroCarousel.jsx';
-import FeaturedPharmacists from '../components/home/FeaturedPharmacists.jsx';
 import FAQSection from '../components/home/FAQSection.jsx';
 import Footer from '../components/home/Footer.jsx';
 
@@ -12,7 +11,7 @@ const TRUST = [
   { icon: '🛡️', color: 'bg-blue-50 text-blue-600',     label: 'CRF Validado',       sub: 'Registro ativo no Conselho' },
   { icon: '🔐', color: 'bg-emerald-50 text-emerald-600', label: 'Dados Seguros',      sub: 'Criptografia end-to-end' },
   { icon: '⚡', color: 'bg-amber-50 text-amber-600',    label: 'PIX Instantâneo',    sub: 'Confirmação em segundos' },
-  { icon: '🎥', color: 'bg-purple-50 text-purple-600',  label: 'Google Meet',        sub: 'Vídeo automático' },
+  { icon: '💬', color: 'bg-purple-50 text-purple-600',  label: 'Contato Direto',     sub: 'Farmacêutico fala com você' },
   { icon: '🌐', color: 'bg-teal-50 text-teal-600',      label: '100% Online',        sub: 'De qualquer lugar' },
 ];
 
@@ -89,7 +88,7 @@ const SearchSection = () => {
               onChange={(e) => setValue(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base text-slate-800 bg-transparent outline-none"
               placeholder=""
-              aria-label="Buscar especialista"
+              aria-label="Agendar consulta"
             />
             {!value && (
               <span
@@ -104,7 +103,7 @@ const SearchSection = () => {
             to="/entrar"
             className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl transition text-sm"
           >
-            Buscar Especialista
+            Agendar Consulta
           </Link>
         </div>
 
@@ -172,10 +171,10 @@ const SpecialtiesSection = () => (
    COMO FUNCIONA — 4 passos
 ───────────────────────────────────────────────────────────── */
 const STEPS = [
-  { n: 1, icon: '🔍', color: 'bg-blue-600', shadow: 'shadow-blue-200',   title: 'Escolha o farmacêutico', desc: 'Filtre por especialidade, veja o perfil e escolha o horário ideal para você.' },
+  { n: 1, icon: '🔍', color: 'bg-blue-600', shadow: 'shadow-blue-200',   title: 'Escolha data e horário', desc: 'Selecione o dia e horário disponíveis dentro do funcionamento da plataforma.' },
   { n: 2, icon: '💳', color: 'bg-teal-600', shadow: 'shadow-teal-200',   title: 'Agende e pague via PIX', desc: 'Pagamento 100% seguro via PIX. Confirmação instantânea, sem taxas surpresa.' },
-  { n: 3, icon: '📧', color: 'bg-indigo-600', shadow: 'shadow-indigo-200', title: 'Receba o link do Meet',  desc: 'Link da videochamada criado e enviado automaticamente após o pagamento.' },
-  { n: 4, icon: '💬', color: 'bg-emerald-600', shadow: 'shadow-emerald-200', title: 'Receba sua orientação', desc: 'Consulte-se via vídeo e receba orientações personalizadas registradas por escrito.' },
+  { n: 3, icon: '💬', color: 'bg-indigo-600', shadow: 'shadow-indigo-200', title: 'Farmacêutico entra em contato', desc: 'Um farmacêutico disponível aceita sua consulta e fala com você no horário combinado.' },
+  { n: 4, icon: '📝', color: 'bg-emerald-600', shadow: 'shadow-emerald-200', title: 'Receba sua orientação', desc: 'Consulte-se e receba orientações personalizadas registradas por escrito.' },
 ];
 
 const HowItWorksSection = () => (
@@ -372,7 +371,6 @@ const LandingPage = () => (
     <SearchSection />
     <SpecialtiesSection />
     <HowItWorksSection />
-    <FeaturedPharmacists />
     <TestimonialsSection />
     <CTASection />
     <FAQSection />

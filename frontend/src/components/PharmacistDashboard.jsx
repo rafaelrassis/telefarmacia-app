@@ -519,38 +519,32 @@ const UrgentesAceitasPanel = ({ onCardClick, refreshTrigger }) => {
 
 const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
   const { token } = useAuth();
-  const [legacyAppts, setLegacyAppts] = useState([]);
   const [filaEvents, setFilaEvents]   = useState([]);
   const [stats, setStats]             = useState(null);
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      fetch(`${API_URL}/api/appointments`, { headers: { Authorization: `Bearer ${token}` } })
-        .then((r) => (r.ok ? r.json() : [])),
-      fetch(`${API_URL}/api/farmaceutico/calendario`, { headers: { Authorization: `Bearer ${token}` } })
-        .then((r) => (r.ok ? r.json() : [])),
-    ]).then(([appts, calendario]) => {
-      setLegacyAppts(appts);
-      setStats({
-        total:     appts.length,
-        concluido: appts.filter((a) => a.status === 'CONCLUIDO').length,
-        agendado:  appts.filter((a) => a.status === 'AGENDADO').length,
-      });
-      // Normaliza para o formato que WeekCalendar espera
-      setFilaEvents(
-        calendario.map((f) => ({
-          id:            f.id,
-          dateTime:      f.data_hora,
-          patient:       { name: f.paciente_nome },
-          status:        f.status === 'em_atendimento' ? 'FILA_EM_ATENDIMENTO' :
-                         f.tipo === 'urgente' ? 'FILA_URGENTE' : 'FILA_AGENDADA',
-          googleMeetLink: null,
-          _tipo:         f.tipo,
-        }))
-      );
-    }).finally(() => setLoading(false));
+    fetch(`${API_URL}/api/farmaceutico/calendario`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((calendario) => {
+        setStats({
+          total:         calendario.length,
+          emAtendimento: calendario.filter((f) => f.status === 'em_atendimento').length,
+          aceitas:       calendario.filter((f) => f.status === 'aceito').length,
+        });
+        // Normaliza para o formato que WeekCalendar espera
+        setFilaEvents(
+          calendario.map((f) => ({
+            id:            f.id,
+            dateTime:      f.data_hora,
+            patient:       { name: f.paciente_nome },
+            status:        f.status === 'em_atendimento' ? 'FILA_EM_ATENDIMENTO' :
+                           f.tipo === 'urgente' ? 'FILA_URGENTE' : 'FILA_AGENDADA',
+            _tipo:         f.tipo,
+          }))
+        );
+      }).finally(() => setLoading(false));
   }, [token, refreshTrigger]);
 
   if (loading) {
@@ -567,12 +561,12 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
       {stats && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-violet-700">{stats.concluido}</p>
-            <p className="text-xs text-gray-500 mt-1">Consultas realizadas</p>
+            <p className="text-2xl font-bold text-teal-700">{stats.emAtendimento}</p>
+            <p className="text-xs text-gray-500 mt-1">Em atendimento</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{stats.agendado}</p>
-            <p className="text-xs text-gray-500 mt-1">Agendadas</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.aceitas}</p>
+            <p className="text-xs text-gray-500 mt-1">Aceitas</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-gray-700">{stats.total}</p>
@@ -583,17 +577,13 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
 
       {/* Legenda */}
       <div className="flex flex-wrap gap-3 text-xs">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-50 border border-blue-200 inline-block" />Confirmado</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-50 border border-green-300 inline-block" />Concluído</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-50 border border-amber-200 inline-block" />Aguard. pagamento</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200 inline-block" />Cancelado</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-500 inline-block" />Agendada aceita</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-100 border border-orange-400 inline-block" />Urgente aceita</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-teal-100 border border-teal-500 inline-block" />Em atendimento</span>
       </div>
 
-      {/* Calendário com todos os eventos */}
-      <WeekCalendar appointments={[...legacyAppts, ...filaEvents]} onEventClick={onEventClick} />
+      {/* Calendário com os eventos da fila */}
+      <WeekCalendar appointments={filaEvents} onEventClick={onEventClick} />
     </div>
   );
 };

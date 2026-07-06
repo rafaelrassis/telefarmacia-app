@@ -3,10 +3,6 @@ import React, { useState } from 'react';
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 07h – 20h
 
 const STATUS = {
-  AGENDADO:            { label: 'Confirmado',        cls: 'bg-blue-50 border-blue-200 text-blue-800' },
-  CONCLUIDO:           { label: 'Concluído',          cls: 'bg-green-50 border-green-300 text-green-800' },
-  CANCELADO:           { label: 'Cancelado',          cls: 'bg-gray-100 border-gray-200 text-gray-400' },
-  PENDENTE_PAGAMENTO:  { label: 'Aguard. pagamento',  cls: 'bg-amber-50 border-amber-200 text-amber-800' },
   FILA_AGENDADA:       { label: 'Agendada (aceita)',  cls: 'bg-green-100 border-green-500 text-green-900' },
   FILA_URGENTE:        { label: 'Urgente (aceita)',   cls: 'bg-orange-100 border-orange-400 text-orange-900' },
   FILA_EM_ATENDIMENTO: { label: 'Em atendimento',    cls: 'bg-teal-100 border-teal-500 text-teal-900' },
@@ -170,9 +166,8 @@ const WeekCalendar = ({ appointments = [], onEventClick }) => {
                     className={`border-l border-gray-100 p-1 ${isToday ? 'bg-violet-50/40' : ''}`}
                   >
                     {appts.map((appt) => {
-                      const cfg      = STATUS[appt.status] || STATUS.AGENDADO;
-                      const isFila   = appt.status?.startsWith('FILA_');
-                      const clickable = onEventClick && isFila;
+                      const cfg       = STATUS[appt.status] || STATUS.FILA_AGENDADA;
+                      const clickable = Boolean(onEventClick);
                       return (
                         <div
                           key={appt.id}
@@ -183,16 +178,6 @@ const WeekCalendar = ({ appointments = [], onEventClick }) => {
                             {appt.patient?.name?.split(' ')[0] || 'Paciente'}
                           </p>
                           <p className="text-xs opacity-60 leading-tight">{fmtTime(appt.dateTime)}</p>
-                          {appt.googleMeetLink && appt.status === 'AGENDADO' && (
-                            <a
-                              href={appt.googleMeetLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs underline opacity-80 leading-tight"
-                            >
-                              Meet
-                            </a>
-                          )}
                         </div>
                       );
                     })}

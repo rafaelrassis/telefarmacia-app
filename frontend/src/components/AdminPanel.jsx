@@ -13,14 +13,6 @@ const DEFAULT_HORARIOS = DIAS_SEMANA.map((_, i) => ({
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const STATUS_LABEL = {
-  AGENDADO:           { label: 'Agendado',           cls: 'bg-blue-50 text-blue-700' },
-  CONCLUIDO:          { label: 'Concluído',           cls: 'bg-green-50 text-green-700' },
-  CANCELADO:          { label: 'Cancelado',           cls: 'bg-red-50 text-red-700' },
-  PENDENTE_PAGAMENTO: { label: 'Pend. pagamento',     cls: 'bg-yellow-50 text-yellow-700' },
-  EXPIRADA:           { label: 'Expirada',            cls: 'bg-gray-100 text-gray-500' },
-};
-
 const fmt   = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
 const fmtDt = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -374,7 +366,6 @@ const AdminPanel = () => {
   const [metricas, setMetricas]       = useState(null);
   const [pharmacists, setPharmacists] = useState([]);
   const [patients, setPatients]       = useState([]);
-  const [appointments, setAppointments] = useState([]);
   const [actionLoading, setActionLoading] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmRevoke, setConfirmRevoke] = useState(null);
@@ -419,18 +410,16 @@ const AdminPanel = () => {
   );
 
   const load = useCallback(async () => {
-    const [mRes, pRes, patRes, aRes, sRes, hRes] = await Promise.all([
+    const [mRes, pRes, patRes, sRes, hRes] = await Promise.all([
       api('/api/admin/metricas'),
       api('/api/admin/pharmacists'),
       api('/api/admin/patients'),
-      api('/api/admin/appointments'),
       fetch(`${API_URL}/api/sistema/status`),
       api('/api/admin/horarios'),
     ]);
     if (mRes.ok)   setMetricas(await mRes.json());
     if (pRes.ok)   setPharmacists(await pRes.json());
     if (patRes.ok) setPatients(await patRes.json());
-    if (aRes.ok)   setAppointments(await aRes.json());
     if (sRes.ok)   { const sd = await sRes.json(); setSistemaAberto(sd.sistema_aberto); }
     if (hRes.ok) {
       const h = await hRes.json();
@@ -861,7 +850,7 @@ const AdminPanel = () => {
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-600">
-                          {p._count?.appointmentsAsPharmacist ?? 0}
+                          {p.consultasCount ?? 0}
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmt(p.createdAt)}</td>
                         <td className="px-4 py-3">
@@ -929,55 +918,10 @@ const AdminPanel = () => {
                     <tr key={p.id} className="hover:bg-gray-50 transition">
                       <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
                       <td className="px-4 py-3 text-gray-500">{p.email}</td>
-                      <td className="px-4 py-3 text-gray-600">{p._count?.appointmentsAsPatient ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-600">{p.consultasCount ?? 0}</td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmt(p.createdAt)}</td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── CONSULTAS ── */}
-      {tab === 'appointments' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          {appointments.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-sm">Nenhuma consulta registrada.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    <th className="text-left px-4 py-3">Paciente</th>
-                    <th className="text-left px-4 py-3">Farmacêutico</th>
-                    <th className="text-left px-4 py-3">Data</th>
-                    <th className="text-left px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {appointments.map((a) => {
-                    const cfg = STATUS_LABEL[a.status] || { label: a.status, cls: 'bg-gray-100 text-gray-600' };
-                    return (
-                      <tr key={a.id} className="hover:bg-gray-50 transition">
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-gray-800">{a.patient?.name || '—'}</p>
-                          <p className="text-xs text-gray-400">{a.patient?.email}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-gray-700">{a.pharmacist?.name || '—'}</p>
-                          <p className="text-xs text-gray-400">{a.pharmacist?.email}</p>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{fmtDt(a.createdAt)}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>
-                            {cfg.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
                 </tbody>
               </table>
             </div>

@@ -56,7 +56,6 @@
 │  ┌───────────────────┐                      │               │
 │  │  Services         │                      │               │
 │  │  · emailService   │                      │               │
-│  │  · googleCalendar │                      │               │
 │  └───────────────────┘                      │               │
 └─────────────────────────────────────────────┼───────────────┘
                                               │
@@ -157,14 +156,7 @@ Rate limiter: 20 tentativas por IP a cada 15 min.
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| GET | `/pharmacists` | Não | Lista farmacêuticos aprovados com filtros |
-| GET | `/pharmacists/:id/availability` | Não | Slots disponíveis de um farmacêutico |
-| GET | `/pharmacists/me/schedule` | Sim | Agenda própria (slots criados) |
-| GET | `/pharmacists/me/weekly-schedule` | Sim | Grade semanal configurada |
-| PUT | `/pharmacists/weekly-schedule` | Sim | Salva grade semanal |
-| POST | `/pharmacists/availability` | Sim | Gera slots a partir da grade semanal |
-| DELETE | `/pharmacists/availability/:id` | Sim | Remove slot (não reservado) |
-| PATCH | `/pharmacists/profile` | Sim | Atualiza bio, tags, preço |
+| PATCH | `/pharmacists/profile` | Sim | Atualiza bio e tags |
 | POST | `/farmaceuticos/cadastro` | Sim | Upload de documentos CRF + identidade |
 | PATCH | `/farmaceuticos/me/disponibilidade` | Sim | Toggle online/offline |
 | GET | `/farmaceutico/calendario` | Sim | Consultas aceitas (visão calendário) |
@@ -254,7 +246,6 @@ Rate limiter: 20 tentativas por IP a cada 15 min.
 | Grupo | Prefixo | Descrição |
 |-------|---------|-----------|
 | Avaliação | `/avaliacoes` | CRUD de avaliações pós-consulta |
-| Pagamento (legacy) | `/payments` | Agendamentos com pagamento Stripe-like |
 | Pagamento (carteira) | `/pagamentos` | PIX mock + crédito em carteira |
 | Admin | `/admin` | Aprovação de farmacêuticos, config do sistema |
 | Parceiros | `/parceiros` | Farmácias afiliadas (flag-gated) |
@@ -269,12 +260,7 @@ Rate limiter: 20 tentativas por IP a cada 15 min.
 
 Usa Nodemailer com transporte SMTP configurável. Se `SMTP_HOST` não estiver definido, as funções registram aviso e retornam silenciosamente (não lançam exceção). Eventos disparados:
 
-- `notifyPatientCancelamento` — farmacêutico cancela consulta agendada
 - `notifyAdminNewPharmacist` — novo farmacêutico enviou documentos para aprovação
-
-#### Google Calendar (`src/services/googleCalendarService.js`)
-
-Usa uma **conta de serviço** (arquivo `credentials.json` com chave privada) para criar eventos no Google Calendar com link do Google Meet automaticamente gerado. Vinculado ao fluxo de agendamento tradicional (modelo `Appointment`). As consultas de fila não geram evento de calendário.
 
 #### PDFKit
 
@@ -286,16 +272,12 @@ Geração de receita farmacêutica em PDF server-side. O PDF é salvo em disco (
 
 ```js
 // src/cronJobs.js
-// A cada hora: status AGENDADO cujo horário já passou → EXPIRADA
-cron.schedule('0 * * * *', async () => {
-  await prisma.appointment.updateMany({
-    where: { status: 'AGENDADO', dateTime: { lt: new Date() } },
-    data:  { status: 'EXPIRADA' },
-  });
-});
+// A cada 5 min: urgentes aguardando há mais de N min sem farmacêutico aceitar → estorno
+// A cada 5 min: urgentes aceitas sem início (alerta em 30min, cancela com estorno em 60min)
+// A cada 30 min: atendimentos (fila) em andamento há mais de 4h → alerta
 ```
 
-Somente o modelo `Appointment` (agendamento tradicional) usa expiração automática. As filas (`FilaAgendada`, `FilaUrgente`) têm ciclo de vida controlado manualmente pelos controllers.
+Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado pelos jobs acima, que rodam sobre os próprios status da fila (`aguardando`, `aceito`, `em_atendimento`).
 
 ---
 
@@ -309,7 +291,7 @@ Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` n
 Relações:
 - `1:1` com `PacienteProfile` ou `PharmacistProfile`
 - `1:1` com `Carteira`
-- `1:N` com `FilaAgendada`, `FilaUrgente`, `Appointment`, `Availability`, `WeeklySchedule`, `Notificacao`, `DependentProfile`, `ConsentRecord`
+- `1:N` com `FilaAgendada`, `FilaUrgente`, `Notificacao`, `DependentProfile`, `ConsentRecord`
 
 #### `PacienteProfile`
 Dados clínicos e pessoais do paciente. Campos de endereço são opcionais (preenchidos no onboarding). `onboardingConcluido` é `false` até o paciente completar o wizard de 3 etapas.
@@ -323,9 +305,6 @@ Consulta com data/hora marcada. Campos de estado: `status` (`aguardando` → `em
 #### `FilaUrgente`
 Consulta sem agendamento. O paciente entra na fila e aguarda um farmacêutico online aceitar. `aceitoEm` registra o momento em que o farmacêutico aceitou.
 
-#### `Appointment`
-Modelo legado para o fluxo de agendamento com pagamento via Stripe-like e link do Google Meet. Coexiste com o sistema de filas. `status` usa enum `AppointmentStatus`.
-
 #### `Carteira` + `TransacaoCarteira`
 Carteira virtual do paciente. O saldo é debitado ao entrar na fila e creditado ao cancelar ou quando o farmacêutico devolve. Todas as movimentações ficam em `TransacaoCarteira` com `saldoApos` para reconstruir o histórico.
 
@@ -333,13 +312,7 @@ Carteira virtual do paciente. O saldo é debitado ao entrar na fila e creditado 
 Dependente vinculado a um titular (`ownerId`). Soft-delete via `ativo: false`. `dadosSaude` é um campo `Json` sem schema fixo (mesmo padrão dos dados de saúde do titular). `aceitouResponsabilidade` deve ser `true` — validado no backend.
 
 #### `Avaliacao`
-Avaliação pós-consulta. Pode estar vinculada a `Appointment`, `FilaAgendada` ou `FilaUrgente` (apenas um dos três ao mesmo tempo, os outros ficam `null`).
-
-#### `Availability`
-Slots de horário disponíveis criados pelo farmacêutico. `isBooked: true` quando reservado por um paciente.
-
-#### `WeeklySchedule`
-Grade semanal do farmacêutico (dia da semana + hora início/fim). Usada para gerar slots de `Availability`.
+Avaliação pós-consulta. Pode estar vinculada a `FilaAgendada` ou `FilaUrgente` (apenas um dos dois ao mesmo tempo, o outro fica `null`).
 
 #### `FarmaceuticoStatus`
 Tabela separada de status online/offline para evitar lock na tabela `User`. `ultimoPing` é atualizado a cada interação para detectar desconexões.
@@ -406,11 +379,6 @@ User ─────────────────────────
  │          ├─ campos raw: triagem, observacoes, receita, receita_pdf_url, motivo, finalizacao
  │          └─ 1:1 ─ Avaliacao
  │
- ├─ 1:N ─ Appointment (legado)
- │          └─ 1:1 ─ Avaliacao
- │
- ├─ 1:N ─ Availability (slots de agenda)
- ├─ 1:N ─ WeeklySchedule (grade semanal)
  ├─ 1:N ─ Pagamento (legado)
  ├─ 1:N ─ Notificacao
  └─ 1:N ─ ConsentRecord
@@ -435,6 +403,7 @@ Tabelas independentes:
 | `20260703200000_parceiros_afiliados` | PartnerPharmacy, AffiliateClick |
 | `20260703220000_consent_record` | ConsentRecord |
 | `20260703230000_whatsapp_remarcacao_retorno` | Campos de remarcação e retorno sugerido |
+| `20260706172558_remove_legacy_agendamento_flow` | Remove `Appointment`, `Availability`, `WeeklySchedule`, enum `AppointmentStatus` e `PharmacistProfile.calendarEmbedUrl` — fluxo de agendamento por farmacêutico específico foi descontinuado em favor do sistema de filas |
 
 Scripts manuais em `backend/scripts/` adicionam as colunas raw (`triagem`, `observacoes`, `receita`, `receita_pdf_url`, `motivo`, `finalizacao`) com `ALTER TABLE … ADD COLUMN IF NOT EXISTS`.
 
@@ -504,17 +473,9 @@ Dashboard central do paciente. Renderiza:
 
 #### PharmacistDashboard
 Dashboard do farmacêutico. Tabs:
-- **Fila** — agendadas e urgentes aguardando aceitação
+- **Calendário** — visão semanal das consultas de fila aceitas (agendadas e urgentes)
 - **Consultas** — histórico com filtros e paginação
-- **Agenda** — calendário semanal com slots configuráveis
 - **Ganhos** — relatório financeiro
-
-#### BookingWizard
-Wizard de 4 etapas para agendamento:
-1. Seleção de farmacêutico (lista filtrada por tag/disponibilidade)
-2. Seleção de data e slot
-3. Tipo de consulta e motivo
-4. Confirmação e pagamento via carteira
 
 #### TriagemForm
 Formulário pré-consulta preenchido pelo paciente antes de ser atendido. Campos:
@@ -593,14 +554,15 @@ Configurado via `vite-plugin-pwa`. Manifesto com:
 ```
 Paciente                        Backend                         Farmacêutico
    │                               │                               │
-   ├─ GET /pharmacists             │                               │
-   │  (filtros: tag, online, data) │                               │
+   ├─ GET /disponibilidade         │                               │
+   │  (horário global do sistema)  │                               │
    │                            ◄──┘                               │
    │                               │                               │
    ├─ POST /fila/agendar           │                               │
-   │  { farmaceuticoId,            │                               │
-   │    dataHora, tipo,            │                               │
-   │    dependentId? }          ──►│ Cria FilaAgendada             │
+   │  { data_hora, triagem,        │                               │
+   │    dependentId?,              │                               │
+   │    whatsapp_contato,          │                               │
+   │    modalidade_atend }      ──►│ Cria FilaAgendada             │
    │                               │ Debita crédito da Carteira    │
    │                            ◄──┤ { id, status: 'aguardando' }  │
    │                               │                               │
@@ -608,7 +570,7 @@ Paciente                        Backend                         Farmacêutico
    │                               │                        ───────►│ Lista aguardando
    │                               │                               │
    │                               │   POST /fila/agendadas/:id/aceitar ◄──
-   │                               │   Atualiza status → 'em_andamento'
+   │                               │   Atualiza status → 'aceito'
    │                               │   Define farmaceuticoId
    │                               │
    │  (recebe notificação)         │                               │
@@ -768,7 +730,6 @@ Isso impede que um farmacêutico acesse a triagem (dados de saúde) ou receita d
 | Grupo | Limite | Janela |
 |-------|--------|--------|
 | `/api/auth/*` | 20 req/IP | 15 min |
-| `/api/payments/webhook` | 60 req/IP | 1 min |
 | Demais | Sem limite (implícito) | — |
 
 ---
@@ -805,8 +766,6 @@ A exclusão de conta:
 | `FRONTEND_URL` | Não | Origens CORS permitidas (separadas por vírgula) |
 | `GOOGLE_CLIENT_ID` | Para OAuth | ID do app no Google Cloud |
 | `GOOGLE_CLIENT_SECRET` | Para OAuth | Segredo do app |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Para Calendar | E-mail da conta de serviço |
-| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Para Calendar | Chave privada (com `\n`) |
 | `SMTP_HOST` | Para e-mail | Host SMTP |
 | `SMTP_PORT` | Para e-mail | Porta (padrão 587) |
 | `SMTP_USER` | Para e-mail | Usuário SMTP |
@@ -834,8 +793,6 @@ Localizados em `backend/scripts/`. Todos são módulos ESM executados com `node 
 | `migrate-devolucao-campos.mjs` | Adiciona campos de devolução e remarcação |
 | `migrate-log-acoes.mjs` | Cria tabela de log de ações administrativas |
 | `migrate-user-profile.mjs` | Migração inicial de perfis de usuário |
-
-`backend/prisma/seedAvailability.js` — popula slots de disponibilidade de teste para desenvolvimento.
 
 ---
 

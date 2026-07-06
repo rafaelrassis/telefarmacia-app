@@ -743,19 +743,7 @@ export const getHistoricoPaciente = async (req, res) => {
       });
     }
 
-    const appointments = await prisma.appointment.findMany({
-      where:   { patientId, status: { in: ['CONCLUIDO', 'CANCELADO'] } },
-      select:  { id: true, dateTime: true, status: true, recommendations: true, createdAt: true },
-      orderBy: { createdAt: 'desc' }, take: 20,
-    });
-
     const normalized = [
-      ...appointments.map((a) => ({
-        id: a.id, tipo: 'appointment',
-        data: a.dateTime, status: a.status,
-        observacoes: a.recommendations ?? null, motivo: null,
-        criadoEm: a.createdAt,
-      })),
       ...agendadas.map((f) => ({
         id: f.id, tipo: 'agendada',
         data: f.dataHora, status: f.status,

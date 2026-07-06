@@ -37,21 +37,7 @@ async function estornarUrgente(id, pacienteId, creditoDebitado, descricao) {
   });
 }
 
-// ── Job existente: AGENDADO expirado → EXPIRADA (a cada hora) ────────────────
-
 export const initCronJobs = () => {
-  cron.schedule('0 * * * *', async () => {
-    try {
-      const { count } = await prisma.appointment.updateMany({
-        where: { status: 'AGENDADO', dateTime: { lt: new Date() } },
-        data:  { status: 'EXPIRADA' },
-      });
-      if (count > 0) console.log(`[cron] ${count} consulta(s) marcada(s) como EXPIRADA.`);
-    } catch (err) {
-      console.error('[cron] Erro ao expirar consultas:', err.message);
-    }
-  });
-
   // ── Job 1: urgentes AGUARDANDO > N min sem farmacêutico aceitar (a cada 5 min) ──
 
   cron.schedule('*/5 * * * *', async () => {
@@ -242,5 +228,5 @@ export const initCronJobs = () => {
     }
   });
 
-  console.log('[cron] Jobs iniciados: expiração Appointments (1h) | urgentes aguardando/aceitas (5min) | atendimentos longos (30min).');
+  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | atendimentos longos (30min).');
 };
