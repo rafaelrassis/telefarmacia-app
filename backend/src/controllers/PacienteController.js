@@ -43,6 +43,15 @@ export const createPerfil = async (req, res) => {
       return res.status(422).json({ error: 'Aceite dos termos é obrigatório.' });
     }
 
+    const nascDate = new Date(data_nascimento);
+    if (isNaN(nascDate.getTime())) {
+      return res.status(400).json({ error: 'Data de nascimento inválida.' });
+    }
+    const anosNasc = (new Date() - nascDate) / (1000 * 60 * 60 * 24 * 365.25);
+    if (anosNasc < 0 || anosNasc > 120) {
+      return res.status(400).json({ error: 'Data de nascimento fora do intervalo permitido.' });
+    }
+
     const cpf = cpfRaw.replace(/\D/g, '');
     if (!validarCPF(cpf)) {
       return res.status(400).json({ error: 'CPF inválido.' });
@@ -57,7 +66,7 @@ export const createPerfil = async (req, res) => {
       data: {
         userId,
         nomeCompleto: nome_completo.trim(),
-        dataNascimento: new Date(data_nascimento),
+        dataNascimento: nascDate,
         genero: genero.trim(),
         cpf,
         telefone: telefone?.replace(/\D/g, '') || null,
@@ -364,6 +373,35 @@ export const updatePerfil = async (req, res) => {
   }
 };
 
+// ── PATCH /api/pacientes/perfil — permite definir data_nascimento quando ausente ─
+export const patchNascimento = async (req, res) => {
+  try {
+    const perfil = await prisma.pacienteProfile.findUnique({ where: { userId: req.user.id } });
+    if (!perfil) return res.status(404).json({ error: 'Perfil não encontrado.' });
+
+    const { data_nascimento } = req.body ?? {};
+    if (!data_nascimento) return res.status(400).json({ error: 'data_nascimento é obrigatória.' });
+
+    const nasc = new Date(data_nascimento);
+    if (isNaN(nasc.getTime())) return res.status(400).json({ error: 'Data inválida.' });
+    const hoje = new Date();
+    const anosAtras = (hoje - nasc) / (1000 * 60 * 60 * 24 * 365.25);
+    if (anosAtras < 0 || anosAtras > 120) {
+      return res.status(400).json({ error: 'Data fora do intervalo permitido.' });
+    }
+
+    await prisma.pacienteProfile.update({
+      where: { userId: req.user.id },
+      data:  { dataNascimento: nasc },
+    });
+
+    return res.status(200).json({ message: 'Data de nascimento atualizada.' });
+  } catch (error) {
+    console.error('Erro ao atualizar nascimento:', error);
+    return res.status(500).json({ error: 'Erro ao atualizar data de nascimento.' });
+  }
+};
+
 // ── GET /api/paciente/consulta/:id?tipo=agendada|urgente ─────────
 
 export const getConsultaDetalhesPaciente = async (req, res) => {
@@ -394,12 +432,13 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
     }
 
     let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
+        encaminhamentoPdfUrl = null,
         motivoCancelamento = null, finalizacao = null, pessoaNome = null,
         whatsappContato = null, modalidadeAtend = 'whatsapp',
         remarcacoes = 0, remarcacaoPendente = null, retornoSugerido = null, retornoDispensado = false;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url",
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url",
                 "motivo_cancelamento", "finalizacao",
                 triagem->>'paciente_nome' AS pessoa_nome,
                 "whatsapp_contato", "modalidade_atend",
@@ -408,19 +447,20 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
          FROM "${tableName}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
-        observacoes        = rows[0].observacoes          ?? null;
-        motivo             = rows[0].motivo               ?? null;
-        receita            = rows[0].receita              ?? [];
-        receitaPdfUrl      = rows[0].receita_pdf_url      ?? null;
-        motivoCancelamento = rows[0].motivo_cancelamento  ?? null;
-        finalizacao        = rows[0].finalizacao          ?? null;
-        pessoaNome         = rows[0].pessoa_nome          ?? null;
-        whatsappContato    = rows[0].whatsapp_contato     ?? null;
-        modalidadeAtend    = rows[0].modalidade_atend     ?? 'whatsapp';
-        remarcacoes        = Number(rows[0].remarcacoes   ?? 0);
-        remarcacaoPendente = rows[0].remarcacao_pendente  ?? null;
-        retornoSugerido    = rows[0].retorno_sugerido     ?? null;
-        retornoDispensado  = rows[0].retorno_dispensado   ?? false;
+        observacoes          = rows[0].observacoes              ?? null;
+        motivo               = rows[0].motivo                   ?? null;
+        receita              = rows[0].receita                  ?? [];
+        receitaPdfUrl        = rows[0].receita_pdf_url          ?? null;
+        encaminhamentoPdfUrl = rows[0].encaminhamento_pdf_url   ?? null;
+        motivoCancelamento   = rows[0].motivo_cancelamento      ?? null;
+        finalizacao          = rows[0].finalizacao              ?? null;
+        pessoaNome           = rows[0].pessoa_nome              ?? null;
+        whatsappContato      = rows[0].whatsapp_contato         ?? null;
+        modalidadeAtend      = rows[0].modalidade_atend         ?? 'whatsapp';
+        remarcacoes          = Number(rows[0].remarcacoes       ?? 0);
+        remarcacaoPendente   = rows[0].remarcacao_pendente      ?? null;
+        retornoSugerido      = rows[0].retorno_sugerido         ?? null;
+        retornoDispensado    = rows[0].retorno_dispensado       ?? false;
       }
     } catch {}
 
@@ -433,8 +473,9 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
       creditoDebitado:   Number(fila.creditoDebitado),
       observacoes,
       motivo,
-      receita:           Array.isArray(receita) ? receita : [],
+      receita:              Array.isArray(receita) ? receita : [],
       receitaPdfUrl,
+      encaminhamentoPdfUrl,
       motivoCancelamento,
       finalizacao,
       farmaceutico:      fila.farmaceutico ? { nome: fila.farmaceutico.name } : null,
@@ -455,12 +496,15 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
 
 export const getReceitaPdfPaciente = async (req, res) => {
   if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
-  const { id }    = req.params;
-  const { tipo }  = req.query;
-  const patientId = req.user.id;
+  const { id }      = req.params;
+  const { tipo, doc = 'receita' } = req.query;
+  const patientId   = req.user.id;
 
   if (!['agendada', 'urgente'].includes(tipo)) {
     return res.status(400).json({ error: 'tipo inválido.' });
+  }
+  if (!['receita', 'encaminhamento'].includes(doc)) {
+    return res.status(400).json({ error: 'doc inválido.' });
   }
 
   try {
@@ -477,17 +521,19 @@ export const getReceitaPdfPaciente = async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
 
+    const col = doc === 'encaminhamento' ? '"encaminhamento_pdf_url"' : '"receita_pdf_url"';
     const rows = await prisma.$queryRawUnsafe(
-      `SELECT "receita_pdf_url" FROM "${tableName}" WHERE id = $1`, id
+      `SELECT ${col} AS pdf_url FROM "${tableName}" WHERE id = $1`, id
     );
-    const pdfUrl = rows[0]?.receita_pdf_url ?? null;
+    const pdfUrl = rows[0]?.pdf_url ?? null;
     if (!pdfUrl) return res.status(404).json({ error: 'PDF não encontrado.' });
 
     const relativePath = pdfUrl.replace(/^\/uploads\//, '');
     const filepath     = join(UPLOAD_DIR, relativePath);
     if (!existsSync(filepath)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
 
-    res.setHeader('Content-Disposition', `attachment; filename="receita-${id}.pdf"`);
+    const filename = doc === 'encaminhamento' ? `encaminhamento-${id}.pdf` : `receita-${id}.pdf`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/pdf');
     createReadStream(filepath).pipe(res);
   } catch (err) {
@@ -657,6 +703,7 @@ export const getMeusDocumentos = async (req, res) => {
           fa.observacoes,
           fa.motivo,
           fa.receita_pdf_url,
+          fa.encaminhamento_pdf_url,
           fa.receita                                                 AS receita,
           (fa.receita IS NOT NULL
             AND jsonb_typeof(fa.receita) = 'array'
@@ -678,6 +725,7 @@ export const getMeusDocumentos = async (req, res) => {
           fu.observacoes,
           fu.motivo,
           fu.receita_pdf_url,
+          fu.encaminhamento_pdf_url,
           fu.receita                                                AS receita,
           (fu.receita IS NOT NULL
             AND jsonb_typeof(fu.receita) = 'array'
@@ -692,16 +740,17 @@ export const getMeusDocumentos = async (req, res) => {
     `, ...baseParams);
 
     return res.json(rows.map((r) => ({
-      id:              r.id,
-      tipo:            r.tipo,
-      dataHora:        r.data_hora,
-      pessoaNome:      r.pessoa_nome || null,
-      farmaceuticoNome: r.farmaceutico_nome ?? null,
-      observacoes:     r.observacoes ?? null,
-      motivo:          r.motivo ?? null,
-      receitaPdfUrl:   r.receita_pdf_url ?? null,
-      receita:         Array.isArray(r.receita) ? r.receita : [],
-      hasReceita:      Boolean(r.has_receita),
+      id:                    r.id,
+      tipo:                  r.tipo,
+      dataHora:              r.data_hora,
+      pessoaNome:            r.pessoa_nome || null,
+      farmaceuticoNome:      r.farmaceutico_nome ?? null,
+      observacoes:           r.observacoes ?? null,
+      motivo:                r.motivo ?? null,
+      receitaPdfUrl:         r.receita_pdf_url ?? null,
+      encaminhamentoPdfUrl:  r.encaminhamento_pdf_url ?? null,
+      receita:               Array.isArray(r.receita) ? r.receita : [],
+      hasReceita:            Boolean(r.has_receita),
     })));
   } catch (err) {
     console.error('getMeusDocumentos error:', err);

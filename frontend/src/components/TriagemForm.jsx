@@ -11,13 +11,15 @@ const toLocalDateStr = (date = new Date()) => {
 
 const calcIdade = (dataNascimento) => {
   if (!dataNascimento) return null;
+  const nasc = new Date(dataNascimento);
+  if (isNaN(nasc.getTime())) return null;
   const hoje = new Date();
-  const nasc  = new Date(dataNascimento);
   let idade = hoje.getFullYear() - nasc.getFullYear();
   if (
     hoje.getMonth() < nasc.getMonth() ||
     (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
   ) idade--;
+  if (idade < 0 || idade > 120) return null;
   return idade;
 };
 
@@ -136,9 +138,15 @@ const TriagemForm = ({
   const [selectedPerson, setSelectedPerson] = useState(preSelectedPerson);
 
   // ── Dados do perfil do titular (carregados do backend) ─────────────────────
-  const [perfilIdade, setPerfilIdade]   = useState(pacienteIdade);
-  const [perfilSexo, setPerfilSexo]     = useState('');
-  const [perfilPeso, setPerfilPeso]     = useState('');
+  const [perfilIdade, setPerfilIdade]         = useState(pacienteIdade);
+  const [perfilSexo, setPerfilSexo]           = useState('');
+  const [perfilPeso, setPerfilPeso]           = useState('');
+  const [perfilCarregado, setPerfilCarregado] = useState(false);
+  const [perfilTemNasc, setPerfilTemNasc]     = useState(true); // assume válido até carregar
+  // ── Coleta de data de nascimento inline (titular sem data válida) ──────────
+  const [nascInput, setNascInput]   = useState('');
+  const [nascSaving, setNascSaving] = useState(false);
+  const [nascError, setNascError]   = useState('');
 
   useEffect(() => {
     if (!isAgendado) return;
@@ -168,11 +176,14 @@ const TriagemForm = ({
         if (!d) return;
         const sexoVal = d.genero?.toLowerCase() || '';
         setPerfilSexo(sexoVal);
-        if (d.data_nascimento) setPerfilIdade(calcIdade(d.data_nascimento));
-        if (d.peso)            setPerfilPeso(String(d.peso));
-        if (d.telefone)        { setPerfilTelefone(d.telefone); setWhatsappContato(d.telefone); }
+        const idadeCalc = d.data_nascimento ? calcIdade(d.data_nascimento) : null;
+        setPerfilIdade(idadeCalc);
+        setPerfilTemNasc(idadeCalc !== null);
+        if (d.peso)    setPerfilPeso(String(d.peso));
+        if (d.telefone) { setPerfilTelefone(d.telefone); setWhatsappContato(d.telefone); }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setPerfilCarregado(true));
   }, [token]);
 
   // ── Contato e modalidade ─────────────────────────────────────────────────────
@@ -224,8 +235,9 @@ const TriagemForm = ({
   const [quaisOutrasAlergias, setQuaisOutrasAlergias] = useState('');
 
   const [sinaisAlerta, setSinaisAlerta] = useState([]);
-  const [alertaConfirmado, setAlertaConfirmado] = useState(false);
 
+  const [duvidaReceita, setDuvidaReceita] = useState('');
+  const [duvidaError, setDuvidaError]     = useState(false);
   const [temReceita, setTemReceita] = useState(false);
 
   // Quando muda a pessoa selecionada, atualiza sexo e peso
@@ -280,13 +292,17 @@ const TriagemForm = ({
   const saldoOk = walletBalance !== null && walletBalance > 0;
 
   const temSinais = sinaisAlerta.length > 0;
-  const bloqueadoPorAlerta = temSinais && !alertaConfirmado;
+  const bloqueadoPorAlerta = temSinais;
 
   const toggleSinal = (s) =>
     setSinaisAlerta((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
 
   const handleConfirm = () => {
     if (!tipoConsulta || bloqueadoPorAlerta) return;
+    if (tipoConsulta === 'interpretacao_receita' && duvidaReceita.trim().length < 10) {
+      setDuvidaError(true);
+      return;
+    }
     if (whatsappContato && !validarWhatsapp(whatsappContato)) {
       setWhatsappError('WhatsApp inválido. Informe DDD + número (10 ou 11 dígitos).');
       return;
@@ -316,20 +332,60 @@ const TriagemForm = ({
       problema_anterior:   isTrat ? problemaAnterior : null,
       acompanhamento_medico: isTrat ? acompanhamentoMedico : null,
       exercicios:          isTrat ? exercicios : null,
-      medicamentos_atuais: isTrat ? medicamentosAtuais : null,
-      quais_medicamentos:  (isTrat && medicamentosAtuais) ? quaisMedicamentos || null : null,
-      medicamento_problema: isTrat ? medicamentoProblema : null,
-      houve_melhora:       (isTrat && medicamentoProblema) ? houveMelhora : null,
+      medicamentos_atuais: medicamentosAtuais,
+      quais_medicamentos:  medicamentosAtuais ? quaisMedicamentos || null : null,
+      medicamento_problema: medicamentoProblema,
+      houve_melhora:       medicamentoProblema ? houveMelhora : null,
       alergia_medicamento: alergiasMedicamento,
       quais_alergias:      alergiasMedicamento ? quaisAlergias || null : null,
       outras_alergias:     outrasAlergias,
       quais_outras_alergias: outrasAlergias ? quaisOutrasAlergias || null : null,
-      sinais_alerta:    sinaisAlerta,
-      receita_anexo:    temReceita,
+      duvida_receita:   tipoConsulta === 'interpretacao_receita' ? (duvidaReceita.trim() || null) : null,
+      sinais_alerta:    isTrat ? sinaisAlerta : [],
+      receita_anexo:    isTrat ? temReceita : false,
       whatsapp_contato: whatsappContato ? whatsappContato.replace(/\D/g,'') : null,
       modalidade_atend: modalidadeAtend,
     };
     if (isAgendado) { handleAgendadoConfirm(triagem); } else { onConfirm(triagem); }
+  };
+
+  const handleSalvarNasc = async () => {
+    if (!nascInput) { setNascError('Informe uma data válida.'); return; }
+    const idadeCalc = calcIdade(nascInput);
+    if (idadeCalc === null) { setNascError('Data inválida ou fora do intervalo permitido (0–120 anos).'); return; }
+    setNascSaving(true);
+    setNascError('');
+    try {
+      const res = await fetch(`${API_URL}/api/pacientes/perfil`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data_nascimento: nascInput }),
+      });
+      if (res.ok) {
+        setPerfilIdade(idadeCalc);
+        setPerfilTemNasc(true);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setNascError(err.error || 'Erro ao salvar data de nascimento.');
+      }
+    } catch {
+      setNascError('Falha de conexão. Tente novamente.');
+    } finally {
+      setNascSaving(false);
+    }
+  };
+
+  const handleAbortoAlerta = () => {
+    fetch(`${API_URL}/api/fila/urgente/aborto-triagem`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        motivo: 'sinais_alerta',
+        sinais: sinaisAlerta,
+        dependentId: selectedPerson?.id ?? undefined,
+      }),
+    }).catch(() => {});
+    onBack();
   };
 
   const btnTipo = (val, label) => (
@@ -557,7 +613,7 @@ const TriagemForm = ({
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden', position: 'relative' }}>
       {/* Progress bar */}
       <div style={{ height: 4, background: '#e5e7eb', flexShrink: 0, borderRadius: '16px 16px 0 0', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: '100%', background: '#2563eb' }} />
@@ -656,6 +712,39 @@ const TriagemForm = ({
           </div>
         </div>
 
+        {/* Coleta de data de nascimento do titular (quando ausente/inválida) */}
+        {selectedPerson === null && perfilCarregado && !perfilTemNasc && (
+          <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: 10, padding: 16, marginBottom: 16, marginTop: 8 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', margin: '0 0 4px' }}>
+              Data de nascimento necessária
+            </p>
+            <p style={{ fontSize: 13, color: '#78350f', margin: '0 0 10px' }}>
+              Informe sua data de nascimento para continuar.
+            </p>
+            <label style={lbl}>Data de nascimento</label>
+            <input
+              type="date"
+              value={nascInput}
+              max={toLocalDateStr()}
+              onChange={(e) => { setNascInput(e.target.value); setNascError(''); }}
+              style={{ ...inp, marginBottom: 8, borderColor: nascError ? '#ef4444' : '#e5e7eb' }}
+            />
+            {nascError && <p style={{ fontSize: 11, color: '#ef4444', margin: '-4px 0 8px' }}>{nascError}</p>}
+            <button
+              type="button"
+              onClick={handleSalvarNasc}
+              disabled={nascSaving}
+              style={{
+                width: '100%', padding: '9px 0', borderRadius: 8, border: 'none',
+                background: nascSaving ? '#9ca3af' : '#d97706', color: 'white',
+                fontSize: 13, fontWeight: 700, cursor: nascSaving ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {nascSaving ? 'Salvando...' : 'Salvar e continuar'}
+            </button>
+          </div>
+        )}
+
         {/* Objetivo */}
         <p style={sec}>Objetivo da consulta</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
@@ -663,7 +752,7 @@ const TriagemForm = ({
           {btnTipo('interpretacao_receita', '🔍 Interpretação de receita')}
         </div>
 
-        {/* Sections only for 'tratamento' */}
+        {/* Sections 2–4: only for 'tratamento' */}
         {tipoConsulta === 'tratamento' && (
           <>
             <p style={sec}>2. Queixa principal</p>
@@ -726,7 +815,13 @@ const TriagemForm = ({
             <Toggle value={problemaAnterior} onChange={setProblemaAnterior} label="Já teve esse problema antes?" />
             <Toggle value={acompanhamentoMedico} onChange={setAcompanhamentoMedico} label="Em acompanhamento médico?" />
             <Toggle value={exercicios} onChange={setExercicios} label="Pratica exercícios físicos?" />
+          </>
+        )}
 
+        {/* Sections 5–8: shown when any objective is selected */}
+        {tipoConsulta && (
+          <>
+            {/* Section 5: Medicamentos — both objectives */}
             <p style={sec}>5. Uso de medicamentos</p>
             <Toggle value={medicamentosAtuais} onChange={setMedicamentosAtuais} label="Usa algum medicamento atualmente?" />
             {medicamentosAtuais && (
@@ -740,12 +835,8 @@ const TriagemForm = ({
                 <Toggle value={houveMelhora} onChange={setHouveMelhora} label="Houve melhora?" />
               </div>
             )}
-          </>
-        )}
 
-        {/* Alergias + Sinais (shown when tipo is selected) */}
-        {tipoConsulta && (
-          <>
+            {/* Section 6: Alergias — both objectives */}
             <p style={sec}>6. Alergias</p>
             <Toggle value={alergiasMedicamento} onChange={setAlergiasMedicamento} label="Alergia a medicamentos?" />
             {alergiasMedicamento && (
@@ -760,65 +851,76 @@ const TriagemForm = ({
               </div>
             )}
 
-            <p style={sec}>7. Sinais de alerta</p>
-            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 10, marginTop: -8 }}>
-              Marque se algum dos seguintes estiver presente:
-            </p>
-            {SINAIS_ALERTA.map((s) => (
-              <label
-                key={s}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 0', cursor: 'pointer', borderBottom: '1px solid #f9fafb',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={sinaisAlerta.includes(s)}
-                  onChange={() => toggleSinal(s)}
-                  style={{ width: 16, height: 16, accentColor: '#dc2626', cursor: 'pointer', flexShrink: 0 }}
-                />
-                <span style={{ fontSize: 14, color: sinaisAlerta.includes(s) ? '#dc2626' : '#374151', fontWeight: sinaisAlerta.includes(s) ? 600 : 400 }}>
-                  {s}
-                </span>
-              </label>
-            ))}
-
-            {temSinais && !alertaConfirmado && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: 14, marginTop: 12 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#b91c1c', margin: '0 0 6px' }}>
-                  Atenção
+            {/* Section 7: Sinais de alerta — tratamento only */}
+            {tipoConsulta === 'tratamento' && (
+              <>
+                <p style={sec}>7. Sinais de alerta</p>
+                <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 10, marginTop: -8 }}>
+                  Marque se algum dos seguintes estiver presente:
                 </p>
-                <p style={{ fontSize: 13, color: '#7f1d1d', margin: '0 0 12px' }}>
-                  Os sintomas indicados podem requerer atendimento médico de urgência. Deseja continuar mesmo assim?
-                </p>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => setAlertaConfirmado(true)}
-                    style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#dc2626', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                {SINAIS_ALERTA.map((s) => (
+                  <label
+                    key={s}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 0', cursor: 'pointer', borderBottom: '1px solid #f9fafb',
+                    }}
                   >
-                    Sim, continuar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
+                    <input
+                      type="checkbox"
+                      checked={sinaisAlerta.includes(s)}
+                      onChange={() => toggleSinal(s)}
+                      style={{ width: 16, height: 16, accentColor: '#dc2626', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: 14, color: sinaisAlerta.includes(s) ? '#dc2626' : '#374151', fontWeight: sinaisAlerta.includes(s) ? 600 : 400 }}>
+                      {s}
+                    </span>
+                  </label>
+                ))}
+              </>
             )}
 
-            <p style={sec}>8. Receita</p>
-            <Toggle value={temReceita} onChange={setTemReceita} label="Tem receita para interpretar?" />
-            {temReceita && (
-              <div style={{ padding: '8px 12px', background: '#f9fafb', borderRadius: 8, marginTop: 8, border: '1px solid #e5e7eb' }}>
-                <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                  Traga a receita física ou tire uma foto para mostrar ao farmacêutico durante o atendimento.
-                </p>
-              </div>
+            {/* Section 8: Receita (tratamento) */}
+            {tipoConsulta === 'tratamento' && (
+              <>
+                <p style={sec}>8. Receita</p>
+                <Toggle value={temReceita} onChange={setTemReceita} label="Tem receita para compartilhar?" />
+                {temReceita && (
+                  <div style={{ padding: '8px 12px', background: '#f9fafb', borderRadius: 8, marginTop: 8, border: '1px solid #e5e7eb' }}>
+                    <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+                      Traga a receita física ou tire uma foto para mostrar ao farmacêutico durante o atendimento.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Section 8: Dúvida sobre a receita (interpretacao_receita) */}
+            {tipoConsulta === 'interpretacao_receita' && (
+              <>
+                <p style={sec}>Dúvida sobre a receita</p>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={lbl}>
+                    Descreva sua dúvida <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <textarea
+                    value={duvidaReceita}
+                    onChange={(e) => { setDuvidaReceita(e.target.value); setDuvidaError(false); }}
+                    placeholder="Ex: quero entender a posologia, dosagem, interações com outros medicamentos..."
+                    style={{ ...area, borderColor: duvidaError ? '#ef4444' : '#e5e7eb' }}
+                  />
+                  {duvidaError && (
+                    <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>
+                      Descreva sua dúvida (mínimo 10 caracteres).
+                    </p>
+                  )}
+                </div>
+                <div style={{ padding: '10px 12px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+                  <p style={{ fontSize: 13, color: '#166534', margin: 0 }}>
+                    Tenha a receita em mãos (física ou foto) para mostrar ao farmacêutico durante o atendimento.
+                  </p>
+                </div>
+              </>
             )}
           </>
         )}
@@ -850,18 +952,51 @@ const TriagemForm = ({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={!tipoConsulta || loading || bloqueadoPorAlerta}
+            disabled={!tipoConsulta || loading}
             style={{
               flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-              background: (!tipoConsulta || loading || bloqueadoPorAlerta) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#2563eb'),
+              background: (!tipoConsulta || loading) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#2563eb'),
               color: 'white', fontSize: 15, fontWeight: 700,
-              cursor: (!tipoConsulta || loading || bloqueadoPorAlerta) ? 'not-allowed' : 'pointer',
+              cursor: (!tipoConsulta || loading) ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? 'Aguarde...' : modoUrgente ? 'Confirmar atendimento urgente' : 'Confirmar agendamento'}
           </button>
         </div>
       </div>
+
+      {/* Hard block overlay — sinais de alerta marcados */}
+      {temSinais && (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(127,29,29,0.97)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '32px 24px', borderRadius: 16, zIndex: 10,
+        }}>
+          <div style={{ fontSize: 52, marginBottom: 16, lineHeight: 1 }}>🚨</div>
+          <h3 style={{ color: 'white', fontWeight: 800, fontSize: 18, margin: '0 0 12px', textAlign: 'center' }}>
+            Procure atendimento presencial imediatamente
+          </h3>
+          <p style={{ color: '#fca5a5', fontSize: 14, textAlign: 'center', lineHeight: 1.5, margin: '0 0 8px' }}>
+            Os sintomas informados indicam uma situação que{' '}
+            <strong style={{ color: 'white' }}>não pode ser tratada por teleconsulta</strong>.
+          </p>
+          <p style={{ color: '#fca5a5', fontSize: 14, textAlign: 'center', lineHeight: 1.5, margin: '0 0 28px' }}>
+            Ligue imediatamente para o{' '}
+            <strong style={{ color: 'white', fontSize: 17 }}>SAMU (192)</strong>{' '}
+            ou vá ao pronto-socorro mais próximo.
+          </p>
+          <button
+            type="button"
+            onClick={handleAbortoAlerta}
+            style={{
+              width: '100%', maxWidth: 280, padding: '13px 0', borderRadius: 8, border: 'none',
+              background: 'white', color: '#7f1d1d', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Fechar e cancelar
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SelecionarPerfilPage from './pages/SelecionarPerfilPage.jsx';
+import InviteRegistro from './components/InviteRegistro.jsx';
 import InstallPrompt from './components/InstallPrompt.jsx';
 import PWAReloadPrompt from './components/PWAReloadPrompt.jsx';
 
@@ -14,6 +15,9 @@ function App() {
       <InstallPrompt />
       <PWAReloadPrompt />
       <Routes>
+        {/* Rota pública sem layout: onboarding via convite */}
+        <Route path="convite/:token" element={<InviteRegistro />} />
+
         <Route element={<Layout />}>
           <Route index element={<LandingPage />} />
           <Route path="entrar" element={<LoginPage />} />

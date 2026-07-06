@@ -156,7 +156,14 @@ Rate limiter: 20 tentativas por IP a cada 15 min.
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| PATCH | `/pharmacists/profile` | Sim | Atualiza bio e tags |
+| GET | `/pharmacists` | Não | Lista farmacêuticos aprovados com filtros |
+| GET | `/pharmacists/:id/availability` | Não | Slots disponíveis de um farmacêutico (filtra bloqueios de agenda) |
+| GET | `/pharmacists/me/schedule` | Sim | Agenda própria (slots criados) |
+| GET | `/pharmacists/me/weekly-schedule` | Sim | Grade semanal configurada |
+| PUT | `/pharmacists/weekly-schedule` | Sim | Salva grade semanal (gera slots respeitando horário do sistema e bloqueios) |
+| POST | `/pharmacists/availability` | Sim | Gera slots a partir da grade semanal |
+| DELETE | `/pharmacists/availability/:id` | Sim | Remove slot (não reservado) |
+| PATCH | `/pharmacists/profile` | Sim | Atualiza bio, tags e chave PIX |
 | POST | `/farmaceuticos/cadastro` | Sim | Upload de documentos CRF + identidade |
 | PATCH | `/farmaceuticos/me/disponibilidade` | Sim | Toggle online/offline |
 | GET | `/farmaceutico/calendario` | Sim | Consultas aceitas (visão calendário) |
@@ -291,7 +298,7 @@ Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` n
 Relações:
 - `1:1` com `PacienteProfile` ou `PharmacistProfile`
 - `1:1` com `Carteira`
-- `1:N` com `FilaAgendada`, `FilaUrgente`, `Notificacao`, `DependentProfile`, `ConsentRecord`
+- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`
 
 #### `PacienteProfile`
 Dados clínicos e pessoais do paciente. Campos de endereço são opcionais (preenchidos no onboarding). `onboardingConcluido` é `false` até o paciente completar o wizard de 3 etapas.
@@ -304,6 +311,15 @@ Consulta com data/hora marcada. Campos de estado: `status` (`aguardando` → `em
 
 #### `FilaUrgente`
 Consulta sem agendamento. O paciente entra na fila e aguarda um farmacêutico online aceitar. `aceitoEm` registra o momento em que o farmacêutico aceitou.
+
+#### `Availability`
+Slots de horário disponíveis criados pelo farmacêutico (manualmente ou gerados a partir da `WeeklySchedule`). `isBooked: true` quando reservado. Slots dentro de um `BloqueioAgenda` são filtrados na listagem pública e removidos ao criar o bloqueio.
+
+#### `WeeklySchedule`
+Grade semanal do farmacêutico (dia da semana + hora início/fim). Ao salvar, regenera `Availability` para os próximos 28 dias, respeitando a intersecção com `SistemaHorario` e os `BloqueioAgenda` ativos.
+
+#### `BloqueioAgenda`
+Bloqueio de um intervalo (`dataInicio`–`dataFim`) na agenda do farmacêutico. Criar um bloqueio com conflitos (consultas de fila aceitas no período) exige `forcar: true`, o que cancela slots livres e notifica os pacientes afetados.
 
 #### `Carteira` + `TransacaoCarteira`
 Carteira virtual do paciente. O saldo é debitado ao entrar na fila e creditado ao cancelar ou quando o farmacêutico devolve. Todas as movimentações ficam em `TransacaoCarteira` com `saldoApos` para reconstruir o histórico.
@@ -379,6 +395,9 @@ User ─────────────────────────
  │          ├─ campos raw: triagem, observacoes, receita, receita_pdf_url, motivo, finalizacao
  │          └─ 1:1 ─ Avaliacao
  │
+ ├─ 1:N ─ Availability (slots de agenda)
+ ├─ 1:N ─ WeeklySchedule (grade semanal)
+ ├─ 1:N ─ BloqueioAgenda (bloqueios de agenda)
  ├─ 1:N ─ Pagamento (legado)
  ├─ 1:N ─ Notificacao
  └─ 1:N ─ ConsentRecord
@@ -403,7 +422,7 @@ Tabelas independentes:
 | `20260703200000_parceiros_afiliados` | PartnerPharmacy, AffiliateClick |
 | `20260703220000_consent_record` | ConsentRecord |
 | `20260703230000_whatsapp_remarcacao_retorno` | Campos de remarcação e retorno sugerido |
-| `20260706172558_remove_legacy_agendamento_flow` | Remove `Appointment`, `Availability`, `WeeklySchedule`, enum `AppointmentStatus` e `PharmacistProfile.calendarEmbedUrl` — fluxo de agendamento por farmacêutico específico foi descontinuado em favor do sistema de filas |
+| `20260706172558_remove_legacy_agendamento_flow` | Remove `Appointment`, enum `AppointmentStatus` e `PharmacistProfile.calendarEmbedUrl` — o fluxo de agendamento com pagamento Stripe-like e Google Meet foi descontinuado. `Availability`/`WeeklySchedule` seguem em uso pela agenda própria do farmacêutico (bloqueios, geração de slots) |
 
 Scripts manuais em `backend/scripts/` adicionam as colunas raw (`triagem`, `observacoes`, `receita`, `receita_pdf_url`, `motivo`, `finalizacao`) com `ALTER TABLE … ADD COLUMN IF NOT EXISTS`.
 
@@ -473,7 +492,9 @@ Dashboard central do paciente. Renderiza:
 
 #### PharmacistDashboard
 Dashboard do farmacêutico. Tabs:
-- **Calendário** — visão semanal das consultas de fila aceitas (agendadas e urgentes)
+- **Calendário** — visão semanal das consultas de fila aceitas (agendadas e urgentes) e dos bloqueios de agenda
+- **Minha agenda** (`ScheduleManager`) — grade semanal, geração de slots (`Availability`) e bloqueios (`BloqueioModal`)
+- **Templates** — modelos reutilizáveis de orientação/receita
 - **Consultas** — histórico com filtros e paginação
 - **Ganhos** — relatório financeiro
 
@@ -793,6 +814,8 @@ Localizados em `backend/scripts/`. Todos são módulos ESM executados com `node 
 | `migrate-devolucao-campos.mjs` | Adiciona campos de devolução e remarcação |
 | `migrate-log-acoes.mjs` | Cria tabela de log de ações administrativas |
 | `migrate-user-profile.mjs` | Migração inicial de perfis de usuário |
+
+`backend/prisma/seedAvailability.js` — popula slots de disponibilidade de teste para desenvolvimento.
 
 ---
 

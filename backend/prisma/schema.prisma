@@ -26,6 +26,8 @@ model User {
   pacienteProfile             PacienteProfile?
   pagamentos                  Pagamento[]        @relation("PacientePagamentos")
   carteira                    Carteira?          @relation("PacienteCarteira")
+  availabilities              Availability[]     @relation("PharmacistAvailability")
+  weeklySchedule              WeeklySchedule[]   @relation("PharmacistWeeklySchedule")
   avaliacoesComoFarmaceutico   Avaliacao[]         @relation("FarmaceuticoAvaliacoes")
   avaliacoesComoPaciente       Avaliacao[]         @relation("PacienteAvaliacoes")
   filaAgendadaComoPaciente     FilaAgendada[]      @relation("PacienteFilaAgendada")
@@ -36,6 +38,9 @@ model User {
   dependentes                  DependentProfile[]  @relation("TitularDependentes")
   notificacoes                 Notificacao[]       @relation("UserNotificacoes")
   consentRecords               ConsentRecord[]
+  bloqueiosAgenda              BloqueioAgenda[] @relation("FarmaceuticoBloqueios")
+  templatesOrientacao          TemplateOrientacao[] @relation("FarmaceuticoTemplates")
+  repasses                     Repasse[] @relation("FarmaceuticoRepasses")
 }
 
 model Notificacao {
@@ -81,12 +86,14 @@ model PharmacistProfile {
   bio               String
   tags              String[]
   isApproved        Boolean   @default(false)
+  isSuspended       Boolean   @default(false)
   isOnline          Boolean   @default(false)
   urlDocIdentidade  String?
   urlDocCrf         String?
   dataEnvioDoc      DateTime?
   precoConsulta        Decimal?  @db.Decimal(10, 2)
-  disponivelUrgencias  Boolean   @default(true)
+  disponivelUrgencias  Boolean   @default(true) @map("disponivel_urgencias")
+  chavePix             String?
 }
 
 model Pagamento {
@@ -121,6 +128,17 @@ model TransacaoCarteira {
   criadoEm   DateTime @default(now())
 }
 
+model WeeklySchedule {
+  id           String  @id @default(uuid())
+  pharmacistId String
+  pharmacist   User    @relation("PharmacistWeeklySchedule", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  isActive     Boolean @default(true)
+  @@unique([pharmacistId, dayOfWeek])
+}
+
 model Avaliacao {
   id             String        @id @default(uuid())
   pacienteId     String
@@ -134,6 +152,14 @@ model Avaliacao {
   nota           Int
   comentario     String?
   createdAt      DateTime      @default(now())
+}
+
+model Availability {
+  id           String   @id @default(uuid())
+  pharmacistId String
+  pharmacist   User     @relation("PharmacistAvailability", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  dateTime     DateTime
+  isBooked     Boolean  @default(false)
 }
 
 model SystemConfig {
@@ -223,6 +249,63 @@ model AffiliateClick {
   pharmacy   PartnerPharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
   consultaId String?
   createdAt  DateTime        @default(now())
+}
+
+model TemplateOrientacao {
+  id           String   @id @default(uuid())
+  pharmacistId String
+  pharmacist   User     @relation("FarmaceuticoTemplates", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  titulo       String
+  conteudo     String   @db.Text
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+}
+
+model BloqueioAgenda {
+  id           String   @id @default(uuid())
+  pharmacistId String
+  pharmacist   User     @relation("FarmaceuticoBloqueios", fields: [pharmacistId], references: [id], onDelete: Cascade)
+  dataInicio   DateTime
+  dataFim      DateTime
+  motivo       String?
+  criadoEm     DateTime @default(now())
+}
+
+model Repasse {
+  id                   String        @id @default(uuid())
+  pharmacistId         String
+  pharmacist           User          @relation("FarmaceuticoRepasses", fields: [pharmacistId], references: [id], onDelete: Restrict)
+  adminId              String
+  referenciaTransacao  String?
+  valorTotal           Decimal       @db.Decimal(10, 2)
+  periodoInicio        DateTime
+  periodoFim           DateTime
+  criadoEm             DateTime      @default(now())
+  itens                RepasseItem[]
+}
+
+model RepasseItem {
+  id           String   @id @default(uuid())
+  repasseId    String
+  repasse      Repasse  @relation(fields: [repasseId], references: [id], onDelete: Cascade)
+  consultaId   String
+  consultaTipo String
+  valorBruto   Decimal  @db.Decimal(10, 2)
+  percentual   Decimal  @db.Decimal(5, 2)
+  valorLiquido Decimal  @db.Decimal(10, 2)
+
+  @@unique([consultaId, consultaTipo])
+}
+
+model ConviteFarmaceutico {
+  id        String   @id @default(uuid())
+  email     String
+  nome      String
+  token     String   @unique
+  usado     Boolean  @default(false)
+  expiresAt DateTime
+  criadoEm  DateTime @default(now())
+  adminId   String
 }
 
 model ConsentRecord {

@@ -6,6 +6,8 @@ import WeekCalendar from './WeekCalendar';
 import DocUploadForm from './DocUploadForm';
 import ConsultaModal from './ConsultaModal';
 import GanhosTab from './GanhosTab';
+import ScheduleManager from './ScheduleManager';
+import BloqueioModal from './BloqueioModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -289,10 +291,16 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
         showToast('success', `🚨 Atendimento aceito! Paciente: ${data.fila?.paciente?.name ?? nomePaciente}`);
         onAccepted?.();
       } else if (res.status === 409) {
-        showToast('error', 'Consulta já foi atendida por outro farmacêutico.');
+        showToast('error', 'Esta urgência já foi aceita por outro farmacêutico.');
+        load();
+      } else if (res.status === 403) {
+        showToast('warn', data.error || 'Você está indisponível. Ative o toggle para aceitar urgências.');
+      } else if (res.status === 400) {
+        showToast('warn', data.error || 'Não foi possível aceitar este atendimento.');
         load();
       } else {
-        showToast('error', data.error || 'Erro ao aceitar.');
+        showToast('error', data.error || 'Erro ao aceitar. Tente novamente.');
+        load();
       }
     } catch (err) {
       console.error('[UrgentesPanel] catch →', err);
@@ -520,31 +528,36 @@ const UrgentesAceitasPanel = ({ onCardClick, refreshTrigger }) => {
 const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
   const { token } = useAuth();
   const [filaEvents, setFilaEvents]   = useState([]);
+  const [bloqueios, setBloqueios]     = useState([]);
   const [stats, setStats]             = useState(null);
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_URL}/api/farmaceutico/calendario`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((calendario) => {
-        setStats({
-          total:         calendario.length,
-          emAtendimento: calendario.filter((f) => f.status === 'em_atendimento').length,
-          aceitas:       calendario.filter((f) => f.status === 'aceito').length,
-        });
-        // Normaliza para o formato que WeekCalendar espera
-        setFilaEvents(
-          calendario.map((f) => ({
-            id:            f.id,
-            dateTime:      f.data_hora,
-            patient:       { name: f.paciente_nome },
-            status:        f.status === 'em_atendimento' ? 'FILA_EM_ATENDIMENTO' :
-                           f.tipo === 'urgente' ? 'FILA_URGENTE' : 'FILA_AGENDADA',
-            _tipo:         f.tipo,
-          }))
-        );
-      }).finally(() => setLoading(false));
+    Promise.all([
+      fetch(`${API_URL}/api/farmaceutico/calendario`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : [])),
+      fetch(`${API_URL}/api/farmaceutico/bloqueios`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : [])),
+    ]).then(([calendario, bls]) => {
+      setBloqueios(bls);
+      setStats({
+        total:         calendario.length,
+        emAtendimento: calendario.filter((f) => f.status === 'em_atendimento').length,
+        aceitas:       calendario.filter((f) => f.status === 'aceito').length,
+      });
+      // Normaliza para o formato que WeekCalendar espera
+      setFilaEvents(
+        calendario.map((f) => ({
+          id:            f.id,
+          dateTime:      f.data_hora,
+          patient:       { name: f.paciente_nome },
+          status:        f.status === 'em_atendimento' ? 'FILA_EM_ATENDIMENTO' :
+                         f.tipo === 'urgente' ? 'FILA_URGENTE' : 'FILA_AGENDADA',
+          _tipo:         f.tipo,
+        }))
+      );
+    }).finally(() => setLoading(false));
   }, [token, refreshTrigger]);
 
   if (loading) {
@@ -582,18 +595,406 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-teal-100 border border-teal-500 inline-block" />Em atendimento</span>
       </div>
 
-      {/* Calendário com os eventos da fila */}
-      <WeekCalendar appointments={filaEvents} onEventClick={onEventClick} />
+      {/* Calendário com os eventos da fila e bloqueios */}
+      <WeekCalendar
+        appointments={filaEvents}
+        blocks={bloqueios}
+        onEventClick={onEventClick}
+      />
     </div>
   );
 };
 
 // ── Dashboard principal ───────────────────────────────────────────────────────
 
+// ── Aba Minha agenda ──────────────────────────────────────────────────────────
+
+const fmtBloqueio = (iso) =>
+  new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+
+const AgendaTab = () => {
+  const { token } = useAuth();
+  const [bloqueios, setBloqueios]       = useState([]);
+  const [loadingBloq, setLoadingBloq]   = useState(true);
+  const [showModal, setShowModal]       = useState(false);
+  const [deletingId, setDeletingId]     = useState(null);
+  const [msg, setMsg]                   = useState(null);
+
+  const showMsg = (type, text) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg(null), 5000);
+  };
+
+  const fetchBloqueios = useCallback(async () => {
+    setLoadingBloq(true);
+    try {
+      const res = await fetch(`${API_URL}/api/farmaceutico/bloqueios`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setBloqueios(await res.json());
+    } finally {
+      setLoadingBloq(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchBloqueios(); }, [fetchBloqueios]);
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`${API_URL}/api/farmaceutico/bloqueios/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setBloqueios((prev) => prev.filter((b) => b.id !== id));
+        showMsg('success', 'Bloqueio removido.');
+      } else {
+        const d = await res.json();
+        showMsg('error', d.error || 'Erro ao remover bloqueio.');
+      }
+    } catch {
+      showMsg('error', 'Falha de conexão.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Grade semanal */}
+      <ScheduleManager />
+
+      {/* Bloqueios futuros */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">Bloqueios de agenda</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Períodos em que você não estará disponível para consultas
+            </p>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="shrink-0 bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition"
+          >
+            + Novo bloqueio
+          </button>
+        </div>
+
+        {msg && (
+          <div className={`mx-5 mt-4 px-4 py-3 rounded-xl text-xs border ${msg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+            {msg.text}
+          </div>
+        )}
+
+        <div className="p-5">
+          {loadingBloq ? (
+            <p className="text-slate-400 text-sm text-center py-4">Carregando...</p>
+          ) : bloqueios.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-2xl mb-2">📆</p>
+              <p className="text-slate-400 text-sm">Nenhum bloqueio cadastrado.</p>
+              <p className="text-slate-400 text-xs mt-1">Use o botão acima para bloquear períodos em que não estará disponível.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {bloqueios.map((b) => (
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl px-4 py-3 hover:bg-slate-50 transition"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {fmtBloqueio(b.dataInicio)} → {fmtBloqueio(b.dataFim)}
+                    </p>
+                    {b.motivo && (
+                      <p className="text-xs text-slate-500 mt-0.5">{b.motivo}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDelete(b.id)}
+                    disabled={deletingId === b.id}
+                    className="shrink-0 text-red-400 hover:text-red-600 disabled:opacity-40 text-sm font-bold transition px-2"
+                    title="Remover bloqueio"
+                  >
+                    {deletingId === b.id ? '...' : '×'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showModal && (
+        <BloqueioModal
+          onClose={() => setShowModal(false)}
+          onSaved={() => { fetchBloqueios(); showMsg('success', 'Bloqueio criado com sucesso!'); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ── Aba Templates ─────────────────────────────────────────────────────────────
+
+const PLACEHOLDER_HINT = '{paciente}, {data}, {idade}';
+
+const TemplateFormModal = ({ initial, onClose, onSaved }) => {
+  const { token } = useAuth();
+  const [titulo,    setTitulo]   = useState(initial?.titulo   ?? '');
+  const [conteudo,  setConteudo] = useState(initial?.conteudo ?? '');
+  const [saving,    setSaving]   = useState(false);
+  const [err,       setErr]      = useState(null);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!titulo.trim() || !conteudo.trim()) {
+      setErr('Título e conteúdo são obrigatórios.');
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    try {
+      const url    = initial
+        ? `${API_URL}/api/farmaceutico/templates/${initial.id}`
+        : `${API_URL}/api/farmaceutico/templates`;
+      const method = initial ? 'PUT' : 'POST';
+      const res    = await fetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ titulo: titulo.trim(), conteudo: conteudo.trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        setErr(d.error || 'Erro ao salvar.');
+        return;
+      }
+      onSaved(await res.json());
+    } catch {
+      setErr('Falha de conexão.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-bold text-slate-800 text-base">
+            {initial ? 'Editar template' : 'Novo template'}
+          </h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+        </div>
+
+        <form onSubmit={handleSave} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Título</label>
+            <input
+              type="text"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Ex.: Orientação para hipertensão"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Conteúdo</label>
+            <textarea
+              value={conteudo}
+              onChange={(e) => setConteudo(e.target.value)}
+              rows={8}
+              placeholder={`Escreva o texto do template.\nUse placeholders: ${PLACEHOLDER_HINT}`}
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y font-mono"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Placeholders disponíveis: <code className="font-mono bg-slate-100 px-1 rounded">{'{paciente}'}</code>,{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">{'{data}'}</code>,{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">{'{idade}'}</code>
+            </p>
+          </div>
+
+          {err && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{err}</p>
+          )}
+
+          <div className="flex gap-3 justify-end pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 text-sm font-bold bg-violet-700 hover:bg-violet-800 text-white rounded-xl transition disabled:opacity-50"
+            >
+              {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const TemplatesTab = () => {
+  const { token } = useAuth();
+  const [templates,   setTemplates]   = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [modalData,   setModalData]   = useState(null); // null = fechado, {} = novo, {id,...} = edição
+  const [deletingId,  setDeletingId]  = useState(null);
+  const [msg,         setMsg]         = useState(null);
+
+  const showMsg = (type, text) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg(null), 5000);
+  };
+
+  const fetchTemplates = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/farmaceutico/templates`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setTemplates(await res.json());
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+
+  const handleSaved = (saved) => {
+    setTemplates((prev) => {
+      const idx = prev.findIndex((t) => t.id === saved.id);
+      return idx >= 0
+        ? prev.map((t) => (t.id === saved.id ? saved : t))
+        : [...prev, saved].sort((a, b) => a.titulo.localeCompare(b.titulo));
+    });
+    setModalData(null);
+    showMsg('success', modalData?.id ? 'Template atualizado.' : 'Template criado.');
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Remover este template?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`${API_URL}/api/farmaceutico/templates/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setTemplates((prev) => prev.filter((t) => t.id !== id));
+        showMsg('success', 'Template removido.');
+      } else {
+        const d = await res.json();
+        showMsg('error', d.error || 'Erro ao remover.');
+      }
+    } catch {
+      showMsg('error', 'Falha de conexão.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">Templates de orientação / receita</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Textos reutilizáveis com placeholders automáticos ({PLACEHOLDER_HINT})
+            </p>
+          </div>
+          <button
+            onClick={() => setModalData({})}
+            className="shrink-0 bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition"
+          >
+            + Novo template
+          </button>
+        </div>
+
+        {msg && (
+          <div className={`mx-5 mt-4 px-4 py-3 rounded-xl text-xs border ${msg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+            {msg.text}
+          </div>
+        )}
+
+        <div className="p-5">
+          {loading ? (
+            <p className="text-slate-400 text-sm text-center py-4">Carregando...</p>
+          ) : templates.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-3xl mb-2">📝</p>
+              <p className="text-slate-400 text-sm">Nenhum template criado ainda.</p>
+              <p className="text-slate-400 text-xs mt-1">
+                Crie templates para agilizar orientações e receitas nas consultas.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {templates.map((t) => (
+                <div
+                  key={t.id}
+                  className="border border-slate-100 rounded-xl px-4 py-3 hover:bg-slate-50 transition"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">{t.titulo}</p>
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-2 whitespace-pre-wrap">
+                        {t.conteudo}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setModalData(t)}
+                        className="text-xs text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 rounded-lg px-2.5 py-1 transition"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        disabled={deletingId === t.id}
+                        className="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 rounded-lg px-2.5 py-1 transition disabled:opacity-40"
+                      >
+                        {deletingId === t.id ? '...' : 'Excluir'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {modalData !== null && (
+        <TemplateFormModal
+          initial={modalData?.id ? modalData : null}
+          onClose={() => setModalData(null)}
+          onSaved={handleSaved}
+        />
+      )}
+    </div>
+  );
+};
+
 const TABS = [
-  { id: 'calendario', label: 'Calendário' },
-  { id: 'consultas',  label: 'Consultas'  },
-  { id: 'ganhos',     label: '💰 Ganhos'  },
+  { id: 'calendario', label: 'Calendário'   },
+  { id: 'agenda',     label: 'Minha agenda' },
+  { id: 'templates',  label: 'Templates'    },
+  { id: 'consultas',  label: 'Consultas'    },
+  { id: 'ganhos',     label: '💰 Ganhos'   },
 ];
 
 const PharmacistDashboard = () => {
@@ -804,6 +1205,8 @@ const PharmacistDashboard = () => {
           <UrgentesAceitasPanel onCardClick={handleCardClick} refreshTrigger={calendarTrigger} />
         </div>
       )}
+      {activeTab === 'agenda'     && <AgendaTab />}
+      {activeTab === 'templates'  && <TemplatesTab />}
       {activeTab === 'consultas'  && <MyAppointments />}
       {activeTab === 'ganhos'     && <GanhosTab />}
       {activeTab === 'perfil'     && <PharmacistProfileEditor />}

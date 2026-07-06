@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import TermoConsentimento from '../TermoConsentimento.jsx';
+import ExcluirContaModal from '../ExcluirContaModal.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -38,7 +40,7 @@ const lbl = 'block text-xs font-semibold text-gray-600 mb-1';
 const sec = 'text-xs font-bold text-gray-500 uppercase tracking-wide mt-5 mb-3 flex items-center gap-2';
 
 const PerfilModal = ({ onClose }) => {
-  const { user, token, refreshUser } = useAuth();
+  const { user, token, refreshUser, logout } = useAuth();
   const isFarm = user?.role === 'FARMACEUTICO';
 
   const [form, setForm] = useState({
@@ -57,6 +59,14 @@ const PerfilModal = ({ onClose }) => {
   const [cepLoading, setCepLoading] = useState(false);
   const [msg, setMsg]         = useState('');
 
+  // Consentimento
+  const [consentInfo, setConsentInfo]         = useState(null); // { aceito, versao, aceitoEm }
+  const [showTermoModal, setShowTermoModal]   = useState(false);
+
+  // LGPD
+  const [downloadingDados, setDownloadingDados] = useState(false);
+  const [showExcluirModal, setShowExcluirModal] = useState(false);
+
   const set = (k) => (e) => {
     const raw = e.target.value;
     if (k === 'phone') return setForm(p => ({ ...p, phone: maskPhone(raw) }));
@@ -65,36 +75,38 @@ const PerfilModal = ({ onClose }) => {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/api/usuario/perfil`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : {})
-      .then(d => {
-        setForm({
-          name:    d.name    || '',
-          phone:   maskPhone(d.phone || ''),
-          genero:  d.genero  || '',
-          peso:    d.peso != null ? String(d.peso) : '',
-          cep:         d.cep         ? maskCEP(d.cep)  : '',
-          logradouro:  d.logradouro  || '',
-          numero:      d.numero      || '',
-          complemento: d.complemento || '',
-          bairro:      d.bairro      || '',
-          cidade:      d.cidade      || '',
-          estado:      d.estado      || '',
-          crfNumber:        d.crfNumber        || '',
-          crfUF:            d.crfUF            || '',
-          bio:              d.bio              || '',
-          tempoExperiencia: d.tempoExperiencia || '',
-        });
-        setReadOnly({
-          cpf: d.cpf ? maskCPF(d.cpf) : '',
-          data_nascimento: d.data_nascimento
-            ? new Date(d.data_nascimento).toLocaleDateString('pt-BR')
-            : '',
-        });
-        setPreview(d.photoUrl ? `${API_URL}${d.photoUrl}` : null);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingInit(false));
+    Promise.all([
+      fetch(`${API_URL}/api/usuario/perfil`,       { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : {}),
+      fetch(`${API_URL}/api/consent/telefarmacia`,  { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([d, consent]) => {
+      setForm({
+        name:    d.name    || '',
+        phone:   maskPhone(d.phone || ''),
+        genero:  d.genero  || '',
+        peso:    d.peso != null ? String(d.peso) : '',
+        cep:         d.cep         ? maskCEP(d.cep)  : '',
+        logradouro:  d.logradouro  || '',
+        numero:      d.numero      || '',
+        complemento: d.complemento || '',
+        bairro:      d.bairro      || '',
+        cidade:      d.cidade      || '',
+        estado:      d.estado      || '',
+        crfNumber:        d.crfNumber        || '',
+        crfUF:            d.crfUF            || '',
+        bio:              d.bio              || '',
+        tempoExperiencia: d.tempoExperiencia || '',
+      });
+      setReadOnly({
+        cpf: d.cpf ? maskCPF(d.cpf) : '',
+        data_nascimento: d.data_nascimento
+          ? new Date(d.data_nascimento).toLocaleDateString('pt-BR')
+          : '',
+      });
+      setPreview(d.photoUrl ? `${API_URL}${d.photoUrl}` : null);
+      if (consent) setConsentInfo(consent);
+    })
+    .catch(() => {})
+    .finally(() => setLoadingInit(false));
   }, [token]);
 
   const lookupCEP = async (cepVal) => {
@@ -169,6 +181,7 @@ const PerfilModal = ({ onClose }) => {
   const initials = (user?.name || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   return (
+    <>
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col" style={{ maxHeight: '92vh' }}>
@@ -339,6 +352,73 @@ const PerfilModal = ({ onClose }) => {
                 </>
               )}
 
+              {/* Consentimento — só paciente */}
+              {!isFarm && (
+                <>
+                  <div className={sec}><span>📋</span> Consentimento Informado</div>
+                  <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', marginBottom: 4 }}>
+                    {/* Alerta de rascunho */}
+                    <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6, padding: '5px 8px', marginBottom: 8 }}>
+                      <p style={{ fontSize: 10, color: '#92400e', margin: 0 }}>⚠️ <strong>Rascunho</strong> — texto pendente de validação jurídica. Não é definitivo.</p>
+                    </div>
+                    {consentInfo?.aceito ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <p style={{ fontSize: 12, color: '#15803d', fontWeight: 600, margin: 0 }}>✅ Termo aceito</p>
+                        <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>
+                          Versão {consentInfo.versao} — {consentInfo.aceitoEm ? new Date(consentInfo.aceitoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, margin: 0 }}>⚠️ Pendente de aceite</p>
+                        <button
+                          onClick={() => setShowTermoModal(true)}
+                          style={{ padding: '4px 10px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Ver e aceitar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* LGPD — só paciente */}
+              {!isFarm && (
+                <>
+                  <div className={sec}><span>🔒</span> Meus dados (LGPD)</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                    <button
+                      onClick={async () => {
+                        setDownloadingDados(true);
+                        try {
+                          const r = await fetch(`${API_URL}/api/lgpd/exportar`, { headers: { Authorization: `Bearer ${token}` } });
+                          if (!r.ok) throw new Error('Erro ao exportar dados.');
+                          const blob = await r.blob();
+                          const url  = URL.createObjectURL(blob);
+                          const a    = document.createElement('a');
+                          a.href     = url;
+                          a.download = `meus-dados-farmaconsulta-${new Date().toISOString().split('T')[0]}.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        } catch (err) { alert(err.message); }
+                        finally { setDownloadingDados(false); }
+                      }}
+                      disabled={downloadingDados}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 10, fontSize: 12, fontWeight: 600, color: '#374151', background: 'white', cursor: downloadingDados ? 'wait' : 'pointer', textAlign: 'left', opacity: downloadingDados ? 0.7 : 1 }}
+                    >
+                      {downloadingDados ? '⏳ Exportando...' : '⬇️ Baixar meus dados (JSON)'}
+                    </button>
+                    <button
+                      onClick={() => setShowExcluirModal(true)}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #fecaca', borderRadius: 10, fontSize: 12, fontWeight: 600, color: '#dc2626', background: '#fef2f2', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      🗑️ Excluir minha conta
+                    </button>
+                  </div>
+                </>
+              )}
+
               <div className="h-4" />
             </>
           )}
@@ -361,6 +441,21 @@ const PerfilModal = ({ onClose }) => {
         </div>
       </div>
     </div>
+
+    {/* Modais — fora do scroll */}
+    {showTermoModal && (
+      <TermoConsentimento
+        onAceito={() => {
+          setShowTermoModal(false);
+          setConsentInfo(prev => ({ ...prev, aceito: true, aceitoEm: new Date().toISOString() }));
+        }}
+        onFechar={() => setShowTermoModal(false)}
+      />
+    )}
+    {showExcluirModal && (
+      <ExcluirContaModal onClose={() => setShowExcluirModal(false)} />
+    )}
+  </>
   );
 };
 

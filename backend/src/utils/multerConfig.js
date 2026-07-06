@@ -1,8 +1,12 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
+const __dirname  = path.dirname(fileURLToPath(import.meta.url));
+// Caminho absoluto (mesma convenção de app.js/ConsultaController.js) — evita
+// gravar em diretório diferente do que é servido, dependendo do cwd do processo.
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../../uploads');
 
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });

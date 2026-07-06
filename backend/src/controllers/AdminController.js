@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { logAction } from '../utils/logAction.js';
 
 const prisma = new PrismaClient();
 
@@ -361,9 +362,10 @@ export const getLogs = async (req, res) => {
 
 export const getConfigFinanceiro = async (req, res) => {
   try {
-    const [precoRow, comissaoRow, farmaceuticos] = await Promise.all([
+    const [precoRow, comissaoRow, maxUrgRow, farmaceuticos] = await Promise.all([
       prisma.systemConfig.findUnique({ where: { key: 'preco_consulta' } }),
       prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+      prisma.systemConfig.findUnique({ where: { key: 'max_urgencias_simultaneas' } }),
       prisma.user.findMany({
         where: { role: 'FARMACEUTICO' },
         select: { id: true, name: true, email: true },
@@ -382,9 +384,10 @@ export const getConfigFinanceiro = async (req, res) => {
     for (const c of comissoes) comissaoMap[c.farmaceutico_id] = c.percentual;
 
     return res.json({
-      preco:          parseFloat(precoRow?.value ?? '50.00'),
-      comissaoPadrao: parseFloat(comissaoRow?.value ?? '70'),
-      farmaceuticos:  farmaceuticos.map((f) => ({
+      preco:                 parseFloat(precoRow?.value ?? '50.00'),
+      comissaoPadrao:        parseFloat(comissaoRow?.value ?? '70'),
+      maxUrgenciasSimult:    parseInt(maxUrgRow?.value ?? '1', 10),
+      farmaceuticos:         farmaceuticos.map((f) => ({
         id:       f.id,
         name:     f.name,
         email:    f.email,
@@ -434,10 +437,11 @@ export const setComissaoPadrao = async (req, res) => {
 export const setConfig = async (req, res) => {
   const preco      = parseFloat(req.body.preco_consulta);
   const percentual = parseFloat(req.body.comissao_padrao);
-  if (isNaN(preco) || preco <= 0)                          return res.status(400).json({ error: 'Preço inválido.' });
+  const maxUrg     = parseInt(req.body.max_urgencias_simultaneas ?? '1', 10);
+  if (isNaN(preco) || preco <= 0)                              return res.status(400).json({ error: 'Preço inválido.' });
   if (isNaN(percentual) || percentual < 0 || percentual > 100) return res.status(400).json({ error: 'Comissão inválida (0–100).' });
+  if (isNaN(maxUrg) || maxUrg < 1 || maxUrg > 20)             return res.status(400).json({ error: 'Limite de urgências inválido (1–20).' });
   try {
-    console.log(`[AdminConfig] Salvando preco=${preco} comissao=${percentual}`);
     await Promise.all([
       prisma.systemConfig.upsert({
         where:  { key: 'preco_consulta' },
@@ -449,9 +453,13 @@ export const setConfig = async (req, res) => {
         update: { value: String(percentual) },
         create: { key: 'comissao_padrao', value: String(percentual) },
       }),
+      prisma.systemConfig.upsert({
+        where:  { key: 'max_urgencias_simultaneas' },
+        update: { value: String(maxUrg) },
+        create: { key: 'max_urgencias_simultaneas', value: String(maxUrg) },
+      }),
     ]);
-    console.log(`[AdminConfig] Salvo com sucesso`);
-    return res.json({ preco_consulta: preco, comissao_padrao: percentual });
+    return res.json({ preco_consulta: preco, comissao_padrao: percentual, max_urgencias_simultaneas: maxUrg });
   } catch (err) {
     console.error('[AdminConfig] Erro ao salvar:', err);
     return res.status(500).json({ error: 'Erro ao salvar configurações.' });
@@ -554,5 +562,82 @@ export const getVisaoFinanceira = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao buscar visão financeira.' });
+  }
+};
+
+// ── POST /api/admin/farmaceuticos/:id/suspender ──────────────────────────────
+
+export const suspenderFarmaceutico = async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.user?.id ?? 'admin';
+  try {
+    const user = await prisma.user.findUnique({
+      where:   { id },
+      include: { pharmacistProfile: true },
+    });
+    if (!user?.pharmacistProfile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
+    if (user.pharmacistProfile.isSuspended) return res.status(400).json({ error: 'Farmacêutico já está suspenso.' });
+
+    let consultasCanceladas = [];
+    await prisma.$transaction(async (tx) => {
+      // Cancela FilaAgendada futuras aceitas
+      consultasCanceladas = await tx.$queryRawUnsafe(
+        `UPDATE "FilaAgendada" SET status = 'cancelado' WHERE "farmaceuticoId" = $1 AND status IN ('aceito') AND "dataHora" > NOW() RETURNING id`,
+        id
+      );
+
+      await tx.pharmacistProfile.update({
+        where: { userId: id },
+        data:  { isApproved: false, isSuspended: true, disponivelUrgencias: false },
+      });
+    });
+
+    await logAction(prisma, {
+      consultaId: null,
+      usuarioId:  adminId,
+      role:       'ADMIN',
+      acao:       'farmaceutico_suspenso',
+      detalhes:   { farmaceuticoId: id, consultasCanceladas: consultasCanceladas.length },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Farmacêutico suspenso. ${consultasCanceladas.length} consulta(s) futura(s) cancelada(s).`,
+    });
+  } catch (err) {
+    console.error('suspenderFarmaceutico error:', err);
+    return res.status(500).json({ error: 'Erro ao suspender farmacêutico.' });
+  }
+};
+
+// ── POST /api/admin/farmaceuticos/:id/reativar ───────────────────────────────
+
+export const reativarFarmaceutico = async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.user?.id ?? 'admin';
+  try {
+    const user = await prisma.user.findUnique({
+      where:   { id },
+      include: { pharmacistProfile: true },
+    });
+    if (!user?.pharmacistProfile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
+
+    await prisma.pharmacistProfile.update({
+      where: { userId: id },
+      data:  { isApproved: true, isSuspended: false, disponivelUrgencias: true },
+    });
+
+    await logAction(prisma, {
+      consultaId: null,
+      usuarioId:  adminId,
+      role:       'ADMIN',
+      acao:       'farmaceutico_reativado',
+      detalhes:   { farmaceuticoId: id },
+    });
+
+    return res.status(200).json({ success: true, message: 'Farmacêutico reativado com sucesso.' });
+  } catch (err) {
+    console.error('reativarFarmaceutico error:', err);
+    return res.status(500).json({ error: 'Erro ao reativar farmacêutico.' });
   }
 };

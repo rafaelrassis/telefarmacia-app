@@ -6,21 +6,22 @@ status: draft
 # Farmacêutico atualiza perfil público
 
 ## Contexto
-Farmacêutico quer atualizar sua bio ou especialidades (tags), exibidas ao paciente após o aceite de uma consulta na fila.
+Farmacêutico quer atualizar sua bio, especialidades (tags) ou chave PIX (usada no repasse). Bio/tags são exibidas ao paciente após o aceite de uma consulta na fila.
 
 ## Pré-condições
 - Usuário autenticado com `role: FARMACEUTICO`.
 - `PharmacistProfile` deve existir (criado no onboarding).
 
 ## Fluxo principal
-1. Farmacêutico envia `PATCH /api/pharmacists/profile` com `{ bio?, tags? }`.
+1. Farmacêutico envia `PATCH /api/pharmacists/profile` com `{ bio?, tags?, chavePix? }`.
 2. Sistema aplica apenas os campos presentes no body (patch parcial).
 3. Persiste via `prisma.pharmacistProfile.update`.
 4. Retorna HTTP 200 `{ message, profile }`.
 
 ## Fluxos alternativos
-- **Apenas `bio` enviada**: somente bio é atualizada; `tags` permanece inalterada.
+- **Apenas `bio` enviada**: somente bio é atualizada; `tags`/`chavePix` permanecem inalterados.
 - **`tags: []`**: limpa todas as tags do farmacêutico.
+- **`chavePix: ""`**: salva como `null` (limpa o campo).
 
 ## Fluxos de exceção
 - **Token inválido**: HTTP 401.

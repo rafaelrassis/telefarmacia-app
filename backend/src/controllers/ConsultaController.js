@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
-import { createWriteStream, mkdirSync } from 'fs';
+import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -55,19 +55,21 @@ export const getConsulta = async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
 
-    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
+    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
+        encaminhamentoPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
-        observacoes         = rows[0].observacoes          ?? null;
-        motivo              = rows[0].motivo               ?? null;
-        receita             = rows[0].receita              ?? [];
-        receitaPdfUrl       = rows[0].receita_pdf_url      ?? null;
-        motivoCancelamento  = rows[0].motivo_cancelamento  ?? null;
-        triagem             = rows[0].triagem              ?? null;
-        finalizacao         = rows[0].finalizacao          ?? null;
+        observacoes          = rows[0].observacoes              ?? null;
+        motivo               = rows[0].motivo                   ?? null;
+        receita              = rows[0].receita                  ?? [];
+        receitaPdfUrl        = rows[0].receita_pdf_url          ?? null;
+        encaminhamentoPdfUrl = rows[0].encaminhamento_pdf_url   ?? null;
+        motivoCancelamento   = rows[0].motivo_cancelamento      ?? null;
+        triagem              = rows[0].triagem                  ?? null;
+        finalizacao          = rows[0].finalizacao              ?? null;
       }
     } catch {}
 
@@ -106,6 +108,7 @@ export const getConsulta = async (req, res) => {
       observacoes,
       receita,
       receitaPdfUrl,
+      encaminhamentoPdfUrl,
       motivoCancelamento,
       triagem,
       finalizacao,
@@ -713,8 +716,20 @@ export const dispensarRetorno = async (req, res) => {
 export const getHistoricoPaciente = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id: patientId } = req.params;
+  const pharmacistId = req.user.id;
 
   try {
+    // Só farmacêuticos que já tiveram vínculo de atendimento com este paciente podem ver o histórico
+    const vinculo = await prisma.$queryRawUnsafe(
+      `SELECT 1 FROM "FilaAgendada" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2
+       UNION SELECT 1 FROM "FilaUrgente" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2
+       LIMIT 1`,
+      patientId, pharmacistId
+    );
+    if (vinculo.length === 0) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
     let agendadas = [], urgentes = [];
 
     try {
@@ -786,6 +801,11 @@ export const getDetalhesConsulta = async (req, res) => {
     });
     if (!data) return res.status(404).json({ error: 'Consulta não encontrada.' });
 
+    // Bloqueia farmacêutico de ver detalhes de consulta de outro farmacêutico
+    if (data.farmaceuticoId !== req.user.id) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
     let farmaceuticoNome = null;
     if (data.farmaceuticoId) {
       try {
@@ -794,19 +814,21 @@ export const getDetalhesConsulta = async (req, res) => {
       } catch {}
     }
 
-    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
+    let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
+        encaminhamentoPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
-        observacoes         = rows[0].observacoes          ?? null;
-        motivo              = rows[0].motivo               ?? null;
-        receita             = rows[0].receita              ?? [];
-        receitaPdfUrl       = rows[0].receita_pdf_url      ?? null;
-        motivoCancelamento  = rows[0].motivo_cancelamento  ?? null;
-        triagem             = rows[0].triagem              ?? null;
-        finalizacao         = rows[0].finalizacao          ?? null;
+        observacoes          = rows[0].observacoes              ?? null;
+        motivo               = rows[0].motivo                   ?? null;
+        receita              = rows[0].receita                  ?? [];
+        receitaPdfUrl        = rows[0].receita_pdf_url          ?? null;
+        encaminhamentoPdfUrl = rows[0].encaminhamento_pdf_url   ?? null;
+        motivoCancelamento   = rows[0].motivo_cancelamento      ?? null;
+        triagem              = rows[0].triagem                  ?? null;
+        finalizacao          = rows[0].finalizacao              ?? null;
       }
     } catch {}
 
@@ -829,6 +851,7 @@ export const getDetalhesConsulta = async (req, res) => {
       observacoes,
       receita,
       receitaPdfUrl,
+      encaminhamentoPdfUrl,
       motivoCancelamento,
       triagem,
       finalizacao,
@@ -850,15 +873,39 @@ export const getHistoricoCompleto = async (req, res) => {
 
   try {
     const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
-    const consulta = await model.findUnique({ where: { id }, select: { pacienteId: true, farmaceuticoId: true } });
+    const consulta = await model.findUnique({
+      where:  { id },
+      select: { pacienteId: true, farmaceuticoId: true, status: true, dependentId: true },
+    });
     if (!consulta) return res.status(404).json({ error: 'Consulta não encontrada.' });
 
-    // Só o farmacêutico responsável pode ver o histórico completo do paciente
-    if (consulta.farmaceuticoId && consulta.farmaceuticoId !== req.user.id) {
+    // Acesso permitido apenas ao farmacêutico responsável com consulta ATIVA
+    if (consulta.farmaceuticoId !== req.user.id) {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
+    if (!['aceito', 'em_atendimento'].includes(consulta.status)) {
+      return res.status(403).json({ error: 'O histórico do paciente só é acessível durante consultas ativas.' });
+    }
 
-    const patientId = consulta.pacienteId;
+    // Audit log
+    await logAction(prisma, {
+      consultaId: id,
+      usuarioId:  req.user.id,
+      role:       'FARMACEUTICO',
+      acao:       'acesso_historico',
+      detalhes:   { pacienteId: consulta.pacienteId, dependentId: consulta.dependentId ?? null },
+    });
+
+    const patientId  = consulta.pacienteId;
+    const dependentId = consulta.dependentId ?? null;
+
+    // Filtro por dependente: históricos separados por pessoa atendida
+    const depFilterAg = dependentId
+      ? `AND fa."dependentId" = '${dependentId}'`
+      : `AND fa."dependentId" IS NULL`;
+    const depFilterUr = dependentId
+      ? `AND fu."dependentId" = '${dependentId}'`
+      : `AND fu."dependentId" IS NULL`;
 
     let agendadas = [], urgentes = [];
 
@@ -870,6 +917,7 @@ export const getHistoricoCompleto = async (req, res) => {
                 fa.status,
                 fa."observacoes",
                 fa."motivo",
+                fa."triagem",
                 fa."receita",
                 fa."receita_pdf_url",
                 fa."finalizacao",
@@ -877,18 +925,20 @@ export const getHistoricoCompleto = async (req, res) => {
          FROM "FilaAgendada" fa
          LEFT JOIN "User" u ON u.id = fa."farmaceuticoId"
          WHERE fa."pacienteId" = $1
+           AND fa.id != $2
            AND fa.status IN ('concluido', 'cancelado')
+           ${depFilterAg}
          ORDER BY fa."criadoEm" DESC
          LIMIT 30`,
-        patientId
+        patientId, id
       );
     } catch {
       const rows = await prisma.filaAgendada.findMany({
-        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] }, NOT: { id } },
         select:  { id: true, dataHora: true, status: true, criadoEm: true },
         orderBy: { criadoEm: 'desc' }, take: 30,
       });
-      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
     }
 
     try {
@@ -899,6 +949,7 @@ export const getHistoricoCompleto = async (req, res) => {
                 fu.status,
                 fu."observacoes",
                 fu."motivo",
+                fu."triagem",
                 fu."receita",
                 fu."receita_pdf_url",
                 fu."finalizacao",
@@ -906,18 +957,20 @@ export const getHistoricoCompleto = async (req, res) => {
          FROM "FilaUrgente" fu
          LEFT JOIN "User" u ON u.id = fu."farmaceuticoId"
          WHERE fu."pacienteId" = $1
+           AND fu.id != $2
            AND fu.status IN ('concluido', 'cancelado')
+           ${depFilterUr}
          ORDER BY fu."criadoEm" DESC
          LIMIT 30`,
-        patientId
+        patientId, id
       );
     } catch {
       const rows = await prisma.filaUrgente.findMany({
-        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] }, NOT: { id } },
         select:  { id: true, criadoEm: true, status: true },
         orderBy: { criadoEm: 'desc' }, take: 30,
       });
-      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
     }
 
     const normalized = [...agendadas, ...urgentes]
@@ -931,6 +984,7 @@ export const getHistoricoCompleto = async (req, res) => {
         farmaceuticoNome: r.farmaceutico_nome ?? null,
         motivo:           r.motivo            ?? null,
         observacoes:      r.observacoes        ?? null,
+        triagem:          r.triagem            ?? null,
         receita:          Array.isArray(r.receita) ? r.receita : [],
         receitaPdfUrl:    r.receita_pdf_url    ?? null,
         finalizacao:      r.finalizacao        ?? null,
@@ -1029,3 +1083,201 @@ async function buildPdf({ filepath, pacienteNome, dataHora, farmNome, farmCrf, i
     out.on('error', reject);
   });
 }
+
+// ── Encaminhamento PDF ────────────────────────────────────────────────────────
+
+export const gerarEncaminhamentoPdf = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { tipo, especialidade, resumoClinico } = req.body;
+  const pharmacistId = req.user.id;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+  if (!especialidade?.trim()) return res.status(400).json({ error: 'Especialidade/serviço de destino é obrigatório.' });
+
+  try {
+    const table = tableName(tipo);
+
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT c.status, c."observacoes", c."encaminhamento_detalhe",
+              ${tipo === 'agendada' ? 'c."dataHora" as data_hora' : 'COALESCE(c."aceitoEm", c."criadoEm") as data_hora'},
+              u.name as "pacienteNome"
+       FROM "${table}" c
+       JOIN "User" u ON u.id = c."pacienteId"
+       WHERE c.id = $1 AND c."farmaceuticoId" = $2`,
+      id, pharmacistId
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    const row = rows[0];
+    if (row.status !== 'concluido') {
+      return res.status(400).json({ error: 'Conclua a consulta antes de gerar o encaminhamento.' });
+    }
+
+    const [pharmProfile, pharmUser] = await Promise.all([
+      prisma.pharmacistProfile.findUnique({
+        where:  { userId: pharmacistId },
+        select: { crfNumber: true, crfUF: true },
+      }),
+      prisma.user.findUnique({ where: { id: pharmacistId }, select: { name: true } }),
+    ]);
+
+    const UPLOAD_DIR = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+    const receitasDir = join(UPLOAD_DIR, 'receitas');
+    mkdirSync(receitasDir, { recursive: true });
+
+    const filename = `encaminhamento-${id}.pdf`;
+    const filepath = join(receitasDir, filename);
+    const pdfUrl   = `/uploads/receitas/${filename}`;
+
+    await buildEncaminhamentoPdf({
+      filepath,
+      pacienteNome:  row.pacienteNome,
+      dataHora:      row.data_hora,
+      farmNome:      pharmUser?.name ?? '—',
+      farmCrf:       pharmProfile ? `${pharmProfile.crfUF}-${pharmProfile.crfNumber}` : '—',
+      especialidade: especialidade.trim(),
+      resumoClinico: resumoClinico?.trim() ?? row.encaminhamento_detalhe ?? '',
+      observacoes:   row.observacoes ?? '',
+    });
+
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "${table}" SET "encaminhamento_pdf_url" = $1 WHERE id = $2`, pdfUrl, id
+      );
+    } catch {}
+
+    return res.status(200).json({ url: pdfUrl });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao gerar PDF de encaminhamento.' });
+  }
+};
+
+async function buildEncaminhamentoPdf({ filepath, pacienteNome, dataHora, farmNome, farmCrf, especialidade, resumoClinico, observacoes }) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const out = createWriteStream(filepath);
+    doc.pipe(out);
+
+    const W       = doc.page.width - 100;
+    const dateStr = new Date(dataHora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const VIOLET  = '#7c3aed';
+    const DARK    = '#111827';
+    const GRAY    = '#6b7280';
+    const DIVIDER = '#e5e7eb';
+
+    // ── Header ────────────────────────────────────────────────────────────────
+    doc.rect(50, 45, W, 65).fill(VIOLET);
+    doc.fillColor('white')
+       .font('Helvetica-Bold').fontSize(20).text('FarmaConsulta', 50, 57, { align: 'center', width: W })
+       .font('Helvetica').fontSize(11).text('Documento de Encaminhamento', 50, 83, { align: 'center', width: W });
+
+    // ── Info block ────────────────────────────────────────────────────────────
+    const iY = 128;
+    doc.fillColor(DARK).font('Helvetica-Bold').fontSize(10).text('Farmacêutico(a):', 50, iY);
+    doc.font('Helvetica')
+       .text(farmNome, 170, iY)
+       .text(`CRF: ${farmCrf}`, 50, iY + 16)
+       .text(`Data: ${dateStr}`, 50, iY, { align: 'right', width: W });
+
+    doc.font('Helvetica-Bold').text('Paciente:', 50, iY + 34);
+    doc.font('Helvetica').text(pacienteNome, 115, iY + 34);
+
+    // ── Divider ───────────────────────────────────────────────────────────────
+    let y = iY + 56;
+    const hr = (atY) => doc.moveTo(50, atY).lineTo(50 + W, atY).strokeColor(DIVIDER).lineWidth(1).stroke();
+    hr(y);
+    y += 14;
+
+    // ── Especialidade ─────────────────────────────────────────────────────────
+    doc.fillColor(DARK).font('Helvetica-Bold').fontSize(11).text('ESPECIALIDADE / SERVIÇO DE DESTINO:', 50, y);
+    y += 18;
+    doc.font('Helvetica').fontSize(10).text(especialidade, 50, y, { width: W });
+    y += doc.heightOfString(especialidade, { width: W }) + 10;
+
+    // ── Resumo clínico ────────────────────────────────────────────────────────
+    if (resumoClinico?.trim()) {
+      hr(y);
+      y += 14;
+      doc.fillColor(DARK).font('Helvetica-Bold').fontSize(11).text('RESUMO CLÍNICO:', 50, y);
+      y += 18;
+      doc.font('Helvetica').fontSize(10).text(resumoClinico.trim(), 50, y, { width: W });
+      y += doc.heightOfString(resumoClinico.trim(), { width: W }) + 10;
+    }
+
+    // ── Observações ───────────────────────────────────────────────────────────
+    if (observacoes?.trim()) {
+      hr(y);
+      y += 14;
+      doc.fillColor(DARK).font('Helvetica-Bold').fontSize(11).text('OBSERVAÇÕES:', 50, y);
+      y += 18;
+      doc.font('Helvetica').fontSize(10).text(observacoes.trim(), 50, y, { width: W });
+    }
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    const footY = doc.page.height - 52;
+    hr(footY - 10);
+    doc.font('Helvetica-Oblique').fontSize(9).fillColor(GRAY)
+       .text('Documento gerado por farmacêutico responsável — Telefarmácia', 50, footY, { align: 'center', width: W });
+
+    doc.end();
+    out.on('finish', resolve);
+    out.on('error', reject);
+  });
+}
+
+// ── GET /uploads/receitas/:filename (autenticado) ───────────────────────────
+// Serve receita/encaminhamento em PDF apenas para o paciente dono (ou titular
+// do dependente) e para o farmacêutico responsável pela consulta.
+
+export const getDocumentoUpload = async (req, res) => {
+  const { filename } = req.params;
+  const match = /^(receita|encaminhamento)-([0-9a-f-]{36})\.pdf$/i.exec(filename);
+  if (!match) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const [, , consultaId] = match;
+
+  try {
+    const [agendada, urgente] = await Promise.all([
+      prisma.filaAgendada.findUnique({
+        where:   { id: consultaId },
+        include: { dependent: { select: { ownerId: true } } },
+      }),
+      prisma.filaUrgente.findUnique({
+        where:   { id: consultaId },
+        include: { dependent: { select: { ownerId: true } } },
+      }),
+    ]);
+    const fila = agendada ?? urgente;
+    if (!fila) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    const userId = req.user.id;
+    const isPacienteDono = fila.pacienteId === userId || fila.dependent?.ownerId === userId;
+    let temAcessoFarmaceutico = fila.farmaceuticoId === userId;
+
+    // Continuidade do cuidado: farmacêutico com atendimento ATIVO no mesmo
+    // paciente pode ver documentos de consultas anteriores dele (mesmo
+    // padrão de acesso usado em getHistoricoCompleto).
+    if (!temAcessoFarmaceutico && req.user.role === 'FARMACEUTICO') {
+      const ativa = await prisma.$queryRawUnsafe(
+        `SELECT 1 FROM "FilaAgendada" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2 AND status IN ('aceito', 'em_atendimento')
+         UNION SELECT 1 FROM "FilaUrgente" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2 AND status IN ('aceito', 'em_atendimento')
+         LIMIT 1`,
+        fila.pacienteId, userId
+      );
+      temAcessoFarmaceutico = ativa.length > 0;
+    }
+
+    if (!isPacienteDono && !temAcessoFarmaceutico) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const UPLOAD_DIR  = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+    const filepath    = join(UPLOAD_DIR, 'receitas', filename);
+    if (!existsSync(filepath)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    createReadStream(filepath).pipe(res);
+  } catch (err) {
+    console.error('getDocumentoUpload error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar documento.' });
+  }
+};

@@ -11,6 +11,28 @@ async function getPreco() {
   return row ? parseFloat(row.value) : parseFloat(process.env.PRECO_CONSULTA_PADRAO || '50.00');
 }
 
+async function getMaxUrgSimult() {
+  const row = await prisma.systemConfig.findUnique({ where: { key: 'max_urgencias_simultaneas' } });
+  return parseInt(row?.value ?? '1', 10);
+}
+
+// Conta farmacêuticos disponíveis excluindo os que já atingiram o limite de urgências simultâneas
+async function countFarmDisponiveis(maxSimult) {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT COUNT(DISTINCT pp."userId")::int AS total
+    FROM "PharmacistProfile" pp
+    WHERE pp."isApproved" = true
+      AND pp."isOnline" = true
+      AND pp."disponivel_urgencias" = true
+      AND pp."isSuspended" = false
+      AND (
+        SELECT COUNT(*) FROM "FilaUrgente" fu
+        WHERE fu."farmaceuticoId" = pp."userId" AND fu."status" = 'em_atendimento'
+      ) < $1
+  `, maxSimult);
+  return rows[0]?.total ?? 0;
+}
+
 function nowInBR() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
 }
@@ -120,9 +142,8 @@ export const agendarConsulta = async (req, res) => {
 
 export const verificarDisponibilidade = async (req, res) => {
   try {
-    const count = await prisma.pharmacistProfile.count({
-      where: { isApproved: true, isOnline: true, disponivelUrgencias: true },
-    });
+    const maxSimult = await getMaxUrgSimult();
+    const count = await countFarmDisponiveis(maxSimult);
     return res.status(200).json({ disponivel: count > 0, total: count });
   } catch (err) {
     console.error(err);
@@ -154,10 +175,9 @@ export const agendarUrgente = async (req, res) => {
       });
     }
 
-    // Verifica se há farmacêutico disponível antes de criar/cobrar
-    const dispCount = await prisma.pharmacistProfile.count({
-      where: { isApproved: true, isOnline: true, disponivelUrgencias: true },
-    });
+    // Verifica se há farmacêutico disponível (respeitando limite de simultâneos)
+    const maxSimult = await getMaxUrgSimult();
+    const dispCount = await countFarmDisponiveis(maxSimult);
     if (dispCount === 0) {
       return res.status(503).json({
         error: 'Nenhum farmacêutico disponível para urgências no momento. Tente agendar um horário.',
@@ -332,6 +352,23 @@ export const aceitarAgendada = async (req, res) => {
       return res.status(400).json({ error: 'Conclua o atendimento atual antes de aceitar outro.' });
     }
 
+    // Verifica se o horário da consulta cai em bloqueio de agenda do farmacêutico
+    const consulta = await prisma.filaAgendada.findUnique({ where: { id }, select: { dataHora: true } });
+    if (consulta) {
+      const bloqueioAtivo = await prisma.bloqueioAgenda.findFirst({
+        where: {
+          pharmacistId,
+          dataInicio: { lte: consulta.dataHora },
+          dataFim:    { gte: consulta.dataHora },
+        },
+      });
+      if (bloqueioAtivo) {
+        return res.status(409).json({
+          error: 'Você tem um bloqueio de agenda neste horário. Remova o bloqueio antes de aceitar esta consulta.',
+        });
+      }
+    }
+
     const result = await prisma.filaAgendada.updateMany({
       where: { id, status: 'aguardando' },
       data: { status: 'aceito', farmaceuticoId: pharmacistId },
@@ -378,12 +415,20 @@ export const aceitarUrgente = async (req, res) => {
       return res.status(403).json({ error: 'Você está marcado como indisponível para urgências. Ative o toggle para aceitar.' });
     }
 
-    const [agEmAt, urEmAt] = await Promise.all([
+    const [agEmAt, maxCfg, urEmAtCount] = await Promise.all([
       prisma.filaAgendada.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
-      prisma.filaUrgente.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
+      prisma.systemConfig.findUnique({ where: { key: 'max_urgencias_simultaneas' } }),
+      prisma.filaUrgente.count({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
     ]);
-    if (agEmAt || urEmAt) {
-      return res.status(400).json({ error: 'Conclua o atendimento atual antes de aceitar outro.' });
+    const maxSimult = parseInt(maxCfg?.value ?? '1', 10);
+
+    if (agEmAt) {
+      return res.status(400).json({ error: 'Conclua o atendimento agendado atual antes de aceitar urgências.' });
+    }
+    if (urEmAtCount >= maxSimult) {
+      return res.status(400).json({
+        error: `Limite de ${maxSimult} urgência(s) simultânea(s) atingido. Conclua um atendimento antes de aceitar outro.`,
+      });
     }
 
     const result = await prisma.filaUrgente.updateMany({
@@ -553,5 +598,23 @@ export const cancelarAgendada = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao cancelar agendamento.' });
+  }
+};
+
+export const registrarAbortoTriagem = async (req, res) => {
+  try {
+    const patientId  = req.user.id;
+    const { motivo, sinais, dependentId } = req.body ?? {};
+    await logAction(prisma, {
+      consultaId: null,
+      usuarioId:  patientId,
+      role:       req.user.role,
+      acao:       'aborto_triagem',
+      detalhes:   { motivo: motivo ?? 'sinais_alerta', sinais: sinais ?? [], dependentId: dependentId ?? null },
+    });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao registrar aborto de triagem.' });
   }
 };

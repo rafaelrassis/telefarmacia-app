@@ -226,6 +226,14 @@ const MeusDocumentos = ({ onClose }) => {
                             💊 Receita
                           </span>
                         )}
+                        {doc.encaminhamentoPdfUrl && (
+                          <span style={{
+                            fontSize: 11, padding: '2px 8px', borderRadius: 99,
+                            background: '#f0fdfa', color: '#0d9488', fontWeight: 600,
+                          }}>
+                            📋 Encaminhamento
+                          </span>
+                        )}
                         {hasOrientacoes && (
                           <span style={{
                             fontSize: 11, padding: '2px 8px', borderRadius: 99,
@@ -234,7 +242,7 @@ const MeusDocumentos = ({ onClose }) => {
                             📝 Orientações
                           </span>
                         )}
-                        {!doc.hasReceita && !hasOrientacoes && (
+                        {!doc.hasReceita && !doc.encaminhamentoPdfUrl && !hasOrientacoes && (
                           <span style={{
                             fontSize: 11, padding: '2px 8px', borderRadius: 99,
                             background: '#f9fafb', color: '#9ca3af', fontWeight: 500,
@@ -258,11 +266,12 @@ const MeusDocumentos = ({ onClose }) => {
           consultaId={viewer.id}
           tipo={viewer.tipo}
           data={{
-            receita:        viewer.receita,
-            observacoes:    viewer.observacoes,
-            receitaPdfUrl:  viewer.receitaPdfUrl,
-            farmaceuticoNome: viewer.farmaceuticoNome,
-            dataHora:       viewer.dataHora,
+            receita:               viewer.receita,
+            observacoes:           viewer.observacoes,
+            receitaPdfUrl:         viewer.receitaPdfUrl,
+            encaminhamentoPdfUrl:  viewer.encaminhamentoPdfUrl,
+            farmaceuticoNome:      viewer.farmaceuticoNome,
+            dataHora:              viewer.dataHora,
           }}
           onClose={() => setViewer(null)}
         />

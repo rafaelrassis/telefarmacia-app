@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatIdade } from '../utils/formatIdade.js';
+import TemplatePicker from './TemplatePicker';
+import { abrirDocumentoAutenticado } from '../utils/abrirDocumentoAutenticado';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -29,6 +31,7 @@ const truncate = (text, max = 80) => {
 // ── Modal de detalhe do histórico ─────────────────────────────────────────────
 
 const HistoricoDetalheModal = ({ item, onClose }) => {
+  const { token } = useAuth();
   if (!item) return null;
 
   const dataFmt = new Date(item.dataHora).toLocaleString('pt-BR', {
@@ -77,6 +80,16 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
             )}
           </div>
 
+          {/* Triagem */}
+          {item.triagem && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-1.5">Triagem / Sinais e sintomas</p>
+              <div className="bg-gray-50 rounded-xl px-4 py-3">
+                <TriagemDisplay triagem={item.triagem} solicitanteNome={null} />
+              </div>
+            </div>
+          )}
+
           {/* Motivo */}
           {item.motivo && (
             <div>
@@ -93,7 +106,7 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
             </div>
           )}
 
-          {!item.motivo && !item.observacoes && (
+          {!item.triagem && !item.motivo && !item.observacoes && (
             <p className="text-sm text-gray-400 italic text-center py-2">Sem registros clínicos para este atendimento.</p>
           )}
 
@@ -123,14 +136,15 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
               </div>
 
               {item.receitaPdfUrl && (
-                <a
-                  href={`${API_URL}${item.receitaPdfUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  onClick={async () => {
+                    try { await abrirDocumentoAutenticado(`${API_URL}${item.receitaPdfUrl}`, token); }
+                    catch { /* falha silenciosa — usuário pode tentar novamente */ }
+                  }}
                   className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold text-violet-700 border border-violet-200 rounded-xl hover:bg-violet-50 transition"
                 >
                   📄 Baixar receita em PDF
-                </a>
+                </button>
               )}
             </div>
           )}
@@ -413,6 +427,10 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   const [obsError, setObsError]           = useState(false);
   const [receita, setReceita]             = useState([]);
   const [receitaPdfUrl, setReceitaPdfUrl] = useState(null);
+  const [encaminhamentoPdfUrl, setEncaminhamentoPdfUrl] = useState(null);
+  const [showEncaminhForm, setShowEncaminhForm]         = useState(false);
+  const [encaminhEspecialidade, setEncaminhEspecialidade] = useState('');
+  const [encaminhResumo, setEncaminhResumo]               = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmCancel, setConfirmCancel]             = useState(false);
   const [motivoCancelamento, setMotivoCancelamento]   = useState('');
@@ -438,6 +456,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   const [semContatoLoading, setSemContatoLoading]         = useState(false);
   const [retornoDias, setRetornoDias]   = useState('');
   const [retornoObs, setRetornoObs]     = useState('');
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const timerRef = useRef(null);
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
@@ -457,6 +476,8 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
           setObservacoes(data.observacoes || '');
           setReceita(Array.isArray(data.receita) && data.receita.length > 0 ? data.receita : []);
           setReceitaPdfUrl(data.receitaPdfUrl ?? null);
+          setEncaminhamentoPdfUrl(data.encaminhamentoPdfUrl ?? null);
+          if (data.finalizacao?.encaminhamento_detalhe) setEncaminhResumo(data.finalizacao.encaminhamento_detalhe);
           setTriagem(data.triagem ?? null);
           if (data.finalizacao) {
             const f = data.finalizacao;
@@ -621,6 +642,14 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   };
 
   // ── PDF ────────────────────────────────────────────────────────────────────
+  const handleAbrirDocumento = async (pdfUrl) => {
+    try {
+      await abrirDocumentoAutenticado(`${API_URL}${pdfUrl}`, token);
+    } catch {
+      setError('Não foi possível abrir o documento.');
+    }
+  };
+
   const handleGerarPdf = async () => {
     setError('');
     setActionLoading('pdf');
@@ -638,6 +667,32 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
         setError(data.error || 'Erro ao gerar PDF.');
       }
     } catch { setError('Falha ao gerar PDF.'); }
+    finally   { setActionLoading(null); }
+  };
+
+  // ── Encaminhamento PDF ─────────────────────────────────────────────────────
+  const handleGerarEncaminhamento = async () => {
+    if (!encaminhEspecialidade.trim()) {
+      setError('Informe a especialidade / serviço de destino.');
+      return;
+    }
+    setError('');
+    setActionLoading('encaminh');
+    try {
+      const res = await fetch(`${API_URL}/api/consulta/${id}/encaminhamento/pdf`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tipo, especialidade: encaminhEspecialidade, resumoClinico: encaminhResumo }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setEncaminhamentoPdfUrl(data.url);
+        setShowEncaminhForm(false);
+        window.open(`${API_URL}${data.url}`, '_blank');
+      } else {
+        setError(data.error || 'Erro ao gerar encaminhamento.');
+      }
+    } catch { setError('Falha ao gerar encaminhamento.'); }
     finally   { setActionLoading(null); }
   };
 
@@ -917,9 +972,34 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Observações do atendimento{canConcluir && <span className="text-red-500 ml-0.5">*</span>}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-gray-600">
+                      Observações do atendimento{canConcluir && <span className="text-red-500 ml-0.5">*</span>}
+                    </label>
+                    {podeEditar && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplatePicker((v) => !v)}
+                          className="text-xs text-violet-600 hover:text-violet-800 font-semibold border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+                        >
+                          📋 Usar template
+                        </button>
+                        {showTemplatePicker && (
+                          <TemplatePicker
+                            pacienteNome={consulta?.pacienteNome}
+                            triagem={triagem}
+                            onInsert={(text) => {
+                              setObservacoes((prev) => prev ? `${prev}\n\n${text}` : text);
+                              if (obsError) setObsError(false);
+                              setShowTemplatePicker(false);
+                            }}
+                            onClose={() => setShowTemplatePicker(false)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <textarea
                     value={observacoes}
                     onChange={(e) => { setObservacoes(e.target.value); if (obsError) setObsError(false); }}
@@ -995,7 +1075,31 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
               {/* Receita Farmacêutica */}
               {(receitaEditable || receitaReadonly) && (
                 <div className="border-t border-gray-100 pt-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700">💊 Receita Farmacêutica</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-700">💊 Receita Farmacêutica</h3>
+                    {receitaEditable && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplatePicker((v) => !v)}
+                          className="text-xs text-violet-600 hover:text-violet-800 font-semibold border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+                        >
+                          📋 Usar template
+                        </button>
+                        {showTemplatePicker && (
+                          <TemplatePicker
+                            pacienteNome={consulta?.pacienteNome}
+                            triagem={triagem}
+                            onInsert={(text) => {
+                              setObservacoes((prev) => prev ? `${prev}\n\n${text}` : text);
+                              setShowTemplatePicker(false);
+                            }}
+                            onClose={() => setShowTemplatePicker(false)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {receitaEditable ? (
                     <div className="space-y-2">
@@ -1082,14 +1186,12 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                       {(isAssigned || (isVisualizacao && receitaPdfUrl)) && (
                         <div className="flex gap-2 pt-1">
                           {receitaPdfUrl && (
-                            <a
-                              href={`${API_URL}${receitaPdfUrl}`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              onClick={() => handleAbrirDocumento(receitaPdfUrl)}
                               className="flex-1 px-4 py-2.5 text-center text-sm font-bold text-violet-700 border border-violet-200 rounded-xl hover:bg-violet-50 transition"
                             >
                               📄 Ver PDF
-                            </a>
+                            </button>
                           )}
                           {isAssigned && !isVisualizacao && (
                             <button
@@ -1106,6 +1208,83 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── Encaminhamento ── */}
+              {consulta?.status === 'concluido' && isAssigned && !isVisualizacao && (
+                <div className="border-t border-gray-100 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-700">Documento de Encaminhamento</p>
+                    {encaminhamentoPdfUrl && (
+                      <button
+                        onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
+                        className="text-xs text-violet-700 border border-violet-200 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition"
+                      >
+                        📋 Ver encaminhamento
+                      </button>
+                    )}
+                  </div>
+                  {!showEncaminhForm ? (
+                    <button
+                      onClick={() => setShowEncaminhForm(true)}
+                      className="w-full px-4 py-2.5 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition"
+                    >
+                      {encaminhamentoPdfUrl ? '↺ Re-gerar encaminhamento' : '📋 Gerar encaminhamento'}
+                    </button>
+                  ) : (
+                    <div className="space-y-3 bg-teal-50 border border-teal-200 rounded-xl p-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">
+                          Especialidade / serviço de destino <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={encaminhEspecialidade}
+                          onChange={(e) => setEncaminhEspecialidade(e.target.value)}
+                          placeholder="Ex: Cardiologia, Endocrinologia, UBS..."
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Resumo clínico (opcional)</label>
+                        <textarea
+                          value={encaminhResumo}
+                          onChange={(e) => setEncaminhResumo(e.target.value)}
+                          placeholder="Motivo do encaminhamento, histórico relevante..."
+                          rows={3}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowEncaminhForm(false)}
+                          className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleGerarEncaminhamento}
+                          disabled={actionLoading === 'encaminh'}
+                          className="flex-1 px-4 py-2 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 transition"
+                        >
+                          {actionLoading === 'encaminh' ? '⏳ Gerando...' : '📋 Gerar PDF'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Visualizar encaminhamento (modo visualização / paciente) */}
+              {isVisualizacao && encaminhamentoPdfUrl && (
+                <div className="border-t border-gray-100 pt-4">
+                  <button
+                    onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
+                    className="flex items-center gap-2 text-sm font-bold text-teal-700 border border-teal-200 rounded-xl px-4 py-2.5 hover:bg-teal-50 transition w-full justify-center"
+                  >
+                    📋 Ver documento de encaminhamento
+                  </button>
                 </div>
               )}
 

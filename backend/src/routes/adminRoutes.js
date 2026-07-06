@@ -25,6 +25,9 @@ import {
   listParceiros, createParceiro, updateParceiro, deleteParceiro,
   getMetricasParceiros, getOndeComprarConfig, toggleOndeComprar,
 } from '../controllers/PartnerPharmacyController.js';
+import { previewRepasse, registrarRepasse, listarRepasses } from '../controllers/RepasseController.js';
+import { listarConvites, criarConvite, revogarConvite } from '../controllers/ConviteController.js';
+import { suspenderFarmaceutico, reativarFarmaceutico } from '../controllers/AdminController.js';
 import { getHorarios, saveHorarios, isSistemaAberto, getDisponibilidade } from '../controllers/SistemaHorarioController.js';
 import { ping } from '../controllers/FarmaceuticoStatusController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
@@ -72,6 +75,20 @@ router.put('/admin/farmaceuticos/:id/comissao',      ...guard, setComissaoFarmac
 router.put('/admin/comissoes/:id',                   ...guard, setComissaoFarmaceutico);
 router.delete('/admin/comissoes/:id',                ...guard, deleteComissaoFarmaceutico);
 router.get('/admin/financeiro',                      ...guard, getVisaoFinanceira);
+
+// Repasses financeiros
+router.get('/admin/repasses/preview',                ...guard, previewRepasse);
+router.get('/admin/repasses',                        ...guard, listarRepasses);
+router.post('/admin/repasses',                       ...guard, registrarRepasse);
+
+// Convites de farmacêuticos
+router.get('/admin/convites',                        ...guard, listarConvites);
+router.post('/admin/convites',                       ...guard, criarConvite);
+router.delete('/admin/convites/:id',                 ...guard, revogarConvite);
+
+// Suspender / reativar farmacêutico
+router.post('/admin/farmaceuticos/:id/suspender',    ...guard, suspenderFarmaceutico);
+router.post('/admin/farmaceuticos/:id/reativar',     ...guard, reativarFarmaceutico);
 
 // Gestão de parceiros (Onde Comprar)
 router.get('/admin/parceiros',                       ...guard, listParceiros);

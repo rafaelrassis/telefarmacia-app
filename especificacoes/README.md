@@ -9,9 +9,10 @@ Documentação gerada por engenharia reversa do código em Jun/2026, atualizada 
 | Spec | Módulo(s) relacionado(s) | Link |
 |---|---|---|
 | Auth e Onboarding | `AuthController` · `authRoutes` · `authMiddleware` · login e-mail/senha · Google OAuth | [spec-auth.md](spec-auth.md) |
+| Farmacêutico: Perfil, Agenda e Disponibilidade | `PharmacistController` · `pharmacistRoutes` · `BloqueioController` · agenda semanal/slots/bloqueios | [spec-farmaceutico.md](spec-farmaceutico.md) |
 | Painel Administrativo | `AdminController` · `adminRoutes` · `adminMiddleware` · métricas · órfãs | [spec-admin.md](spec-admin.md) |
 
-> O fluxo legado de agendamento por farmacêutico específico (`AppointmentController`, `BookingWizard.jsx`, agenda semanal/slots do farmacêutico, integração Google Meet) foi removido — o único fluxo de consulta é o sistema de filas (`FilaController`), sem spec própria ainda.
+> O fluxo legado de agendamento com pagamento Stripe-like e Google Meet (`AppointmentController`, `PaymentController`, `googleCalendarService`, `BookingWizard.jsx`) foi removido — o único fluxo de consulta do paciente é o sistema de filas (`FilaController`), sem spec própria ainda. A agenda do próprio farmacêutico (`Availability`/`WeeklySchedule`/`BloqueioAgenda`) continua em uso — ver [spec-farmaceutico.md](spec-farmaceutico.md).
 
 ---
 

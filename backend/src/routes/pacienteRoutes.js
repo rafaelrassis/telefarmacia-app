@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  createPerfil, getPerfil, updatePerfil,
+  createPerfil, getPerfil, updatePerfil, patchNascimento,
   getHistorico, getAgendamentos,
   getDadosSaudeTitular, saveDadosSaudeTitular,
   getConsultaDetalhesPaciente, getReceitaPdfPaciente, getProximaConsulta,
@@ -17,6 +17,7 @@ const router = Router();
 router.post('/pacientes/perfil',          authMiddleware, createPerfil);
 router.get('/pacientes/perfil',           authMiddleware, getPerfil);
 router.put('/pacientes/perfil',           authMiddleware, updatePerfil);
+router.patch('/pacientes/perfil',         authMiddleware, patchNascimento);
 router.get('/paciente/historico',         authMiddleware, getHistorico);
 router.get('/paciente/agendamentos',      authMiddleware, getAgendamentos);
 router.get('/pacientes/dados-saude',      authMiddleware, getDadosSaudeTitular);
