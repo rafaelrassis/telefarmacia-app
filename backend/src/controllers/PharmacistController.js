@@ -1,7 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { notifyAdminNewPharmacist } from '../services/emailService.js';
+import { createReadStream, existsSync } from 'fs';
+import { join, dirname, extname } from 'path';
+import { fileURLToPath } from 'url';
 
-const prisma = new PrismaClient();
+const prisma    = new PrismaClient();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const MIME_BY_EXT = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
 
 export const getPharmacists = async (req, res) => {
   try {
@@ -784,4 +790,33 @@ export const getUrgentesAceitas = async (req, res) => {
     console.error('getUrgentesAceitas error:', err);
     return res.status(500).json({ error: 'Erro ao buscar urgentes aceitas.' });
   }
+};
+
+// ── GET /uploads/:filename (autenticado — documentos de identidade/CRF) ─────
+// Serve foto_rg_cnh/foto_crf apenas para o próprio farmacêutico dono ou admin.
+// Padrão do multerConfig: `${userId}_${fieldname}_${timestamp}.ext`.
+
+export const DOC_IDENTIDADE_REGEX = /^([0-9a-f-]{36})_(foto_rg_cnh|foto_crf)_\d+(\.[a-z0-9]+)$/i;
+
+export const getDocumentoIdentidade = async (req, res) => {
+  const { filename } = req.params;
+  const match = DOC_IDENTIDADE_REGEX.exec(filename);
+  if (!match) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const [, ownerId] = match;
+
+  // Checagem de admin ao vivo via ADMIN_EMAILS (mesmo critério do adminMiddleware),
+  // em vez de confiar na claim isAdmin do JWT, que pode ficar desatualizada por até 7 dias.
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim()).filter(Boolean);
+  const isAdmin = adminEmails.includes(req.user.email);
+
+  if (req.user.id !== ownerId && !isAdmin) {
+    return res.status(403).json({ error: 'Acesso negado.' });
+  }
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+  const filepath   = join(UPLOAD_DIR, filename);
+  if (!existsSync(filepath)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+  res.setHeader('Content-Type', MIME_BY_EXT[extname(filename).toLowerCase()] || 'application/octet-stream');
+  createReadStream(filepath).pipe(res);
 };

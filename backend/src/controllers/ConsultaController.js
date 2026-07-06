@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
-import { createWriteStream, mkdirSync } from 'fs';
+import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -716,8 +716,20 @@ export const dispensarRetorno = async (req, res) => {
 export const getHistoricoPaciente = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id: patientId } = req.params;
+  const pharmacistId = req.user.id;
 
   try {
+    // Só farmacêuticos que já tiveram vínculo de atendimento com este paciente podem ver o histórico
+    const vinculo = await prisma.$queryRawUnsafe(
+      `SELECT 1 FROM "FilaAgendada" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2
+       UNION SELECT 1 FROM "FilaUrgente" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2
+       LIMIT 1`,
+      patientId, pharmacistId
+    );
+    if (vinculo.length === 0) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
     let agendadas = [], urgentes = [];
 
     try {
@@ -800,6 +812,11 @@ export const getDetalhesConsulta = async (req, res) => {
       include: { paciente: { select: pacienteSelect } },
     });
     if (!data) return res.status(404).json({ error: 'Consulta não encontrada.' });
+
+    // Bloqueia farmacêutico de ver detalhes de consulta de outro farmacêutico
+    if (data.farmaceuticoId !== req.user.id) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
 
     let farmaceuticoNome = null;
     if (data.farmaceuticoId) {
@@ -1219,3 +1236,60 @@ async function buildEncaminhamentoPdf({ filepath, pacienteNome, dataHora, farmNo
     out.on('error', reject);
   });
 }
+
+// ── GET /uploads/receitas/:filename (autenticado) ───────────────────────────
+// Serve receita/encaminhamento em PDF apenas para o paciente dono (ou titular
+// do dependente) e para o farmacêutico responsável pela consulta.
+
+export const getDocumentoUpload = async (req, res) => {
+  const { filename } = req.params;
+  const match = /^(receita|encaminhamento)-([0-9a-f-]{36})\.pdf$/i.exec(filename);
+  if (!match) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const [, , consultaId] = match;
+
+  try {
+    const [agendada, urgente] = await Promise.all([
+      prisma.filaAgendada.findUnique({
+        where:   { id: consultaId },
+        include: { dependent: { select: { ownerId: true } } },
+      }),
+      prisma.filaUrgente.findUnique({
+        where:   { id: consultaId },
+        include: { dependent: { select: { ownerId: true } } },
+      }),
+    ]);
+    const fila = agendada ?? urgente;
+    if (!fila) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    const userId = req.user.id;
+    const isPacienteDono = fila.pacienteId === userId || fila.dependent?.ownerId === userId;
+    let temAcessoFarmaceutico = fila.farmaceuticoId === userId;
+
+    // Continuidade do cuidado: farmacêutico com atendimento ATIVO no mesmo
+    // paciente pode ver documentos de consultas anteriores dele (mesmo
+    // padrão de acesso usado em getHistoricoCompleto).
+    if (!temAcessoFarmaceutico && req.user.role === 'FARMACEUTICO') {
+      const ativa = await prisma.$queryRawUnsafe(
+        `SELECT 1 FROM "FilaAgendada" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2 AND status IN ('aceito', 'em_atendimento')
+         UNION SELECT 1 FROM "FilaUrgente" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2 AND status IN ('aceito', 'em_atendimento')
+         LIMIT 1`,
+        fila.pacienteId, userId
+      );
+      temAcessoFarmaceutico = ativa.length > 0;
+    }
+
+    if (!isPacienteDono && !temAcessoFarmaceutico) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const UPLOAD_DIR  = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+    const filepath    = join(UPLOAD_DIR, 'receitas', filename);
+    if (!existsSync(filepath)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    createReadStream(filepath).pipe(res);
+  } catch (err) {
+    console.error('getDocumentoUpload error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar documento.' });
+  }
+};

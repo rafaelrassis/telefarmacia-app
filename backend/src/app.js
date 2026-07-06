@@ -18,6 +18,9 @@ import adminRoutes from './routes/adminRoutes.js';
 import filaRoutes from './routes/filaRoutes.js';
 import consultaRoutes from './routes/consultaRoutes.js';
 import dependentRoutes from './routes/dependentRoutes.js';
+import { getDocumentoUpload } from './controllers/ConsultaController.js';
+import { getDocumentoIdentidade, DOC_IDENTIDADE_REGEX } from './controllers/PharmacistController.js';
+import { authMiddleware } from './middlewares/authMiddleware.js';
 
 const app = express();
 
@@ -54,6 +57,18 @@ const webhookLimiter = rateLimit({
 });
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+
+// Receitas/encaminhamentos contêm dados de saúde — exigem checagem de dono,
+// por isso são interceptados ANTES do static.
+app.get('/uploads/receitas/:filename', authMiddleware, getDocumentoUpload);
+
+// Documentos de identidade (RG/CRF) do onboarding de farmacêutico também são
+// PII sensível — mesma estratégia. Fotos de perfil (padrão diferente de nome
+// de arquivo) seguem para o static abaixo, sem exigir auth.
+app.get('/uploads/:filename', (req, res, next) => {
+  if (!DOC_IDENTIDADE_REGEX.test(req.params.filename)) return next();
+  return authMiddleware(req, res, () => getDocumentoIdentidade(req, res));
+});
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.get('/api/health', (req, res) => {

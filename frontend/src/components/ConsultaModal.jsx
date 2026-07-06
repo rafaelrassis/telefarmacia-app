@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatIdade } from '../utils/formatIdade.js';
 import TemplatePicker from './TemplatePicker';
+import { abrirDocumentoAutenticado } from '../utils/abrirDocumentoAutenticado';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -30,6 +31,7 @@ const truncate = (text, max = 80) => {
 // ── Modal de detalhe do histórico ─────────────────────────────────────────────
 
 const HistoricoDetalheModal = ({ item, onClose }) => {
+  const { token } = useAuth();
   if (!item) return null;
 
   const dataFmt = new Date(item.dataHora).toLocaleString('pt-BR', {
@@ -134,14 +136,15 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
               </div>
 
               {item.receitaPdfUrl && (
-                <a
-                  href={`${API_URL}${item.receitaPdfUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  onClick={async () => {
+                    try { await abrirDocumentoAutenticado(`${API_URL}${item.receitaPdfUrl}`, token); }
+                    catch { /* falha silenciosa — usuário pode tentar novamente */ }
+                  }}
                   className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold text-violet-700 border border-violet-200 rounded-xl hover:bg-violet-50 transition"
                 >
                   📄 Baixar receita em PDF
-                </a>
+                </button>
               )}
             </div>
           )}
@@ -639,6 +642,14 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   };
 
   // ── PDF ────────────────────────────────────────────────────────────────────
+  const handleAbrirDocumento = async (pdfUrl) => {
+    try {
+      await abrirDocumentoAutenticado(`${API_URL}${pdfUrl}`, token);
+    } catch {
+      setError('Não foi possível abrir o documento.');
+    }
+  };
+
   const handleGerarPdf = async () => {
     setError('');
     setActionLoading('pdf');
@@ -1175,14 +1186,12 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                       {(isAssigned || (isVisualizacao && receitaPdfUrl)) && (
                         <div className="flex gap-2 pt-1">
                           {receitaPdfUrl && (
-                            <a
-                              href={`${API_URL}${receitaPdfUrl}`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              onClick={() => handleAbrirDocumento(receitaPdfUrl)}
                               className="flex-1 px-4 py-2.5 text-center text-sm font-bold text-violet-700 border border-violet-200 rounded-xl hover:bg-violet-50 transition"
                             >
                               📄 Ver PDF
-                            </a>
+                            </button>
                           )}
                           {isAssigned && !isVisualizacao && (
                             <button
@@ -1208,14 +1217,12 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-semibold text-gray-700">Documento de Encaminhamento</p>
                     {encaminhamentoPdfUrl && (
-                      <a
-                        href={`${API_URL}${encaminhamentoPdfUrl}`}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
                         className="text-xs text-violet-700 border border-violet-200 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition"
                       >
                         📋 Ver encaminhamento
-                      </a>
+                      </button>
                     )}
                   </div>
                   {!showEncaminhForm ? (
@@ -1272,14 +1279,12 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
               {/* Visualizar encaminhamento (modo visualização / paciente) */}
               {isVisualizacao && encaminhamentoPdfUrl && (
                 <div className="border-t border-gray-100 pt-4">
-                  <a
-                    href={`${API_URL}${encaminhamentoPdfUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
                     className="flex items-center gap-2 text-sm font-bold text-teal-700 border border-teal-200 rounded-xl px-4 py-2.5 hover:bg-teal-50 transition w-full justify-center"
                   >
                     📋 Ver documento de encaminhamento
-                  </a>
+                  </button>
                 </div>
               )}
 
