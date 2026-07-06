@@ -600,3 +600,21 @@ export const cancelarAgendada = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao cancelar agendamento.' });
   }
 };
+
+export const registrarAbortoTriagem = async (req, res) => {
+  try {
+    const patientId  = req.user.id;
+    const { motivo, sinais, dependentId } = req.body ?? {};
+    await logAction(prisma, {
+      consultaId: null,
+      usuarioId:  patientId,
+      role:       req.user.role,
+      acao:       'aborto_triagem',
+      detalhes:   { motivo: motivo ?? 'sinais_alerta', sinais: sinais ?? [], dependentId: dependentId ?? null },
+    });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao registrar aborto de triagem.' });
+  }
+};

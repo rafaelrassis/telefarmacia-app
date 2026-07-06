@@ -12,6 +12,7 @@ export function formatIdade(dataNascimento) {
     (hoje.getFullYear() - nasc.getFullYear()) * 12 +
     (hoje.getMonth() - nasc.getMonth()) -
     (hoje.getDate() < nasc.getDate() ? 1 : 0);
+  if (totalMeses < 0 || totalMeses > 120 * 12) return null;
   if (totalMeses < 1) return 'menos de 1 mês';
   if (totalMeses < 12) return totalMeses === 1 ? '1 mês' : `${totalMeses} meses`;
   const anos = Math.floor(totalMeses / 12);

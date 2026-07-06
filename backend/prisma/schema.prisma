@@ -103,7 +103,7 @@ model PharmacistProfile {
   urlDocCrf         String?
   dataEnvioDoc      DateTime?
   precoConsulta        Decimal?  @db.Decimal(10, 2)
-  disponivelUrgencias  Boolean   @default(true)
+  disponivelUrgencias  Boolean   @default(true) @map("disponivel_urgencias")
   chavePix             String?
 }
 

@@ -43,6 +43,15 @@ export const createPerfil = async (req, res) => {
       return res.status(422).json({ error: 'Aceite dos termos é obrigatório.' });
     }
 
+    const nascDate = new Date(data_nascimento);
+    if (isNaN(nascDate.getTime())) {
+      return res.status(400).json({ error: 'Data de nascimento inválida.' });
+    }
+    const anosNasc = (new Date() - nascDate) / (1000 * 60 * 60 * 24 * 365.25);
+    if (anosNasc < 0 || anosNasc > 120) {
+      return res.status(400).json({ error: 'Data de nascimento fora do intervalo permitido.' });
+    }
+
     const cpf = cpfRaw.replace(/\D/g, '');
     if (!validarCPF(cpf)) {
       return res.status(400).json({ error: 'CPF inválido.' });
@@ -57,7 +66,7 @@ export const createPerfil = async (req, res) => {
       data: {
         userId,
         nomeCompleto: nome_completo.trim(),
-        dataNascimento: new Date(data_nascimento),
+        dataNascimento: nascDate,
         genero: genero.trim(),
         cpf,
         telefone: telefone?.replace(/\D/g, '') || null,
@@ -407,6 +416,35 @@ export const updatePerfil = async (req, res) => {
   } catch (error) {
     console.error('Erro ao atualizar perfil:', error);
     return res.status(500).json({ error: 'Erro ao atualizar perfil.' });
+  }
+};
+
+// ── PATCH /api/pacientes/perfil — permite definir data_nascimento quando ausente ─
+export const patchNascimento = async (req, res) => {
+  try {
+    const perfil = await prisma.pacienteProfile.findUnique({ where: { userId: req.user.id } });
+    if (!perfil) return res.status(404).json({ error: 'Perfil não encontrado.' });
+
+    const { data_nascimento } = req.body ?? {};
+    if (!data_nascimento) return res.status(400).json({ error: 'data_nascimento é obrigatória.' });
+
+    const nasc = new Date(data_nascimento);
+    if (isNaN(nasc.getTime())) return res.status(400).json({ error: 'Data inválida.' });
+    const hoje = new Date();
+    const anosAtras = (hoje - nasc) / (1000 * 60 * 60 * 24 * 365.25);
+    if (anosAtras < 0 || anosAtras > 120) {
+      return res.status(400).json({ error: 'Data fora do intervalo permitido.' });
+    }
+
+    await prisma.pacienteProfile.update({
+      where: { userId: req.user.id },
+      data:  { dataNascimento: nasc },
+    });
+
+    return res.status(200).json({ message: 'Data de nascimento atualizada.' });
+  } catch (error) {
+    console.error('Erro ao atualizar nascimento:', error);
+    return res.status(500).json({ error: 'Erro ao atualizar data de nascimento.' });
   }
 };
 

@@ -291,10 +291,16 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
         showToast('success', `🚨 Atendimento aceito! Paciente: ${data.fila?.paciente?.name ?? nomePaciente}`);
         onAccepted?.();
       } else if (res.status === 409) {
-        showToast('error', 'Consulta já foi atendida por outro farmacêutico.');
+        showToast('error', 'Esta urgência já foi aceita por outro farmacêutico.');
+        load();
+      } else if (res.status === 403) {
+        showToast('warn', data.error || 'Você está indisponível. Ative o toggle para aceitar urgências.');
+      } else if (res.status === 400) {
+        showToast('warn', data.error || 'Não foi possível aceitar este atendimento.');
         load();
       } else {
-        showToast('error', data.error || 'Erro ao aceitar.');
+        showToast('error', data.error || 'Erro ao aceitar. Tente novamente.');
+        load();
       }
     } catch (err) {
       console.error('[UrgentesPanel] catch →', err);

@@ -11,6 +11,7 @@ import {
   cancelarUrgente,
   cancelarAgendada,
   verificarDisponibilidade,
+  registrarAbortoTriagem,
 } from '../controllers/FilaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
@@ -22,7 +23,8 @@ router.post('/fila/urgente',                  authMiddleware, agendarUrgente);
 router.get('/fila/urgente/disponibilidade',   verificarDisponibilidade);          // pública, antes de /:id
 router.get('/fila/urgente/ativa',             authMiddleware, minhaUrgenteAtiva); // antes de /:id
 router.get('/fila/urgente/:id',               authMiddleware, statusUrgente);
-router.post('/fila/urgente/:id/cancelar',  authMiddleware, cancelarUrgente);
+router.post('/fila/urgente/:id/cancelar',     authMiddleware, cancelarUrgente);
+router.post('/fila/urgente/aborto-triagem',   authMiddleware, registrarAbortoTriagem);
 router.post('/fila/agendadas/:id/cancelar', authMiddleware, cancelarAgendada);
 
 // Rotas do farmacêutico (listagem + aceitar)
