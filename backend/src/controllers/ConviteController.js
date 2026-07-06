@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { logAdminAction } from '../utils/logAdminAction.js';
 
 const prisma = new PrismaClient();
 
@@ -61,6 +62,11 @@ export const criarConvite = async (req, res) => {
       },
     });
 
+    await logAdminAction(prisma, {
+      adminId, acao: 'criar_convite_farmaceutico', alvoTipo: 'convite', alvoId: convite.id,
+      detalhes: { email: convite.email, nome: convite.nome },
+    });
+
     return res.status(201).json({
       convite,
       link: `/convite/${token}`,
@@ -75,12 +81,17 @@ export const criarConvite = async (req, res) => {
 
 export const revogarConvite = async (req, res) => {
   const { id } = req.params;
+  const adminId = req.user?.id ?? 'admin';
   try {
     const convite = await prisma.conviteFarmaceutico.findUnique({ where: { id } });
     if (!convite) return res.status(404).json({ error: 'Convite não encontrado.' });
     if (convite.usado) return res.status(400).json({ error: 'Convite já utilizado, não pode ser revogado.' });
 
     await prisma.conviteFarmaceutico.delete({ where: { id } });
+    await logAdminAction(prisma, {
+      adminId, acao: 'revogar_convite_farmaceutico', alvoTipo: 'convite', alvoId: id,
+      detalhes: { email: convite.email, nome: convite.nome },
+    });
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error('revogarConvite error:', err);

@@ -228,5 +228,62 @@ export const initCronJobs = () => {
     }
   });
 
-  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | atendimentos longos (30min).');
+  // ── Job 4: agendadas AGUARDANDO cujo horário já passou + tolerância (a cada 15 min) ──
+  // Nota: FilaUrgente aguardando já expira no Job 1 (urgente_max_aguardando_min) — não duplicado aqui.
+
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      const toleranciaMin = await getConfig('tolerancia_expiracao_agendada_min', 30);
+      const limite = new Date(Date.now() - toleranciaMin * 60 * 1000);
+
+      const orfas = await prisma.filaAgendada.findMany({
+        where: { status: 'aguardando', dataHora: { lt: limite } },
+      });
+
+      for (const f of orfas) {
+        const creditoDevolvido = Number(f.creditoDebitado);
+
+        await prisma.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `UPDATE "FilaAgendada" SET status = 'cancelado', "motivo_cancelamento" = $2 WHERE id = $1`,
+            f.id, 'Expirada — nenhum farmacêutico aceitou'
+          );
+          if (creditoDevolvido > 0) {
+            const c = await tx.carteira.update({
+              where: { pacienteId: f.pacienteId },
+              data: { saldo: { increment: creditoDevolvido } },
+            });
+            await tx.transacaoCarteira.create({
+              data: {
+                carteiraId: c.id,
+                tipo:       'estorno',
+                valor:      creditoDevolvido,
+                saldoApos:  c.saldo,
+                descricao:  'Estorno — consulta agendada expirada sem farmacêutico',
+                consultaId: f.id,
+              },
+            });
+          }
+        });
+
+        await logAction(prisma, {
+          consultaId: f.id, usuarioId: null, role: 'SYSTEM',
+          acao: 'expirada', detalhes: { tipo: 'agendada', toleranciaMin },
+        });
+        await criarNotificacao({
+          userId:     f.pacienteId,
+          tipo:       'estorno',
+          titulo:     'Consulta expirada',
+          mensagem:   'Nenhum farmacêutico aceitou sua consulta agendada a tempo. Seus créditos foram devolvidos.',
+          consultaId: f.id,
+        });
+      }
+      if (orfas.length > 0)
+        console.log(`[cron] ${orfas.length} consulta(s) agendada(s) expirada(s) sem aceite.`);
+    } catch (err) {
+      console.error('[cron] Erro no job de expiração de agendadas:', err.message);
+    }
+  });
+
+  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min).');
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ConsultaModal from './ConsultaModal';
+import Paginacao from './Paginacao';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -97,7 +98,7 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
       const res = await api(`/api/admin/logs?${buildParams(pg)}`);
       if (res.ok) {
         const data = await res.json();
-        setLogs(data.items ?? []);
+        setLogs(data.data ?? []);
         setTotal(data.total ?? 0);
       }
     } catch (_) {}
@@ -136,13 +137,6 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
   };
 
   const hasAnyFilter = filterAcao || filterDe || filterAte || filterFarm || filterPac || filterTipo;
-
-  const getPageNums = () => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const pages = new Set([1, totalPages, page]);
-    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages, page + 1); i++) pages.add(i);
-    return [...pages].sort((a, b) => a - b);
-  };
 
   return (
     <div className="space-y-4">
@@ -304,46 +298,7 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
         )}
       </div>
 
-      {/* Paginação numérica */}
-      {!loading && totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, paddingTop: 4 }}>
-          <button
-            onClick={() => goPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            style={{
-              padding: '5px 10px', fontSize: 12, fontWeight: 500,
-              border: '1px solid #e5e7eb', borderRadius: 8, cursor: page === 1 ? 'not-allowed' : 'pointer',
-              background: '#fff', color: '#6b7280', opacity: page === 1 ? 0.4 : 1,
-            }}
-          >←</button>
-          {getPageNums().map((n, i, arr) => (
-            <React.Fragment key={n}>
-              {i > 0 && arr[i - 1] !== n - 1 && (
-                <span style={{ color: '#d1d5db', fontSize: 12, padding: '0 2px' }}>…</span>
-              )}
-              <button
-                onClick={() => goPage(n)}
-                style={{
-                  padding: '5px 10px', fontSize: 12, fontWeight: 600,
-                  border: n === page ? 'none' : '1px solid #e5e7eb',
-                  borderRadius: 8, cursor: 'pointer',
-                  background: n === page ? '#7c3aed' : '#fff',
-                  color: n === page ? '#fff' : '#374151',
-                }}
-              >{n}</button>
-            </React.Fragment>
-          ))}
-          <button
-            onClick={() => goPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-            style={{
-              padding: '5px 10px', fontSize: 12, fontWeight: 500,
-              border: '1px solid #e5e7eb', borderRadius: 8, cursor: page === totalPages ? 'not-allowed' : 'pointer',
-              background: '#fff', color: '#6b7280', opacity: page === totalPages ? 0.4 : 1,
-            }}
-          >→</button>
-        </div>
-      )}
+      {!loading && <Paginacao page={page} totalPages={totalPages} onPageChange={goPage} />}
 
       {/* Modal de visualização */}
       {viewingConsulta && (
@@ -358,10 +313,777 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
   );
 };
 
+// ── Sub-aba "Ações admin" ─────────────────────────────────────────────────────
+
+const AUDIT_ACAO_LABEL = {
+  aprovar_farmaceutico:            'Aprovar farmacêutico',
+  revogar_aprovacao_farmaceutico:  'Revogar aprovação',
+  descadastrar_farmaceutico:       'Descadastrar farmacêutico',
+  alterar_status_farmaceutico:     'Alterar status',
+  ativar_farmaceutico:             'Ativar farmacêutico',
+  suspender_farmaceutico:          'Suspender farmacêutico',
+  reativar_farmaceutico:           'Reativar farmacêutico',
+  toggle_sistema:                  'Abrir/fechar sistema',
+  salvar_horarios_sistema:         'Salvar horários',
+  set_preco_consulta:              'Definir preço da consulta',
+  set_comissao_padrao:             'Definir comissão padrão',
+  set_config_financeiro:           'Salvar config. financeira',
+  set_comissao_individual:         'Definir comissão individual',
+  remover_comissao_individual:     'Remover comissão individual',
+  registrar_repasse:               'Registrar repasse',
+  criar_convite_farmaceutico:      'Criar convite',
+  revogar_convite_farmaceutico:    'Revogar convite',
+  criar_parceiro:                  'Criar parceiro',
+  atualizar_parceiro:              'Atualizar parceiro',
+  excluir_parceiro:                'Excluir parceiro',
+  ajustar_carteira:                'Ajuste de carteira',
+  adicionar_admin:                 'Adicionar admin',
+  remover_admin:                   'Remover admin',
+};
+
+const AuditPanel = ({ api }) => {
+  const [items, setItems]         = useState([]);
+  const [total, setTotal]         = useState(0);
+  const [page, setPage]           = useState(1);
+  const [loading, setLoading]     = useState(true);
+  const [filterAcao, setFilterAcao] = useState('');
+
+  const LIMIT = 20;
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+  const fetchAudit = useCallback(async (pg) => {
+    setLoading(true);
+    try {
+      const p = new URLSearchParams({ page: String(pg), limit: String(LIMIT) });
+      if (filterAcao) p.set('acao', filterAcao);
+      const res = await api(`/api/admin/audit?${p}`);
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.data ?? []);
+        setTotal(data.total ?? 0);
+      }
+    } catch (_) {}
+    finally { setLoading(false); }
+  }, [api, filterAcao]);
+
+  useEffect(() => { setPage(1); fetchAudit(1); }, [fetchAudit]);
+
+  const goPage = (pg) => { setPage(pg); fetchAudit(pg); };
+
+  const fmtAlvo = (tipo, id) => {
+    if (!tipo && !id) return '—';
+    const short = id ? `${id.slice(0, 8)}…` : '';
+    return tipo ? `${tipo}${short ? ` · ${short}` : ''}` : short;
+  };
+
+  const fmtDetalhes = (det) => {
+    if (!det || Object.keys(det).length === 0) return '—';
+    try {
+      return JSON.stringify(det).slice(0, 100);
+    } catch { return '—'; }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: '#9ca3af' }}>
+          {!loading && `${total} ${total === 1 ? 'ação' : 'ações'}`}
+        </span>
+        <select value={filterAcao} onChange={(e) => setFilterAcao(e.target.value)} style={SEL_STYLE}>
+          <option value="">Todas as ações</option>
+          {Object.entries(AUDIT_ACAO_LABEL).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 text-sm">Nenhuma ação registrada.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
+                  <th className="text-left px-4 py-3">Admin</th>
+                  <th className="text-left px-4 py-3">Ação</th>
+                  <th className="text-left px-4 py-3">Alvo</th>
+                  <th className="text-left px-4 py-3">Detalhes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {items.map((it) => (
+                  <tr key={it.id} className="hover:bg-gray-50 transition">
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{fmtDt(it.createdAt)}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <p className="text-gray-800 font-medium">{it.adminNome}</p>
+                      <p className="text-gray-400">{it.adminEmail ?? ''}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center',
+                        padding: '2px 8px', borderRadius: 9999,
+                        fontSize: 11, fontWeight: 600,
+                        background: '#eff6ff', color: '#1d4ed8',
+                      }}>
+                        {AUDIT_ACAO_LABEL[it.acao] ?? it.acao}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{fmtAlvo(it.alvoTipo, it.alvoId)}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{fmtDetalhes(it.detalhes)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {!loading && <Paginacao page={page} totalPages={totalPages} onPageChange={goPage} />}
+    </div>
+  );
+};
+
+// ── Dashboard operacional em tempo real ──────────────────────────────────────
+
+const OperacionalCard = ({ api }) => {
+  const [data, setData] = useState(null);
+
+  const fetchTempoReal = useCallback(async () => {
+    try {
+      const res = await api('/api/admin/fila/tempo-real');
+      if (res.ok) setData(await res.json());
+    } catch (_) {}
+  }, [api]);
+
+  useEffect(() => {
+    fetchTempoReal();
+    const id = setInterval(fetchTempoReal, 30000);
+    return () => clearInterval(id);
+  }, [fetchTempoReal]);
+
+  if (!data) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <div className="h-16 animate-pulse bg-gray-50 rounded-lg" />
+      </div>
+    );
+  }
+
+  const alerta = data.urgentes_aguardando > 0 && data.espera_mais_antiga_min >= 10;
+  const atencao = data.urgentes_aguardando > 0 && !alerta;
+
+  const cardCls = alerta
+    ? 'bg-red-50 border-red-200'
+    : atencao
+      ? 'bg-amber-50 border-amber-200'
+      : 'bg-white border-gray-200';
+
+  const Item = ({ value, label, color = 'text-gray-900' }) => (
+    <div>
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+    </div>
+  );
+
+  return (
+    <div className={`border rounded-xl p-5 transition-colors ${cardCls}`}>
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-semibold text-gray-800 text-sm">⚡ Operação em tempo real</p>
+        <span className="text-xs text-gray-400">↻ 30s</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+        <Item
+          value={data.urgentes_aguardando}
+          label="Urgentes aguardando"
+          color={alerta ? 'text-red-600' : atencao ? 'text-amber-600' : 'text-gray-900'}
+        />
+        <Item
+          value={data.urgentes_aguardando > 0 ? `${data.espera_mais_antiga_min}min` : '—'}
+          label="Espera mais antiga"
+          color={alerta ? 'text-red-600' : 'text-gray-900'}
+        />
+        <Item value={data.agendadas_aguardando_24h} label="Agendadas (24h)" />
+        <Item value={data.em_atendimento_agora} label="Em atendimento" color="text-green-600" />
+        <Item value={data.farmaceuticos_online} label="Farmacêuticos online" color="text-blue-600" />
+        <Item value={data.disponiveis_urgencia} label="Disponíveis p/ urgência" color="text-violet-600" />
+        <Item value={data.expiradas_hoje} label="Expiradas hoje" color={data.expiradas_hoje > 0 ? 'text-amber-600' : 'text-gray-900'} />
+      </div>
+      <div className="flex gap-6 mt-4 pt-4 border-t border-black/5 text-xs text-gray-500">
+        <span>Tempo médio de aceite (7d) — urgente: <strong className="text-gray-700">{data.tempo_medio_aceite_7d_min.urgente != null ? `${data.tempo_medio_aceite_7d_min.urgente}min` : '—'}</strong></span>
+        <span>agendada: <strong className="text-gray-700">{data.tempo_medio_aceite_7d_min.agendada != null ? `${data.tempo_medio_aceite_7d_min.agendada}min` : '—'}</strong></span>
+      </div>
+    </div>
+  );
+};
+
+// ── Aba "Consultas" (fila agendada + urgente) ────────────────────────────────
+
+const CONSULTA_STATUS_CFG = {
+  aguardando:           { label: 'Aguardando',   cls: 'bg-gray-100 text-gray-600' },
+  aceito:               { label: 'Aceito',       cls: 'bg-blue-50 text-blue-700' },
+  em_atendimento:       { label: 'Em atendimento', cls: 'bg-green-50 text-green-700' },
+  concluido:            { label: 'Concluído',    cls: 'bg-violet-50 text-violet-700' },
+  cancelado:            { label: 'Cancelado',    cls: 'bg-red-50 text-red-700' },
+  expirado:             { label: 'Expirado',     cls: 'bg-gray-100 text-gray-500' },
+  remarcacao_pendente:  { label: 'Remarcação pendente', cls: 'bg-amber-50 text-amber-700' },
+};
+
+const ConsultasTab = ({ api }) => {
+  const [items, setItems]     = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [filterTipo, setFilterTipo]     = useState('todas');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDe, setFilterDe]         = useState('');
+  const [filterAte, setFilterAte]       = useState('');
+  const [filterQ, setFilterQ]           = useState('');
+  const [filterExpirada, setFilterExpirada] = useState(false);
+  const [viewingConsulta, setViewingConsulta] = useState(null);
+
+  const LIMIT = 20;
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+  const buildParams = useCallback((pg) => {
+    const p = new URLSearchParams({ page: String(pg), limit: String(LIMIT) });
+    if (filterTipo !== 'todas') p.set('tipo', filterTipo);
+    if (filterStatus)           p.set('status', filterStatus);
+    if (filterDe)               p.set('de', filterDe);
+    if (filterAte)               p.set('ate', filterAte);
+    if (filterQ.trim())         p.set('q', filterQ.trim());
+    if (filterExpirada)         p.set('expirada', 'true');
+    return p;
+  }, [filterTipo, filterStatus, filterDe, filterAte, filterQ, filterExpirada]);
+
+  const fetchConsultas = useCallback(async (pg) => {
+    setLoading(true);
+    try {
+      const res = await api(`/api/admin/consultas?${buildParams(pg)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.data ?? []);
+        setTotal(data.total ?? 0);
+      }
+    } catch (_) {}
+    finally { setLoading(false); }
+  }, [api, buildParams]);
+
+  useEffect(() => { setPage(1); fetchConsultas(1); }, [fetchConsultas]);
+
+  const goPage = (pg) => { setPage(pg); fetchConsultas(pg); };
+
+  const hasAnyFilter = filterTipo !== 'todas' || filterStatus || filterDe || filterAte || filterQ;
+
+  return (
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Tipo</label>
+          <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={SEL_STYLE}>
+            <option value="todas">Todas</option>
+            <option value="agendada">Agendada</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Status</label>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={SEL_STYLE}>
+            <option value="">Todos</option>
+            {Object.entries(CONSULTA_STATUS_CFG).map(([key, cfg]) => (
+              <option key={key} value={key}>{cfg.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">De</label>
+          <input type="date" value={filterDe} onChange={(e) => setFilterDe(e.target.value)} style={SEL_STYLE} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Até</label>
+          <input type="date" value={filterAte} onChange={(e) => setFilterAte(e.target.value)} style={SEL_STYLE} />
+        </div>
+        <div className="flex flex-col gap-1" style={{ minWidth: 200 }}>
+          <label className="text-xs text-gray-500 font-medium">Buscar (nome/e-mail)</label>
+          <input
+            type="text" value={filterQ} onChange={(e) => setFilterQ(e.target.value)}
+            placeholder="Paciente ou farmacêutico" style={SEL_STYLE}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">&nbsp;</label>
+          <label className="flex items-center gap-2 text-xs text-gray-600 font-medium" style={{ height: 38 }}>
+            <input
+              type="checkbox" checked={filterExpirada}
+              onChange={(e) => setFilterExpirada(e.target.checked)}
+            />
+            Só expiradas
+          </label>
+        </div>
+        {(hasAnyFilter || filterExpirada) && (
+          <button
+            onClick={() => { setFilterTipo('todas'); setFilterStatus(''); setFilterDe(''); setFilterAte(''); setFilterQ(''); setFilterExpirada(false); }}
+            style={{ ...SEL_STYLE, background: '#fff', color: '#6b7280', cursor: 'pointer' }}
+          >
+            Limpar filtros
+          </button>
+        )}
+        {!loading && (
+          <span className="text-xs text-gray-400 self-end mb-1.5">
+            {total} {total === 1 ? 'resultado' : 'resultados'}
+          </span>
+        )}
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 text-sm">Nenhuma consulta encontrada.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
+                  <th className="text-left px-4 py-3">Tipo</th>
+                  <th className="text-left px-4 py-3">Paciente</th>
+                  <th className="text-left px-4 py-3">Farmacêutico</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3">Motivo</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {items.map((c) => {
+                  const cfg = CONSULTA_STATUS_CFG[c.status] ?? { label: c.status, cls: 'bg-gray-100 text-gray-600' };
+                  return (
+                    <tr key={`${c.tipo}-${c.id}`} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{fmtDt(c.dataHora)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.tipo === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-violet-100 text-violet-700'}`}>
+                          {c.tipo === 'urgente' ? 'Urgente' : 'Agendada'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <p className="text-gray-800 font-medium">{c.paciente?.name ?? '—'}</p>
+                        <p className="text-gray-400">{c.paciente?.email ?? ''}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <p className="text-gray-700">{c.farmaceutico?.name ?? '—'}</p>
+                        <p className="text-gray-400">{c.farmaceutico?.email ?? ''}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>
+                          {cfg.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{c.motivo || '—'}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setViewingConsulta({ id: c.id, tipo: c.tipo })}
+                          style={{
+                            background: 'transparent', border: '1.5px solid #ddd6fe',
+                            color: '#7c3aed', borderRadius: 8, padding: '4px 10px',
+                            fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          👁 Ver consulta
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {!loading && <Paginacao page={page} totalPages={totalPages} onPageChange={goPage} />}
+
+      {viewingConsulta && (
+        <ConsultaModal
+          id={viewingConsulta.id}
+          tipo={viewingConsulta.tipo}
+          modo="visualizacao"
+          onClose={() => setViewingConsulta(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+// ── Aba "Logs" com sub-abas: Consultas / Ações admin ─────────────────────────
+
+const LogsTabContainer = ({ api, pharmacists, patients }) => {
+  const [subTab, setSubTab] = useState('consultas');
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 border-b border-gray-100">
+        {[{ id: 'consultas', label: 'Consultas' }, { id: 'admin', label: 'Ações admin' }].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+              subTab === t.id ? 'border-violet-700 text-violet-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {subTab === 'consultas' && <LogsPanel api={api} pharmacists={pharmacists} patients={patients} />}
+      {subTab === 'admin' && <AuditPanel api={api} />}
+    </div>
+  );
+};
+
+// ── Modal: ocorrências (devoluções / sem-contato) de um farmacêutico ────────
+
+const OCORRENCIA_ACAO_LABEL = {
+  devolvido:    'Devolução à fila',
+  sem_contato:  'Sem contato com paciente',
+};
+
+const OcorrenciasModal = ({ api, farmaceutico, onClose }) => {
+  const [items, setItems]     = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const [loading, setLoading] = useState(true);
+  const LIMIT = 10;
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+  const fetchPage = useCallback(async (pg) => {
+    setLoading(true);
+    try {
+      const res = await api(`/api/admin/farmaceuticos/${farmaceutico.id}/ocorrencias?page=${pg}&limit=${LIMIT}`);
+      if (res.ok) {
+        const d = await res.json();
+        setItems(d.data ?? []);
+        setTotal(d.total ?? 0);
+      }
+    } catch (_) {}
+    finally { setLoading(false); }
+  }, [api, farmaceutico.id]);
+
+  useEffect(() => { fetchPage(1); }, [fetchPage]);
+
+  const goPage = (pg) => { setPage(pg); fetchPage(pg); };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-gray-900">Ocorrências (30d)</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{farmaceutico.name} — {farmaceutico.email}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">Nenhuma ocorrência nos últimos 30 dias.</p>
+        ) : (
+          <>
+            <ul className="divide-y divide-gray-100">
+              {items.map((it) => (
+                <li key={it.id} className="py-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      it.acao === 'devolvido' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                    }`}>
+                      {OCORRENCIA_ACAO_LABEL[it.acao] ?? it.acao}
+                    </span>
+                    <span className="text-xs text-gray-400">{fmtDt(it.criadoEm)}</span>
+                  </div>
+                  {it.detalhes?.motivo && (
+                    <p className="text-xs text-gray-500 mt-1">Motivo: {it.detalhes.motivo}</p>
+                  )}
+                  {it.detalhes?.tipo && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Consulta {it.detalhes.tipo}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-gray-100">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => goPage(page - 1)}
+                  className="text-xs px-2 py-1 rounded border border-gray-200 disabled:opacity-40"
+                >
+                  ‹
+                </button>
+                <span className="text-xs text-gray-500">{page} / {totalPages}</span>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => goPage(page + 1)}
+                  className="text-xs px-2 py-1 rounded border border-gray-200 disabled:opacity-40"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Modal: ajuste manual de saldo (carteira) de um paciente ─────────────────
+
+const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) => {
+  const [valor, setValor]   = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr]       = useState('');
+
+  const handleSubmit = async () => {
+    setErr('');
+    const num = parseFloat(valor);
+    if (isNaN(num) || num === 0) { setErr('Informe um valor diferente de zero.'); return; }
+    if (motivo.trim().length < 3) { setErr('Informe um motivo (mín. 3 caracteres).'); return; }
+    setSaving(true);
+    try {
+      const res = await api(`/api/admin/carteira/${paciente.id}/ajuste`, {
+        method: 'POST',
+        body: JSON.stringify({ valor: num, motivo: motivo.trim() }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast?.('success', '✅ Saldo ajustado!');
+        onSuccess?.(paciente.id, d.saldo);
+        onClose();
+      } else {
+        setErr(d.error || 'Erro ao ajustar saldo.');
+      }
+    } catch {
+      setErr('Falha de conexão.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+        <h3 className="font-bold text-gray-900 mb-1">Ajustar saldo</h3>
+        <p className="text-xs text-gray-500 mb-4">{paciente.name} — {paciente.email}</p>
+        <p className="text-xs text-gray-500 mb-4">
+          Saldo atual: <strong className="text-gray-700">R$ {(paciente.saldo ?? 0).toFixed(2)}</strong>
+        </p>
+
+        <label className="text-xs text-gray-500 font-medium">Valor (use negativo para remover)</label>
+        <input
+          type="number" step="0.01" value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          placeholder="Ex.: 20 ou -20"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-violet-400 outline-none"
+        />
+
+        <label className="text-xs text-gray-500 font-medium">Motivo</label>
+        <textarea
+          value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3}
+          placeholder="Ex.: Compensação por erro no atendimento"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-violet-400 outline-none resize-none"
+        />
+
+        {err && <p className="text-xs text-red-600 mb-3">{err}</p>}
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex-1 px-4 py-2.5 text-sm font-bold bg-violet-600 text-white rounded-xl hover:bg-violet-700 disabled:opacity-60 transition">
+            {saving ? 'Salvando...' : 'Confirmar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Aba "Administradores" ────────────────────────────────────────────────────
+
+const AdminsTab = ({ api, showToast, currentUserEmail }) => {
+  const [admins, setAdmins]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newEmail, setNewEmail] = useState('');
+  const [adding, setAdding]     = useState(false);
+  const [removing, setRemoving] = useState({});
+  const [confirmRemove, setConfirmRemove] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api('/api/admin/admins');
+      if (res.ok) {
+        const d = await res.json();
+        setAdmins(d.data ?? []);
+      }
+    } finally { setLoading(false); }
+  }, [api]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
+    setAdding(true);
+    try {
+      const res = await api('/api/admin/admins', { method: 'POST', body: JSON.stringify({ email }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast('success', '✅ Administrador adicionado!');
+        setNewEmail('');
+        load();
+      } else {
+        showToast('error', d.error || 'Erro ao adicionar administrador.');
+      }
+    } catch { showToast('error', 'Falha de conexão.'); }
+    finally { setAdding(false); }
+  };
+
+  const handleRemove = async (email) => {
+    setRemoving((r) => ({ ...r, [email]: true }));
+    try {
+      const res = await api(`/api/admin/admins/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast('success', 'Administrador removido.');
+        setConfirmRemove(null);
+        load();
+      } else {
+        showToast('error', d.error || 'Erro ao remover administrador.');
+      }
+    } catch { showToast('error', 'Falha de conexão.'); }
+    finally { setRemoving((r) => ({ ...r, [email]: false })); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <h3 className="font-semibold text-gray-800 text-sm mb-3">Adicionar administrador</h3>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+            placeholder="email@exemplo.com"
+            className="flex-1 min-w-[240px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+          />
+          <button
+            onClick={handleAdd}
+            disabled={adding || !newEmail.trim()}
+            className="text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg disabled:opacity-40 transition"
+          >
+            {adding ? 'Adicionando...' : 'Adicionar'}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          O e-mail precisa corresponder à conta usada no login. Acesso liberado imediatamente.
+        </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : admins.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 text-sm">Nenhum administrador configurado.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <th className="text-left px-4 py-3">E-mail</th>
+                <th className="text-left px-4 py-3">Origem</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {admins.map((a) => (
+                <tr key={a.email} className="hover:bg-gray-50 transition">
+                  <td className="px-4 py-3 font-medium text-gray-800">
+                    {a.email}
+                    {a.email === currentUserEmail && <span className="ml-2 text-[10px] text-violet-500 font-semibold">(você)</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      a.origem === 'env' ? 'bg-gray-100 text-gray-500' : 'bg-violet-50 text-violet-700'
+                    }`}>
+                      {a.origem === 'env' ? 'Variável de ambiente' : 'Painel'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {a.removivel && a.email !== currentUserEmail && (
+                      <button
+                        onClick={() => setConfirmRemove(a.email)}
+                        disabled={removing[a.email]}
+                        className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-40"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {confirmRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmRemove(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="font-bold text-gray-900 mb-2">Remover administrador?</h3>
+            <p className="text-sm text-gray-600 mb-5">
+              <strong>{confirmRemove}</strong> perderá acesso ao painel administrativo.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmRemove(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleRemove(confirmRemove)}
+                disabled={removing[confirmRemove]}
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 transition">
+                {removing[confirmRemove] ? 'Removendo...' : 'Remover'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AdminPanel = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const currentUserEmail = (user?.email || '').toLowerCase();
   const [tab, setTab] = useState('overview');
   const [metricas, setMetricas]       = useState(null);
   const [pharmacists, setPharmacists] = useState([]);
@@ -384,9 +1106,14 @@ const AdminPanel = () => {
   const [finPreco, setFinPreco]             = useState('');
   const [finComissao, setFinComissao]       = useState('');
   const [finMaxUrg, setFinMaxUrg]           = useState('1');
+  const [finTolerancia, setFinTolerancia]   = useState('30');
+  const [finLimiteOcorrencias, setFinLimiteOcorrencias] = useState('5');
   const [finSaving, setFinSaving]           = useState(false);
+  const [viewingOcorrencias, setViewingOcorrencias] = useState(null);
+  const [ajustandoCarteira, setAjustandoCarteira] = useState(null);
   const [finPeriodoDe, setFinPeriodoDe]     = useState('');
   const [finPeriodoAte, setFinPeriodoAte]   = useState('');
+  const [finExportLoading, setFinExportLoading] = useState(false);
   const [editingComissao, setEditingComissao] = useState({});
   const [savingComissao, setSavingComissao] = useState({});
 
@@ -412,6 +1139,7 @@ const AdminPanel = () => {
   const [repasseConfirming,   setRepasseConfirming]   = useState(false);
   const [repasseHistorico,    setRepasseHistorico]    = useState([]);
   const [repasseHistLoading,  setRepasseHistLoading]  = useState(false);
+  const [repasseExportLoading, setRepasseExportLoading] = useState(false);
   const [repasseExpanded,     setRepasseExpanded]     = useState({});
 
   // Convites de farmacêuticos
@@ -446,8 +1174,8 @@ const AdminPanel = () => {
       api('/api/admin/horarios'),
     ]);
     if (mRes.ok)   setMetricas(await mRes.json());
-    if (pRes.ok)   setPharmacists(await pRes.json());
-    if (patRes.ok) setPatients(await patRes.json());
+    if (pRes.ok)   { const pd = await pRes.json(); setPharmacists(pd.data ?? []); }
+    if (patRes.ok) { const patd = await patRes.json(); setPatients(patd.data ?? []); }
     if (sRes.ok)   { const sd = await sRes.json(); setSistemaAberto(sd.sistema_aberto); }
     if (hRes.ok) {
       const h = await hRes.json();
@@ -473,9 +1201,34 @@ const AdminPanel = () => {
         setFinPreco(String(d.preco));
         setFinComissao(String(d.comissaoPadrao));
         setFinMaxUrg(String(d.maxUrgenciasSimult ?? 1));
+        setFinTolerancia(String(d.toleranciaExpiracaoAgendadaMin ?? 30));
+        setFinLimiteOcorrencias(String(d.limiteOcorrencias30d ?? 5));
       }
     } finally { setFinLoading(false); }
   }, [api]);
+
+  useEffect(() => { loadFinanceiro(); }, [loadFinanceiro]);
+
+  const downloadCsv = async (path, filename) => {
+    try {
+      const res = await api(path);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        showToast('error', 'Erro ao exportar CSV.');
+      }
+    } catch {
+      showToast('error', 'Falha de conexão.');
+    }
+  };
 
   const loadVisaoFinanceira = useCallback(async (de, ate) => {
     setFinVisaoLoading(true);
@@ -801,11 +1554,13 @@ const AdminPanel = () => {
     { id: 'horarios',     label: 'Horários' },
     { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})` },
     { id: 'patients',     label: `Pacientes (${patients.length})` },
+    { id: 'consultas',    label: 'Consultas' },
     { id: 'logs',         label: 'Logs' },
     { id: 'financeiro',   label: '💰 Financeiro' },
     { id: 'repasses',     label: '💳 Repasses' },
     { id: 'convites',     label: '✉️ Convites' },
     { id: 'parceiros',    label: '🤝 Parceiros' },
+    { id: 'admins',       label: '🔐 Admins' },
   ];
 
   return (
@@ -839,6 +1594,8 @@ const AdminPanel = () => {
       {/* ── OVERVIEW ── */}
       {tab === 'overview' && (
         <div className="space-y-4">
+          <OperacionalCard api={api} />
+
           {/* Sistema de agendamentos */}
           <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between gap-4">
             <div>
@@ -988,6 +1745,7 @@ const AdminPanel = () => {
                     <th className="text-left px-4 py-3">CRF</th>
                     <th className="text-left px-4 py-3">Documentos</th>
                     <th className="text-left px-4 py-3">Consultas</th>
+                    <th className="text-left px-4 py-3">Ocorrências (30d)</th>
                     <th className="text-left px-4 py-3">Cadastro</th>
                     <th className="text-left px-4 py-3">Status</th>
                     <th className="text-left px-4 py-3">Ações</th>
@@ -1022,6 +1780,23 @@ const AdminPanel = () => {
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {p.consultasCount ?? 0}
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const oc = p.ocorrencias30d ?? 0;
+                            const limite = parseInt(finLimiteOcorrencias, 10) || 5;
+                            const alerta = oc >= limite;
+                            return (
+                              <button
+                                onClick={() => setViewingOcorrencias(p)}
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-full transition ${
+                                  alerta ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                }`}
+                              >
+                                {oc}
+                              </button>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmt(p.createdAt)}</td>
                         <td className="px-4 py-3">
@@ -1102,7 +1877,9 @@ const AdminPanel = () => {
                     <th className="text-left px-4 py-3">Nome</th>
                     <th className="text-left px-4 py-3">E-mail</th>
                     <th className="text-left px-4 py-3">Consultas</th>
+                    <th className="text-left px-4 py-3">Saldo</th>
                     <th className="text-left px-4 py-3">Cadastro</th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1111,7 +1888,18 @@ const AdminPanel = () => {
                       <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
                       <td className="px-4 py-3 text-gray-500">{p.email}</td>
                       <td className="px-4 py-3 text-gray-600">{p.consultasCount ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-700 font-medium">
+                        R$ {(p.saldo ?? 0).toFixed(2)}
+                      </td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmt(p.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setAjustandoCarteira(p)}
+                          className="text-xs font-semibold border border-violet-200 text-violet-700 hover:bg-violet-50 px-3 py-1.5 rounded-lg transition whitespace-nowrap"
+                        >
+                          Ajustar saldo
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1121,8 +1909,11 @@ const AdminPanel = () => {
         </div>
       )}
 
+      {/* ── CONSULTAS (fila) ── */}
+      {tab === 'consultas' && <ConsultasTab api={api} />}
+
       {/* ── LOGS ── */}
-      {tab === 'logs' && <LogsPanel api={api} pharmacists={pharmacists} patients={patients} />}
+      {tab === 'logs' && <LogsTabContainer api={api} pharmacists={pharmacists} patients={patients} />}
 
       {/* ── FINANCEIRO ── */}
       {tab === 'financeiro' && (
@@ -1149,6 +1940,20 @@ const AdminPanel = () => {
                   className="text-sm font-medium bg-violet-700 hover:bg-violet-800 text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
                 >
                   {finVisaoLoading ? '…' : 'Filtrar'}
+                </button>
+                <button
+                  onClick={async () => {
+                    setFinExportLoading(true);
+                    const p = new URLSearchParams();
+                    if (finPeriodoDe)  p.set('de', finPeriodoDe);
+                    if (finPeriodoAte) p.set('ate', finPeriodoAte);
+                    await downloadCsv(`/api/admin/financeiro/export?${p}`, `financeiro-${new Date().toISOString().split('T')[0]}.csv`);
+                    setFinExportLoading(false);
+                  }}
+                  disabled={finExportLoading}
+                  className="text-sm font-medium bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg transition disabled:opacity-50"
+                >
+                  {finExportLoading ? 'Exportando…' : '📥 Exportar CSV'}
                 </button>
               </div>
             </div>
@@ -1252,25 +2057,72 @@ const AdminPanel = () => {
                   </p>
                 </div>
 
+                {/* Tolerância de expiração de consulta agendada */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 6 }}>
+                    Tolerância p/ expirar consulta agendada sem aceite (min)
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="240"
+                    step="1"
+                    value={finTolerancia}
+                    onChange={(e) => setFinTolerancia(e.target.value)}
+                    style={{ width: '100%', maxWidth: 120, border: '1px solid #e5e7eb', borderRadius: 12, padding: '10px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="30"
+                  />
+                  <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                    Após o horário marcado + esse prazo sem aceite, a consulta expira com estorno automático. Default: 30 min.
+                  </p>
+                </div>
+
+                {/* Limite de ocorrências (devoluções/sem-contato) em 30 dias */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 6 }}>
+                    Limite de ocorrências (30d) p/ alerta de farmacêutico
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={finLimiteOcorrencias}
+                    onChange={(e) => setFinLimiteOcorrencias(e.target.value)}
+                    style={{ width: '100%', maxWidth: 120, border: '1px solid #e5e7eb', borderRadius: 12, padding: '10px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="5"
+                  />
+                  <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                    Devoluções + "sem contato" nos últimos 30 dias. Acima disso, o farmacêutico é destacado na aba Farmacêuticos. Default: 5.
+                  </p>
+                </div>
+
                 {/* Botão único salvar ambos */}
                 <button
                   disabled={finSaving}
                   onClick={async () => {
-                    const preco      = parseFloat(finPreco);
-                    const percentual = parseFloat(finComissao);
-                    const maxUrg     = parseInt(finMaxUrg, 10);
+                    const preco       = parseFloat(finPreco);
+                    const percentual  = parseFloat(finComissao);
+                    const maxUrg      = parseInt(finMaxUrg, 10);
+                    const tolerancia  = parseInt(finTolerancia, 10);
+                    const limiteOcorrencias = parseInt(finLimiteOcorrencias, 10);
                     if (isNaN(preco) || preco <= 0)                              { showToast('error', 'Preço inválido.'); return; }
                     if (isNaN(percentual) || percentual < 0 || percentual > 100) { showToast('error', 'Comissão inválida (0–100).'); return; }
                     if (isNaN(maxUrg) || maxUrg < 1 || maxUrg > 20)             { showToast('error', 'Limite de urgências inválido (1–20).'); return; }
+                    if (isNaN(tolerancia) || tolerancia < 5 || tolerancia > 240) { showToast('error', 'Tolerância de expiração inválida (5–240 min).'); return; }
+                    if (isNaN(limiteOcorrencias) || limiteOcorrencias < 1 || limiteOcorrencias > 50) { showToast('error', 'Limite de ocorrências inválido (1–50).'); return; }
                     setFinSaving(true);
                     try {
                       const res = await api('/api/admin/config', {
                         method: 'PUT',
-                        body: JSON.stringify({ preco_consulta: preco, comissao_padrao: percentual, max_urgencias_simultaneas: maxUrg }),
+                        body: JSON.stringify({
+                          preco_consulta: preco, comissao_padrao: percentual, max_urgencias_simultaneas: maxUrg,
+                          tolerancia_expiracao_agendada_min: tolerancia, limite_ocorrencias_30d: limiteOcorrencias,
+                        }),
                       });
                       if (res.ok) {
                         showToast('success', '✅ Configurações salvas!');
-                        setFinConfig((prev) => prev ? { ...prev, preco, comissaoPadrao: percentual, maxUrgenciasSimult: maxUrg } : prev);
+                        setFinConfig((prev) => prev ? { ...prev, preco, comissaoPadrao: percentual, maxUrgenciasSimult: maxUrg, toleranciaExpiracaoAgendadaMin: tolerancia, limiteOcorrencias30d: limiteOcorrencias } : prev);
                       } else {
                         const d = await res.json().catch(() => ({}));
                         showToast('error', d.error || 'Erro ao salvar.');
@@ -1747,9 +2599,24 @@ const AdminPanel = () => {
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800 text-sm">Histórico de repasses</h3>
-              <button onClick={() => loadRepasseHistorico(repasseFarmId)} className="text-xs text-violet-600 hover:underline">
-                Atualizar
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    setRepasseExportLoading(true);
+                    const p = new URLSearchParams();
+                    if (repasseFarmId) p.set('pharmacistId', repasseFarmId);
+                    await downloadCsv(`/api/admin/repasses/export?${p}`, `repasses-${new Date().toISOString().split('T')[0]}.csv`);
+                    setRepasseExportLoading(false);
+                  }}
+                  disabled={repasseExportLoading}
+                  className="text-xs font-medium text-violet-600 hover:underline disabled:opacity-50"
+                >
+                  {repasseExportLoading ? 'Exportando…' : '📥 Exportar CSV'}
+                </button>
+                <button onClick={() => loadRepasseHistorico(repasseFarmId)} className="text-xs text-violet-600 hover:underline">
+                  Atualizar
+                </button>
+              </div>
             </div>
             {repasseHistLoading ? (
               <p className="text-sm text-gray-400 text-center py-8">Carregando...</p>
@@ -1913,6 +2780,9 @@ const AdminPanel = () => {
         </div>
       )}
 
+      {/* ── ADMINISTRADORES ── */}
+      {tab === 'admins' && <AdminsTab api={api} showToast={showToast} currentUserEmail={currentUserEmail} />}
+
       {/* Dialog: confirmar exclusão de parceiro */}
       {confirmDelParceiro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1997,6 +2867,26 @@ const AdminPanel = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {viewingOcorrencias && (
+        <OcorrenciasModal
+          api={api}
+          farmaceutico={viewingOcorrencias}
+          onClose={() => setViewingOcorrencias(null)}
+        />
+      )}
+
+      {ajustandoCarteira && (
+        <AjusteCarteiraModal
+          api={api}
+          paciente={ajustandoCarteira}
+          showToast={showToast}
+          onClose={() => setAjustandoCarteira(null)}
+          onSuccess={(pacienteId, novoSaldo) => {
+            setPatients((prev) => prev.map((p) => (p.id === pacienteId ? { ...p, saldo: novoSaldo } : p)));
+          }}
+        />
       )}
     </div>
   );

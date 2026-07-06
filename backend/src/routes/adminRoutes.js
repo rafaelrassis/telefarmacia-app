@@ -20,12 +20,21 @@ import {
   setComissaoFarmaceutico,
   deleteComissaoFarmaceutico,
   getVisaoFinanceira,
+  exportFinanceiro,
+  getAdminAuditLog,
+  getConsultasAdmin,
+  getFilaTempoReal,
+  getOcorrenciasFarmaceutico,
+  ajustarCarteira,
+  listAdmins,
+  addAdmin,
+  removeAdmin,
 } from '../controllers/AdminController.js';
 import {
   listParceiros, createParceiro, updateParceiro, deleteParceiro,
   getMetricasParceiros, getOndeComprarConfig, toggleOndeComprar,
 } from '../controllers/PartnerPharmacyController.js';
-import { previewRepasse, registrarRepasse, listarRepasses } from '../controllers/RepasseController.js';
+import { previewRepasse, registrarRepasse, listarRepasses, exportRepasses } from '../controllers/RepasseController.js';
 import { listarConvites, criarConvite, revogarConvite } from '../controllers/ConviteController.js';
 import { suspenderFarmaceutico, reativarFarmaceutico } from '../controllers/AdminController.js';
 import { getHorarios, saveHorarios, isSistemaAberto, getDisponibilidade } from '../controllers/SistemaHorarioController.js';
@@ -49,6 +58,7 @@ router.patch('/admin/farmaceuticos/:id/ativar',     ...guard, ativarFarmaceutico
 router.get('/admin/metricas',                        ...guard, getMetricas);
 router.get('/admin/farmaceuticos/:id/documentos',    ...guard, getDocumentos);
 router.patch('/admin/farmaceuticos/:id/status',      ...guard, setStatus);
+router.get('/admin/farmaceuticos/:id/ocorrencias',   ...guard, getOcorrenciasFarmaceutico);
 
 // Sistema de agendamentos (status público + toggle admin)
 router.get('/sistema/status',                        getSistemaStatus);
@@ -66,6 +76,23 @@ router.post('/farmaceutico/ping',                    authMiddleware, ping);
 // Logs de ações
 router.get('/admin/logs',                            ...guard, getLogs);
 
+// Auditoria de ações administrativas
+router.get('/admin/audit',                            ...guard, getAdminAuditLog);
+
+// Consultas de fila (agendada + urgente) — visão admin
+router.get('/admin/consultas',                        ...guard, getConsultasAdmin);
+
+// Dashboard operacional em tempo real
+router.get('/admin/fila/tempo-real',                  ...guard, getFilaTempoReal);
+
+// Ajuste manual de carteira (paciente)
+router.post('/admin/carteira/:pacienteId/ajuste',    ...guard, ajustarCarteira);
+
+// Gestão de administradores
+router.get('/admin/admins',                          ...guard, listAdmins);
+router.post('/admin/admins',                          ...guard, addAdmin);
+router.delete('/admin/admins/:email',                 ...guard, removeAdmin);
+
 // Gestão financeira
 router.get('/admin/config/financeiro',               ...guard, getConfigFinanceiro);
 router.put('/admin/config',                          ...guard, setConfig);
@@ -75,9 +102,11 @@ router.put('/admin/farmaceuticos/:id/comissao',      ...guard, setComissaoFarmac
 router.put('/admin/comissoes/:id',                   ...guard, setComissaoFarmaceutico);
 router.delete('/admin/comissoes/:id',                ...guard, deleteComissaoFarmaceutico);
 router.get('/admin/financeiro',                      ...guard, getVisaoFinanceira);
+router.get('/admin/financeiro/export',               ...guard, exportFinanceiro);
 
 // Repasses financeiros
 router.get('/admin/repasses/preview',                ...guard, previewRepasse);
+router.get('/admin/repasses/export',                 ...guard, exportRepasses);
 router.get('/admin/repasses',                        ...guard, listarRepasses);
 router.post('/admin/repasses',                       ...guard, registrarRepasse);
 

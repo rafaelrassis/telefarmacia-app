@@ -491,24 +491,24 @@ const Navbar = () => {
   const [notifData,    setNotifData]    = useState({ naoLidas: 0, notificacoes: [] });
   const notifRef = useRef(null);
 
-  const isPaciente = activeEnv === 'patient' && Boolean(user);
+  const showNotifBell = (activeEnv === 'patient' || activeEnv === 'pharmacist') && Boolean(user);
 
   const fetchNotificacoes = useCallback(async () => {
-    if (!token || !isPaciente) return;
+    if (!token || !showNotifBell) return;
     try {
       const res = await fetch(`${API_URL_NOTIF}/api/paciente/notificacoes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setNotifData(await res.json());
     } catch {}
-  }, [token, isPaciente]);
+  }, [token, showNotifBell]);
 
   useEffect(() => {
     fetchNotificacoes();
-    if (!isPaciente) return;
+    if (!showNotifBell) return;
     const id = setInterval(fetchNotificacoes, 30000);
     return () => clearInterval(id);
-  }, [fetchNotificacoes, isPaciente]);
+  }, [fetchNotificacoes, showNotifBell]);
 
   const handleOpenNotif = async () => {
     setNotifOpen((v) => !v);
@@ -639,8 +639,8 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* Sininho de notificações (só paciente) */}
-                {isPaciente && (
+                {/* Sininho de notificações (paciente e farmacêutico) */}
+                {showNotifBell && (
                   <div className="relative" ref={notifRef}>
                     <button
                       onClick={handleOpenNotif}
@@ -794,7 +794,7 @@ const Navbar = () => {
                 )}
 
                 <div className="border-t border-slate-100 pt-1">
-                  {isPaciente && (
+                  {showNotifBell && (
                     <button
                       onClick={() => { setMenuOpen(false); handleOpenNotif(); }}
                       className="flex items-center justify-between w-full text-left px-3 py-2 text-sm text-slate-600 rounded-lg hover:bg-slate-50"

@@ -41,6 +41,7 @@ model User {
   bloqueiosAgenda              BloqueioAgenda[] @relation("FarmaceuticoBloqueios")
   templatesOrientacao          TemplateOrientacao[] @relation("FarmaceuticoTemplates")
   repasses                     Repasse[] @relation("FarmaceuticoRepasses")
+  adminAudits                  AdminAuditLog[] @relation("AdminAudits")
 }
 
 model Notificacao {
@@ -185,6 +186,7 @@ model FilaAgendada {
   farmaceutico    User?             @relation("FarmaceuticoFilaAgendada", fields: [farmaceuticoId], references: [id])
   creditoDebitado Decimal           @db.Decimal(10, 2)
   criadoEm        DateTime          @default(now())
+  aceitoEm        DateTime?
   dependentId     String?
   dependent       DependentProfile? @relation("DependenteFilaAgendada", fields: [dependentId], references: [id])
   avaliacao       Avaliacao?
@@ -306,6 +308,20 @@ model ConviteFarmaceutico {
   expiresAt DateTime
   criadoEm  DateTime @default(now())
   adminId   String
+}
+
+model AdminAuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  admin     User     @relation("AdminAudits", fields: [adminId], references: [id])
+  acao      String
+  alvoTipo  String?
+  alvoId    String?
+  detalhes  Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([alvoTipo, alvoId])
 }
 
 model ConsentRecord {

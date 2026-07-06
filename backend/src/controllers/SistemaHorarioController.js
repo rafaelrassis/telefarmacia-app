@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { logAdminAction } from '../utils/logAdminAction.js';
 
 const prisma = new PrismaClient();
 
@@ -46,6 +47,9 @@ export const saveHorarios = async (req, res) => {
       where:  { key: 'ultima_atualizacao' },
       update: { value: now },
       create: { key: 'ultima_atualizacao', value: now },
+    });
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'salvar_horarios_sistema', alvoTipo: 'config', detalhes: { horarios },
     });
     return res.status(200).json({ salvo: true, ultima_atualizacao: now, horarios: results });
   } catch (err) {

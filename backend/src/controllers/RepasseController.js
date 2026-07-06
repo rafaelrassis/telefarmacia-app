@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { logAction } from '../utils/logAction.js';
+import { logAdminAction } from '../utils/logAdminAction.js';
 
 const prisma = new PrismaClient();
 
@@ -170,6 +171,10 @@ export const registrarRepasse = async (req, res) => {
       acao:       'repasse_registrado',
       detalhes:   { repasseId: repasse.id, pharmacistId, valorTotal, itens: allPending.length, referenciaTransacao: referenciaTransacao?.trim() || null },
     });
+    await logAdminAction(prisma, {
+      adminId, acao: 'registrar_repasse', alvoTipo: 'farmaceutico', alvoId: pharmacistId,
+      detalhes: { repasseId: repasse.id, valorTotal, itens: allPending.length },
+    });
 
     return res.status(201).json({ ...repasse, itensCount: allPending.length });
   } catch (err) {
@@ -209,5 +214,38 @@ export const listarRepasses = async (req, res) => {
   } catch (err) {
     console.error('listarRepasses error:', err);
     return res.status(500).json({ error: 'Erro ao listar repasses.' });
+  }
+};
+
+// ── GET /api/admin/repasses/export?pharmacistId= ─────────────────────────────
+
+export const exportRepasses = async (req, res) => {
+  const { pharmacistId } = req.query;
+  try {
+    const where = pharmacistId ? { pharmacistId } : {};
+    const repasses = await prisma.repasse.findMany({
+      where,
+      include: { pharmacist: { select: { name: true, email: true } }, itens: true },
+      orderBy: { criadoEm: 'desc' },
+    });
+
+    const fmtDec = (n) => Number(n).toFixed(2).replace('.', ',');
+    const header = 'Data;Farmacêutico;E-mail;Período Início;Período Fim;Qtd. Consultas;Valor Total;Referência\n';
+    const csvRows = repasses.map((r) => {
+      const dt = new Date(r.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const pi = new Date(r.periodoInicio).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const pf = new Date(r.periodoFim).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      return [
+        `"${dt}"`, `"${r.pharmacist?.name ?? '—'}"`, `"${r.pharmacist?.email ?? ''}"`,
+        `"${pi}"`, `"${pf}"`, r.itens.length, fmtDec(r.valorTotal), `"${r.referenciaTransacao ?? ''}"`,
+      ].join(';');
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="repasses-${new Date().toISOString().split('T')[0]}.csv"`);
+    return res.send('﻿' + header + csvRows.join('\n'));
+  } catch (err) {
+    console.error('exportRepasses error:', err);
+    return res.status(500).json({ error: 'Erro ao exportar repasses.' });
   }
 };

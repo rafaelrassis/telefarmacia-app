@@ -127,11 +127,14 @@ if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: '...'
 if (req.user.role !== 'PACIENTE')     return res.status(403).json({ error: '...' });
 ```
 
-Rotas administrativas usam `adminMiddleware` em camada adicional:
+Rotas administrativas usam `adminMiddleware` em camada adicional. Não existe flag `isAdmin` no schema — o middleware resolve a identidade de admin comparando `req.user.email` contra a união de `ADMIN_EMAILS` (env) e `SystemConfig.admin_emails` (lista editável via `GET/POST/DELETE /api/admin/admins`), com cache de 30s:
 
 ```js
-// src/middlewares/adminMiddleware.js
-if (!req.user.isAdmin) return res.status(403).json({ error: 'Acesso restrito.' });
+// src/middlewares/adminMiddleware.js (resumo)
+const emails = await getAdminEmails(); // env ∪ SystemConfig.admin_emails, cache 30s
+if (!req.user || !emails.includes(req.user.email.toLowerCase())) {
+  return res.status(403).json({ error: 'Acesso restrito a administradores.' });
+}
 ```
 
 ---
@@ -282,9 +285,10 @@ Geração de receita farmacêutica em PDF server-side. O PDF é salvo em disco (
 // A cada 5 min: urgentes aguardando há mais de N min sem farmacêutico aceitar → estorno
 // A cada 5 min: urgentes aceitas sem início (alerta em 30min, cancela com estorno em 60min)
 // A cada 30 min: atendimentos (fila) em andamento há mais de 4h → alerta
+// A cada 15 min: agendadas aguardando cujo horário + tolerância já passou → cancela com estorno
 ```
 
-Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado pelos jobs acima, que rodam sobre os próprios status da fila (`aguardando`, `aceito`, `em_atendimento`).
+Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado pelos jobs acima, que rodam sobre os próprios status da fila (`aguardando`, `aceito`, `em_atendimento`). O job de expiração de agendadas reaproveita `status: 'cancelado'` + `motivo_cancelamento` (não introduz um status novo) e usa `SystemConfig.tolerancia_expiracao_agendada_min` (default 30 min) como janela de tolerância após o horário marcado. Deliberadamente não duplica a expiração de `FilaUrgente` aguardando, que já é coberta pelo primeiro job.
 
 ---
 
@@ -812,10 +816,18 @@ Localizados em `backend/scripts/`. Todos são módulos ESM executados com `node 
 | `migrate-consulta-campos.mjs` | Adiciona colunas raw em FilaAgendada e FilaUrgente |
 | `migrate-receita-campos.mjs` | Adiciona `receita` e `receita_pdf_url` |
 | `migrate-devolucao-campos.mjs` | Adiciona campos de devolução e remarcação |
-| `migrate-log-acoes.mjs` | Cria tabela de log de ações administrativas |
+| `migrate-log-acoes.mjs` | Cria a tabela raw `log_acoes` (log de ações por consulta — aceite, devolução, sem-contato, expiração etc.) |
 | `migrate-user-profile.mjs` | Migração inicial de perfis de usuário |
-
-`backend/prisma/seedAvailability.js` — popula slots de disponibilidade de teste para desenvolvimento.
+| `migrate-convite-farmaceutico.mjs` | Cria tabela de convites de cadastro de farmacêutico |
+| `migrate-repasse.mjs` | Cria tabelas de repasse financeiro (`Repasse`, `RepasseItem`) |
+| `migrate-bloqueio-agenda.mjs` | Cria tabela de bloqueios de agenda do farmacêutico |
+| `migrate-disponivel-urgencias.mjs` | Adiciona flag de disponibilidade para urgências no perfil do farmacêutico |
+| `migrate-pharmacist-suspended-pix.mjs` | Adiciona campos de suspensão e chave PIX ao perfil do farmacêutico |
+| `migrate-encaminhamento-pdf.mjs` | Adiciona campo de PDF de encaminhamento |
+| `migrate-template-orientacao.mjs` | Adiciona template de orientação de finalização |
+| `migrate-admin-audit-log.mjs` | Cria a tabela `AdminAuditLog` (auditoria de ações administrativas, separada do `log_acoes`) |
+| `migrate-fila-agendada-aceito-em.mjs` | Adiciona `aceitoEm` em `FilaAgendada` (tempo de aceite) |
+| `auditoria-estados-travados.mjs` | Script de diagnóstico — lista consultas presas em estados inconsistentes |
 
 ---
 

@@ -371,7 +371,7 @@ export const aceitarAgendada = async (req, res) => {
 
     const result = await prisma.filaAgendada.updateMany({
       where: { id, status: 'aguardando' },
-      data: { status: 'aceito', farmaceuticoId: pharmacistId },
+      data: { status: 'aceito', farmaceuticoId: pharmacistId, aceitoEm: new Date() },
     });
 
     if (result.count === 0) {

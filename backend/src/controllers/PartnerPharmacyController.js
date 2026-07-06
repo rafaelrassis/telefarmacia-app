@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { logAdminAction } from '../utils/logAdminAction.js';
 
 const prisma = new PrismaClient();
 
@@ -78,6 +79,10 @@ export const createParceiro = async (req, res) => {
         ordem:         typeof ordem === 'number'  ? ordem : 0,
       },
     });
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'criar_parceiro', alvoTipo: 'parceiro', alvoId: parceiro.id,
+      detalhes: { nome: parceiro.nome },
+    });
     return res.status(201).json(parceiro);
   } catch (err) {
     console.error(err);
@@ -105,6 +110,9 @@ export const updateParceiro = async (req, res) => {
         updatedAt: new Date(),
       },
     });
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'atualizar_parceiro', alvoTipo: 'parceiro', alvoId: id,
+    });
     return res.json(parceiro);
   } catch (err) {
     console.error(err);
@@ -118,6 +126,10 @@ export const deleteParceiro = async (req, res) => {
     const existing = await prisma.partnerPharmacy.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Parceiro não encontrado.' });
     await prisma.partnerPharmacy.delete({ where: { id } });
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'excluir_parceiro', alvoTipo: 'parceiro', alvoId: id,
+      detalhes: { nome: existing.nome },
+    });
     return res.json({ success: true });
   } catch (err) {
     console.error(err);
