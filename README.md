@@ -1,5 +1,7 @@
 # FarmaConsulta — Plataforma de Teleconsulta Farmacêutica
 
+[![Tests](https://github.com/rafaelrassis/telefarmacia-app/actions/workflows/tests.yml/badge.svg)](https://github.com/rafaelrassis/telefarmacia-app/actions/workflows/tests.yml)
+
 Conecta pacientes a farmacêuticos para consultas remotas (agendadas ou urgentes) com triagem, receitas digitais e histórico clínico.
 
 ---
