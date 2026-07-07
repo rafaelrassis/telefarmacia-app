@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
+import { notifyConsultaAceita, notifyReceitaPronta, notifyEstorno } from '../services/pushService.js';
 import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -230,6 +231,7 @@ export const concluirConsulta = async (req, res) => {
           mensagem:   'O farmacêutico registrou as orientações da sua consulta.',
           consultaId: id,
         });
+        await notifyReceitaPronta(fila.pacienteId);
         if (retornoStr) {
           const diasSugeridos = retorno_sugerido.dias_sugeridos;
           const obs           = retorno_sugerido.observacao?.trim() || '';
@@ -529,6 +531,7 @@ export const semContato = async (req, res) => {
       mensagem: `O farmacêutico não conseguiu falar com você. O valor foi devolvido ao seu saldo.`,
       consultaId: id,
     });
+    await notifyEstorno(fila.pacienteId);
 
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'sem_contato', detalhes: { tipo } });
     return res.json({ success: true, status: 'cancelado', estorno: credito });

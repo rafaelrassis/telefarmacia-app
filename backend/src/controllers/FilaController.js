@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
-import { notifyFarmaceuticosUrgente } from '../services/pushService.js';
+import { notifyFarmaceuticosUrgente, notifyConsultaAceita } from '../services/pushService.js';
 
 const prisma = new PrismaClient();
 
@@ -394,6 +394,7 @@ export const aceitarAgendada = async (req, res) => {
       mensagem:   'Um farmacêutico aceitou sua consulta agendada.',
       consultaId: id,
     });
+    await notifyConsultaAceita(fila.pacienteId);
     return res.status(200).json({ success: true, fila });
   } catch (err) {
     console.error(err);
@@ -453,9 +454,10 @@ export const aceitarUrgente = async (req, res) => {
       userId:     fila.pacienteId,
       tipo:       'consulta_aceita',
       titulo:     'Farmacêutico a caminho!',
-      mensagem:   `${fila.paciente?.name?.split(' ')[0] ?? 'Um farmacêutico'} aceitou seu atendimento urgente.`,
+      mensagem:   'Um farmacêutico aceitou seu atendimento urgente.',
       consultaId: id,
     });
+    await notifyConsultaAceita(fila.pacienteId);
     return res.status(200).json({ success: true, fila });
   } catch (err) {
     console.error(err);

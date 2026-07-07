@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 import { logAction } from './utils/logAction.js';
 import { criarNotificacao } from './controllers/NotificacaoController.js';
+import { notifyEstorno, notifyLembreteConsulta } from './services/pushService.js';
 
 const prisma = new PrismaClient();
 
@@ -65,6 +66,7 @@ export const initCronJobs = () => {
           mensagem:   'Nenhum farmacêutico estava disponível no momento. Seus créditos foram devolvidos. Tente agendar um horário.',
           consultaId: u.id,
         });
+        await notifyEstorno(u.pacienteId);
       }
       if (travadas.length > 0)
         console.log(`[cron] ${travadas.length} urgência(s) aguardando expirada(s).`);
@@ -130,6 +132,7 @@ export const initCronJobs = () => {
             mensagem:   'O farmacêutico não iniciou o atendimento a tempo. Seus créditos foram devolvidos.',
             consultaId: u.id,
           });
+          await notifyEstorno(u.pacienteId);
           if (u.farmaceuticoId) {
             await criarNotificacao({
               userId:  u.farmaceuticoId,
@@ -277,6 +280,7 @@ export const initCronJobs = () => {
           mensagem:   'Nenhum farmacêutico aceitou sua consulta agendada a tempo. Seus créditos foram devolvidos.',
           consultaId: f.id,
         });
+        await notifyEstorno(f.pacienteId);
       }
       if (orfas.length > 0)
         console.log(`[cron] ${orfas.length} consulta(s) agendada(s) expirada(s) sem aceite.`);
@@ -285,5 +289,38 @@ export const initCronJobs = () => {
     }
   });
 
-  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min).');
+  // ── Job 5: lembrete de consulta agendada ~1h antes (a cada 15 min) ──────────
+
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      const agora   = Date.now();
+      const janelaMin = new Date(agora + 45 * 60 * 1000);
+      const janelaMax = new Date(agora + 75 * 60 * 1000);
+
+      let candidatas = [];
+      try {
+        candidatas = await prisma.$queryRawUnsafe(
+          `SELECT id, "pacienteId", "dataHora" FROM "FilaAgendada"
+           WHERE status = 'aceito' AND "dataHora" BETWEEN $1 AND $2 AND "lembrete_enviado" = FALSE`,
+          janelaMin, janelaMax
+        );
+      } catch { /* coluna ainda não existe — sem lembrete até rodar a migração */ }
+
+      for (const f of candidatas) {
+        const hora = new Date(f.dataHora).toLocaleTimeString('pt-BR', {
+          timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit',
+        });
+        await notifyLembreteConsulta(f.pacienteId, hora);
+        await prisma.$executeRawUnsafe(
+          `UPDATE "FilaAgendada" SET "lembrete_enviado" = TRUE WHERE id = $1`, f.id
+        );
+      }
+      if (candidatas.length > 0)
+        console.log(`[cron] ${candidatas.length} lembrete(s) de consulta enviado(s).`);
+    } catch (err) {
+      console.error('[cron] Erro no job de lembrete de consulta:', err.message);
+    }
+  });
+
+  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min).');
 };

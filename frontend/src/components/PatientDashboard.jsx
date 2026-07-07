@@ -9,6 +9,7 @@ import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
 import OnboardingSlider from './OnboardingSlider';
 import TermoConsentimento from './TermoConsentimento';
 import MeusDocumentos from './MeusDocumentos';
+import { isPushSupported, getCurrentPushSubscription, subscribeToPush, unsubscribeFromPush } from '../utils/push';
 
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PRECO_CONSULTA = 50;
@@ -457,6 +458,46 @@ const PatientDashboard = () => {
     } catch {}
   };
 
+  // Pede permissão de notificação só após uma ação relevante (nunca no load) e,
+  // se concedida, registra a subscription de push.
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [togglingPush, setTogglingPush] = useState(false);
+
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    getCurrentPushSubscription().then((sub) => setPushEnabled(Boolean(sub))).catch(() => {});
+  }, []);
+
+  const maybeRequestPush = useCallback(async () => {
+    try {
+      if (typeof Notification === 'undefined') return;
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      if (Notification.permission === 'granted') {
+        const sub = await subscribeToPush(token);
+        if (sub) setPushEnabled(true);
+      }
+    } catch { /* silencioso — push é conveniência, não bloqueia o fluxo */ }
+  }, [token]);
+
+  const togglePush = async () => {
+    setTogglingPush(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush(token);
+        setPushEnabled(false);
+      } else {
+        if (Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+        const sub = await subscribeToPush(token);
+        setPushEnabled(Boolean(sub));
+      }
+    } catch { /* silencioso */ }
+    setTogglingPush(false);
+  };
+
   const handlePassarAgora = async (triagem = null) => {
     setPassarAgoraLoading(true);
     setPassarAgoraMsg(null);
@@ -481,6 +522,7 @@ const PatientDashboard = () => {
       } else {
         urgentIdRef.current = data.id;
         setPassarAgoraMsg({ type: 'waiting' });
+        maybeRequestPush();
       }
     } catch {
       setPassarAgoraMsg({ type: 'error', mensagem: 'Falha de conexão. Tente novamente.' });
@@ -540,6 +582,38 @@ const PatientDashboard = () => {
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3">
           <span className="text-green-600 font-bold text-lg">✓</span>
           <p className="text-sm font-semibold text-green-800">Consulta agendada com sucesso!</p>
+        </div>
+      )}
+
+      {/* Toggle: Notificações push (só depois que a permissão já foi decidida) */}
+      {isPushSupported() && typeof Notification !== 'undefined' && Notification.permission !== 'default' && (
+        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className={`text-xl ${pushEnabled ? 'text-violet-500' : 'text-gray-400'}`}>
+              {pushEnabled ? '🔔' : '🔕'}
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Notificações push</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {pushEnabled
+                  ? 'Você recebe avisos de aceite, lembrete e orientações prontas'
+                  : 'Ative para receber avisos mesmo com o app fechado'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={togglePush}
+            disabled={togglingPush}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+              pushEnabled ? 'bg-violet-600' : 'bg-gray-300'
+            }`}
+            role="switch"
+            aria-checked={pushEnabled}
+          >
+            <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+              pushEnabled ? 'translate-x-5' : 'translate-x-0'
+            }`} />
+          </button>
         </div>
       )}
 
@@ -1280,6 +1354,7 @@ const PatientDashboard = () => {
                 setBookedSuccess(true);
                 setTimeout(() => setBookedSuccess(false), 4000);
                 setAppointmentsRefreshKey((k) => k + 1);
+                maybeRequestPush();
               }}
               onAddCredits={() => { setShowDataModal(false); setShowWalletTopup(true); }}
               pacienteNome={user?.name || ''}
