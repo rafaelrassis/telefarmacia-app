@@ -778,30 +778,38 @@ export const dispensarRetorno = async (req, res) => {
 export const getHistoricoPaciente = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id: patientId } = req.params;
+  const { dependentId } = req.query;
   const pharmacistId = req.user.id;
 
   try {
-    // Só farmacêuticos que já tiveram vínculo de atendimento com este paciente podem ver o histórico
+    // Só farmacêuticos que já tiveram vínculo de atendimento com ESTA pessoa
+    // (titular ou o dependente específico) podem ver o histórico dela — sem
+    // isso, um vínculo com qualquer dependente liberava o histórico de todos
+    // (titular + demais dependentes), que nunca foram atendidos por ele.
+    const depFilter = dependentId ? `AND "dependentId" = $3` : `AND "dependentId" IS NULL`;
+    const vinculoParams = dependentId ? [patientId, pharmacistId, dependentId] : [patientId, pharmacistId];
     const vinculo = await prisma.$queryRawUnsafe(
-      `SELECT 1 FROM "FilaAgendada" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2
-       UNION SELECT 1 FROM "FilaUrgente" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2
+      `SELECT 1 FROM "FilaAgendada" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2 ${depFilter}
+       UNION SELECT 1 FROM "FilaUrgente" WHERE "pacienteId" = $1 AND "farmaceuticoId" = $2 ${depFilter}
        LIMIT 1`,
-      patientId, pharmacistId
+      ...vinculoParams
     );
     if (vinculo.length === 0) {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
 
     let agendadas = [], urgentes = [];
+    const listaDepFilter = dependentId ? `AND "dependentId" = $2` : `AND "dependentId" IS NULL`;
+    const listaParams = dependentId ? [patientId, dependentId] : [patientId];
 
     try {
       agendadas = await prisma.$queryRawUnsafe(
-        `SELECT id, "dataHora", status, "observacoes", "motivo", "criadoEm" FROM "FilaAgendada" WHERE "pacienteId" = $1 AND status IN ('concluido', 'cancelado') ORDER BY "criadoEm" DESC LIMIT 20`,
-        patientId
+        `SELECT id, "dataHora", status, "observacoes", "motivo", "criadoEm" FROM "FilaAgendada" WHERE "pacienteId" = $1 ${listaDepFilter} AND status IN ('concluido', 'cancelado') ORDER BY "criadoEm" DESC LIMIT 20`,
+        ...listaParams
       );
     } catch {
       agendadas = await prisma.filaAgendada.findMany({
-        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        where:   { pacienteId: patientId, dependentId: dependentId ?? null, status: { in: ['concluido', 'cancelado'] } },
         select:  { id: true, dataHora: true, status: true, criadoEm: true },
         orderBy: { criadoEm: 'desc' }, take: 20,
       });
@@ -809,12 +817,12 @@ export const getHistoricoPaciente = async (req, res) => {
 
     try {
       urgentes = await prisma.$queryRawUnsafe(
-        `SELECT id, "criadoEm", status, "observacoes", "motivo" FROM "FilaUrgente" WHERE "pacienteId" = $1 AND status IN ('concluido', 'cancelado') ORDER BY "criadoEm" DESC LIMIT 20`,
-        patientId
+        `SELECT id, "criadoEm", status, "observacoes", "motivo" FROM "FilaUrgente" WHERE "pacienteId" = $1 ${listaDepFilter} AND status IN ('concluido', 'cancelado') ORDER BY "criadoEm" DESC LIMIT 20`,
+        ...listaParams
       );
     } catch {
       urgentes = await prisma.filaUrgente.findMany({
-        where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] } },
+        where:   { pacienteId: patientId, dependentId: dependentId ?? null, status: { in: ['concluido', 'cancelado'] } },
         select:  { id: true, criadoEm: true, status: true },
         orderBy: { criadoEm: 'desc' }, take: 20,
       });

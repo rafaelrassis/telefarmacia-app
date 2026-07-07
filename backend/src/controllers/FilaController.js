@@ -376,6 +376,14 @@ export const aceitarAgendada = async (req, res) => {
   const pharmacistId = req.user.id;
 
   try {
+    const perfilAg = await prisma.pharmacistProfile.findUnique({
+      where: { userId: pharmacistId },
+      select: { isApproved: true, isSuspended: true },
+    });
+    if (!perfilAg?.isApproved || perfilAg.isSuspended) {
+      return res.status(403).json({ error: 'Conta não aprovada ou suspensa pelo administrador.' });
+    }
+
     const [agEmAt, urEmAt] = await Promise.all([
       prisma.filaAgendada.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
       prisma.filaUrgente.findFirst({ where: { farmaceuticoId: pharmacistId, status: 'em_atendimento' } }),
@@ -442,9 +450,12 @@ export const aceitarUrgente = async (req, res) => {
   try {
     const perfil = await prisma.pharmacistProfile.findUnique({
       where: { userId: pharmacistId },
-      select: { disponivelUrgencias: true },
+      select: { disponivelUrgencias: true, isApproved: true, isSuspended: true },
     });
-    if (!perfil?.disponivelUrgencias) {
+    if (!perfil?.isApproved || perfil.isSuspended) {
+      return res.status(403).json({ error: 'Conta não aprovada ou suspensa pelo administrador.' });
+    }
+    if (!perfil.disponivelUrgencias) {
       return res.status(403).json({ error: 'Você está marcado como indisponível para urgências. Ative o toggle para aceitar.' });
     }
 

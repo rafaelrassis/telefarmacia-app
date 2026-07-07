@@ -44,12 +44,11 @@ describe('fila agendada — fluxo feliz', () => {
     expect(avaliarDeNovo.status).toBeLessThan(500);
   });
 
-  // BUG REAL reportado ao usuário: aceitarAgendada/aceitarUrgente (FilaController.js)
-  // checam apenas req.user.role === 'FARMACEUTICO', sem checar isApproved/isSuspended
-  // do PharmacistProfile. Um farmacêutico nunca aprovado (ou suspenso) hoje CONSEGUE
-  // aceitar consultas via API direta. Mantido .skip (não "consertado para passar")
-  // até decisão do usuário — ver relatório enviado antes desta fase.
-  it.skip('farmacêutico não aprovado não consegue aceitar → 403 (BUG: hoje aceita)', async () => {
+  // Bug corrigido: aceitarAgendada/aceitarUrgente (FilaController.js) checavam
+  // apenas req.user.role === 'FARMACEUTICO', sem checar isApproved/isSuspended
+  // do PharmacistProfile — farmacêutico nunca aprovado (ou suspenso) conseguia
+  // aceitar consultas via API direta. Corrigido com a checagem explícita.
+  it('farmacêutico não aprovado não consegue aceitar → 403', async () => {
     const paciente = await registerPaciente(app);
     await creditarCarteira(app, paciente.token, 200);
     const book = await bookAgendada(app, paciente.token);
@@ -59,7 +58,7 @@ describe('fila agendada — fluxo feliz', () => {
     expect(accept.status).toBe(403);
   });
 
-  it.skip('farmacêutico suspenso não consegue aceitar → 403 (BUG: hoje aceita)', async () => {
+  it('farmacêutico suspenso não consegue aceitar → 403', async () => {
     const paciente = await registerPaciente(app);
     await creditarCarteira(app, paciente.token, 200);
     const book = await bookAgendada(app, paciente.token);
@@ -259,14 +258,14 @@ describe('fila agendada — histórico do paciente no atendimento', () => {
     expect(historicoOutro.status).toBe(403);
   });
 
-  // BUG REAL reportado ao usuário: getHistoricoPaciente (ConsultaController.js)
-  // autoriza o acesso checando apenas se o farmacêutico tem QUALQUER vínculo
-  // com o pacienteId (titular), mas depois retorna TODAS as consultas desse
+  // Bug corrigido: getHistoricoPaciente (ConsultaController.js) autorizava pelo
+  // vínculo com o pacienteId (titular), mas retornava TODAS as consultas desse
   // pacienteId sem filtrar por dependentId — um farmacêutico que tratou só o
-  // dependente A enxerga também as consultas do dependente B e do titular.
-  // Confirmado rodando este teste (falha reproduzida). Mantido .skip até
-  // decisão do usuário — não "consertado para passar".
-  it.skip('BUG REAL: histórico do titular vaza consultas de um dependente não tratado pelo farmacêutico', async () => {
+  // dependente A enxergava também as consultas do dependente B e do titular.
+  // Corrigido: a rota agora aceita ?dependentId= e tanto o guard de vínculo
+  // quanto a listagem passam a ser filtrados por pessoa (titular OU dependente
+  // específico), nunca a família inteira.
+  it('histórico do titular não vaza consultas de um dependente não tratado pelo farmacêutico', async () => {
     const titular = await registerPaciente(app);
     await creditarCarteira(app, titular.token, 400);
 
@@ -293,17 +292,27 @@ describe('fila agendada — histórico do paciente no atendimento', () => {
     await iniciarConsulta(app, farmB.token, bookB.body.id, 'agendada');
     await concluirConsulta(app, farmB.token, bookB.body.id, 'agendada');
 
-    // farmA tem vínculo com o titular (via consulta do dependente A) e por isso
-    // passa no guard de getHistoricoPaciente — mas o endpoint retorna TODAS as
-    // consultas do pacienteId (titular), incluindo a do dependente B, que farmA
-    // nunca atendeu. Comportamento esperado: a consulta do dependente B (bookB)
-    // não deveria aparecer para farmA.
-    const historico = await request(app)
+    // farmA só tem vínculo com o dependente A — sem dependentId (histórico do
+    // titular em si) não deve ter acesso.
+    const historicoTitular = await request(app)
       .get(`/api/paciente/${titular.user.id}/historico`)
+      .set('Authorization', `Bearer ${farmA.token}`);
+    expect(historicoTitular.status).toBe(403);
+
+    // Com dependentId=B, farmA também não tem acesso (nunca tratou B).
+    const historicoDepB = await request(app)
+      .get(`/api/paciente/${titular.user.id}/historico?dependentId=${depB.body.id}`)
+      .set('Authorization', `Bearer ${farmA.token}`);
+    expect(historicoDepB.status).toBe(403);
+
+    // Com dependentId=A, farmA acessa e só vê a consulta do dependente A.
+    const historico = await request(app)
+      .get(`/api/paciente/${titular.user.id}/historico?dependentId=${depA.body.id}`)
       .set('Authorization', `Bearer ${farmA.token}`);
     expect(historico.status).toBe(200);
 
     const idsRetornados = historico.body.map((h) => h.id);
+    expect(idsRetornados).toContain(bookA.body.id);
     expect(idsRetornados).not.toContain(bookB.body.id);
   });
 });
