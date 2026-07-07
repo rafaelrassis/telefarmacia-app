@@ -65,6 +65,10 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
   const [remarcandoConsulta, setRemarcandoConsulta] = useState(null);
   const [remarcarToast, setRemarcarToast] = useState(null);
 
+  // Recibo em PDF (paciente, consulta concluída)
+  const [reciboLoadingId, setReciboLoadingId] = useState(null);
+  const [reciboToast, setReciboToast] = useState(null);
+
   // Timer para contagem regressiva / destaque "É agora"
   const [agoraNow, setAgoraNow] = useState(Date.now());
 
@@ -216,6 +220,41 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
     }
   };
 
+  // ── Handler recibo em PDF ─────────────────────────────────────────────────
+  const handleRecibo = async (app) => {
+    setReciboLoadingId(app.id);
+    setReciboToast(null);
+    try {
+      const res = await fetch(`${API_URL}/api/consulta/${app.id}/recibo/pdf?tipo=${app.tipo}`, {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Recibo não disponível.');
+      const blob = await res.blob();
+      const file = new File([blob], `recibo-${app.id}.pdf`, { type: 'application/pdf' });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Recibo de consulta', text: 'Recibo da consulta farmacêutica.' });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `recibo-${app.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setReciboToast({ type: 'success', msg: 'Recibo baixado — compartilhe pelo seu gerenciador de arquivos.' });
+        setTimeout(() => setReciboToast(null), 4000);
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        setReciboToast({ type: 'error', msg: 'Não foi possível gerar o recibo. Tente novamente.' });
+        setTimeout(() => setReciboToast(null), 4000);
+      }
+    } finally {
+      setReciboLoadingId(null);
+    }
+  };
+
   // ── Helpers "É agora" ────────────────────────────────────────────────────
   const isEAgora = (app) => {
     if (isPharmacist) return false;
@@ -294,6 +333,17 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
             : 'bg-red-50 border border-red-200 text-red-800'
         }`}>
           {remarcarToast.type === 'success' ? '✓' : '✕'} {remarcarToast.msg}
+        </div>
+      )}
+
+      {/* Toast de resultado do recibo */}
+      {reciboToast && (
+        <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
+          reciboToast.type === 'success'
+            ? 'bg-green-50 border border-green-200 text-green-800'
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {reciboToast.type === 'success' ? '✓' : '✕'} {reciboToast.msg}
         </div>
       )}
 
@@ -611,6 +661,24 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                         }}
                       >
                         📄 Ver receita
+                      </button>
+                    )}
+
+                    {/* Recibo (paciente, consulta concluída) */}
+                    {!isPharmacist && app.status === 'concluido' && (
+                      <button
+                        onClick={() => handleRecibo(app)}
+                        disabled={reciboLoadingId === app.id}
+                        style={{
+                          padding: '8px 14px', background: 'white',
+                          color: '#059669', border: '1.5px solid #a7f3d0',
+                          borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          cursor: reciboLoadingId === app.id ? 'wait' : 'pointer',
+                          opacity: reciboLoadingId === app.id ? 0.7 : 1,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {reciboLoadingId === app.id ? 'Gerando...' : '🧾 Recibo'}
                       </button>
                     )}
                   </div>

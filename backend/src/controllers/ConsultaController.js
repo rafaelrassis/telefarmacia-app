@@ -1287,6 +1287,145 @@ async function buildEncaminhamentoPdf({ filepath, pacienteNome, dataHora, farmNo
   });
 }
 
+// ── Recibo PDF (paciente) ─────────────────────────────────────────────────────
+// POST /api/consulta/:id/recibo/pdf?tipo=agendada|urgente
+// Apenas o paciente dono (ou titular do dependente), apenas consulta concluída.
+// Documento financeiro — sem dados clínicos. Gerado sob demanda, direto na
+// resposta (sem gravar arquivo em disco nem URL pública).
+
+export const gerarReciboPdf = async (req, res) => {
+  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
+  const { id }    = req.params;
+  const { tipo }  = req.query;
+  const patientId = req.user.id;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+
+  try {
+    const table = tableName(tipo);
+
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT c.status, c."pacienteId", c."farmaceuticoId", c."dependentId", c."creditoDebitado"::float AS credito,
+              ${tipo === 'agendada' ? 'c."dataHora" as data_hora' : 'COALESCE(c."aceitoEm", c."criadoEm") as data_hora'},
+              u.name as "pacienteNome"
+       FROM "${table}" c
+       JOIN "User" u ON u.id = c."pacienteId"
+       WHERE c.id = $1`,
+      id
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    const row = rows[0];
+
+    let dependenteNome = null;
+    let isOwner = row.pacienteId === patientId;
+    if (!isOwner && row.dependentId) {
+      const dep = await prisma.dependentProfile.findUnique({
+        where:  { id: row.dependentId },
+        select: { ownerId: true, nome: true },
+      });
+      if (dep?.ownerId === patientId) {
+        isOwner = true;
+        dependenteNome = dep.nome;
+      }
+    }
+    if (!isOwner) return res.status(403).json({ error: 'Acesso negado.' });
+
+    if (row.status !== 'concluido') {
+      return res.status(400).json({ error: 'Recibo disponível apenas para consultas concluídas.' });
+    }
+
+    const [pharmProfile, pharmUser] = await Promise.all([
+      row.farmaceuticoId
+        ? prisma.pharmacistProfile.findUnique({ where: { userId: row.farmaceuticoId }, select: { crfNumber: true, crfUF: true } })
+        : null,
+      row.farmaceuticoId
+        ? prisma.user.findUnique({ where: { id: row.farmaceuticoId }, select: { name: true } })
+        : null,
+    ]);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="recibo-${id}.pdf"`);
+
+    await buildReciboPdf({
+      out:           res,
+      pacienteNome:  row.pacienteNome,
+      dependenteNome,
+      dataHora:      row.data_hora,
+      farmNome:      pharmUser?.name ?? '—',
+      farmCrf:       pharmProfile ? `${pharmProfile.crfUF}-${pharmProfile.crfNumber}` : '—',
+      tipo,
+      valor:         Number(row.credito),
+      consultaId:    id,
+    });
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) return res.status(500).json({ error: 'Erro ao gerar recibo.' });
+    res.end();
+  }
+};
+
+async function buildReciboPdf({ out, pacienteNome, dependenteNome, dataHora, farmNome, farmCrf, tipo, valor, consultaId }) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    doc.pipe(out);
+
+    const W        = doc.page.width - 100;
+    const dateStr  = new Date(dataHora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const emissaoStr = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const valorStr = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const VIOLET   = '#7c3aed';
+    const DARK     = '#111827';
+    const GRAY     = '#6b7280';
+    const DIVIDER  = '#e5e7eb';
+
+    doc.rect(50, 45, W, 65).fill(VIOLET);
+    doc.fillColor('white')
+       .font('Helvetica-Bold').fontSize(20).text('FarmaConsulta', 50, 57, { align: 'center', width: W })
+       .font('Helvetica').fontSize(11).text('Recibo de Consulta Farmacêutica', 50, 83, { align: 'center', width: W });
+
+    const iY = 128;
+    doc.fillColor(DARK).font('Helvetica-Bold').fontSize(10).text('Paciente:', 50, iY);
+    doc.font('Helvetica').text(dependenteNome ?? pacienteNome, 115, iY);
+    if (dependenteNome) {
+      doc.font('Helvetica-Bold').text('Titular da conta:', 50, iY + 16);
+      doc.font('Helvetica').text(pacienteNome, 150, iY + 16);
+    }
+
+    let y = iY + (dependenteNome ? 40 : 24);
+    const hr = (atY) => doc.moveTo(50, atY).lineTo(50 + W, atY).strokeColor(DIVIDER).lineWidth(1).stroke();
+    hr(y);
+    y += 16;
+
+    const row = (label, value) => {
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text(label, 50, y);
+      doc.font('Helvetica').text(value, 200, y);
+      y += 20;
+    };
+
+    row('Farmacêutico(a):', farmNome);
+    row('CRF:', farmCrf);
+    row('Tipo de consulta:', tipo === 'urgente' ? 'Urgente' : 'Agendada');
+    row('Data/hora da consulta:', dateStr);
+    row('Valor pago:', valorStr);
+    row('Identificador da consulta:', consultaId);
+    row('Data de emissão:', emissaoStr);
+
+    y += 10;
+    hr(y);
+    y += 14;
+    doc.font('Helvetica-Oblique').fontSize(9).fillColor(GRAY)
+       .text('Este recibo é um comprovante financeiro e não contém informações clínicas da consulta.', 50, y, { width: W });
+
+    const footY = doc.page.height - 70;
+    hr(footY - 10);
+    doc.font('Helvetica-Oblique').fontSize(9).fillColor(GRAY)
+       .text('FarmaConsulta — Telefarmácia', 50, footY, { align: 'center', width: W });
+
+    doc.end();
+    out.on('finish', resolve);
+    out.on('error', reject);
+  });
+}
+
 // ── GET /uploads/receitas/:filename (autenticado) ───────────────────────────
 // Serve receita/encaminhamento em PDF apenas para o paciente dono (ou titular
 // do dependente) e para o farmacêutico responsável pela consulta.

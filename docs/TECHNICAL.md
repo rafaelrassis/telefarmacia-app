@@ -205,7 +205,7 @@ Rate limiter: 20 tentativas por IP a cada 15 min.
 |--------|------|-----------|
 | POST | `/fila/agendar` | Entra na fila agendada (debita crédito) |
 | POST | `/fila/urgente` | Entra na fila urgente |
-| GET | `/fila/urgente/ativa` | Status da urgente ativa do paciente |
+| GET | `/fila/urgente/ativa` | Status da urgente ativa do paciente (inclui `posicao`, `total_aguardando`, `tempo_medio_aceite_min` e `farmaceuticos_online` quando `status: 'aguardando'`) |
 | GET | `/fila/urgente/:id` | Status de urgente específica |
 | POST | `/fila/urgente/:id/cancelar` | Cancela urgente (devolve crédito) |
 | POST | `/fila/agendadas/:id/cancelar` | Cancela agendada (devolve crédito) |
@@ -235,6 +235,8 @@ Rate limiter: 20 tentativas por IP a cada 15 min.
 | PATCH | `/consulta/:id/responder-remarcacao` | Paciente aceita/recusa proposta |
 | PATCH | `/consulta/:id/propor-remarcacao` | Farmacêutico propõe nova data |
 | PATCH | `/consulta/:id/dispensar-retorno` | Paciente dispensa retorno sugerido |
+| POST | `/consulta/:id/encaminhamento/pdf` | Gera PDF de encaminhamento (PDFKit) |
+| POST | `/consulta/:id/recibo/pdf` | Paciente gera recibo financeiro em PDF (consulta concluída) |
 
 ---
 
@@ -274,7 +276,19 @@ Usa Nodemailer com transporte SMTP configurável. Se `SMTP_HOST` não estiver de
 
 #### PDFKit
 
-Geração de receita farmacêutica em PDF server-side. O PDF é salvo em disco (diretório `UPLOAD_DIR`) e o caminho é armazenado no campo raw `receita_pdf_url` da tabela `FilaAgendada` / `FilaUrgente`. O download é sempre autenticado — nunca há URL pública.
+Geração de receita e encaminhamento em PDF server-side. O PDF é salvo em disco (diretório `UPLOAD_DIR`) e o caminho é armazenado nos campos raw `receita_pdf_url` / `encaminhamento_pdf_url` da tabela `FilaAgendada` / `FilaUrgente`. O download é sempre autenticado — nunca há URL pública.
+
+O recibo (`POST /consulta/:id/recibo/pdf`) segue um padrão diferente: é gerado sob demanda e enviado direto na resposta (`doc.pipe(res)`), sem gravar arquivo em disco nem persistir URL — documento puramente financeiro (sem dados clínicos), disponível apenas ao paciente dono de uma consulta `concluido`.
+
+#### Web Push (`src/services/pushService.js`)
+
+`sendPushToUser(userId, payload)` envia para todas as `PushSubscription` do usuário (remove subscriptions inválidas — HTTP 404/410 — automaticamente). Wrappers com texto genérico (sem conteúdo clínico, por LGPD):
+
+- `notifyFarmaceuticosUrgente` — nova urgente na fila (farmacêuticos online)
+- `notifyConsultaAceita` — farmacêutico aceitou a consulta do paciente
+- `notifyLembreteConsulta` — lembrete ~1h antes de consulta agendada aceita (job de cron, ver 2.5)
+- `notifyReceitaPronta` — orientações/receita disponíveis após conclusão
+- `notifyEstorno` — créditos devolvidos à carteira (cancelamento pelo farmacêutico, devolução ou expiração)
 
 ---
 
@@ -286,6 +300,7 @@ Geração de receita farmacêutica em PDF server-side. O PDF é salvo em disco (
 // A cada 5 min: urgentes aceitas sem início (alerta em 30min, cancela com estorno em 60min)
 // A cada 30 min: atendimentos (fila) em andamento há mais de 4h → alerta
 // A cada 15 min: agendadas aguardando cujo horário + tolerância já passou → cancela com estorno
+// A cada 15 min: agendadas aceitas entre 45–75 min no futuro sem lembrete enviado → push de lembrete
 ```
 
 Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado pelos jobs acima, que rodam sobre os próprios status da fila (`aguardando`, `aceito`, `em_atendimento`). O job de expiração de agendadas reaproveita `status: 'cancelado'` + `motivo_cancelamento` (não introduz um status novo) e usa `SystemConfig.tolerancia_expiracao_agendada_min` (default 30 min) como janela de tolerância após o horário marcado. Deliberadamente não duplica a expiração de `FilaUrgente` aguardando, que já é coberta pelo primeiro job.
@@ -366,6 +381,8 @@ As tabelas `FilaAgendada` e `FilaUrgente` têm colunas adicionadas via migration
 | `receita_pdf_url` | ambas | `TEXT` | Caminho relativo do PDF no servidor |
 | `motivo` | ambas | `TEXT` | Motivo principal da consulta (do formulário de triagem) |
 | `finalizacao` | ambas | `JSONB` | Dados de finalização: retorno sugerido, observações de alta |
+| `encaminhamento_pdf_url` | ambas | `TEXT` | Caminho relativo do PDF de encaminhamento |
+| `lembrete_enviado` | `FilaAgendada` | `BOOLEAN` | `true` após o cron enviar o push de lembrete (~1h antes), evita reenvio |
 
 > **Importante:** Ao fazer queries raw, o PostgreSQL retorna os aliases em **letras minúsculas** (ex.: `r.data_hora`, `r.has_receita`). O código acessa sempre com `.toLowerCase()` ou alias explícito.
 

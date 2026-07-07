@@ -9,6 +9,7 @@ import {
   salvarRascunho,
   gerarReceitaPdf,
   gerarEncaminhamentoPdf,
+  gerarReciboPdf,
   getHistoricoPaciente,
   getHistoricoCompleto,
   semContato,
@@ -29,6 +30,7 @@ router.patch('/consulta/:id/devolver',        authMiddleware, devolverConsulta);
 router.patch('/consulta/:id/salvar-rascunho', authMiddleware, salvarRascunho);
 router.post('/consulta/:id/receita/pdf',          authMiddleware, gerarReceitaPdf);
 router.post('/consulta/:id/encaminhamento/pdf',   authMiddleware, gerarEncaminhamentoPdf);
+router.post('/consulta/:id/recibo/pdf',           authMiddleware, gerarReciboPdf);
 router.get('/consulta/:id/detalhes',              authMiddleware, getDetalhesConsulta);
 router.get('/consulta/:id/historico-completo',    authMiddleware, getHistoricoCompleto);
 // 3 segmentos — não conflita com /paciente/historico (2 segmentos)
