@@ -228,13 +228,14 @@ export const getAgendamentos = async (req, res) => {
     const urlMap  = {};
     const pessoaMap = {};
     const depIdMap  = {};
+    const remarcacoesMap = {};
     try {
       const agIds = agendadas.map((f) => f.id);
       const urIds = urgentes.map((f) => f.id);
       const [rowsA, rowsU] = await Promise.all([
         agIds.length > 0
           ? prisma.$queryRawUnsafe(
-              `SELECT id, "receita_pdf_url", triagem->>'paciente_nome' AS pessoa_nome, "dependentId"
+              `SELECT id, "receita_pdf_url", triagem->>'paciente_nome' AS pessoa_nome, "dependentId", remarcacoes
                FROM "FilaAgendada" WHERE id = ANY($1::text[])`,
               agIds
             )
@@ -251,6 +252,7 @@ export const getAgendamentos = async (req, res) => {
         if (r.receita_pdf_url) urlMap[r.id]  = r.receita_pdf_url;
         if (r.pessoa_nome)     pessoaMap[r.id] = r.pessoa_nome;
         if (r.dependentId)     depIdMap[r.id]  = r.dependentId;
+        if (r.remarcacoes != null) remarcacoesMap[r.id] = Number(r.remarcacoes);
       });
     } catch {}
 
@@ -265,6 +267,7 @@ export const getAgendamentos = async (req, res) => {
         receitaPdfUrl:   urlMap[f.id]   ?? null,
         pessoaNome:      pessoaMap[f.id] ?? null,
         dependentId:     depIdMap[f.id]  ?? null,
+        remarcacoes:     remarcacoesMap[f.id] ?? 0,
       })),
       ...urgentes.map((f) => ({
         id: f.id, tipo: 'urgente',

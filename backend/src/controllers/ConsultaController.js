@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
-import { notifyConsultaAceita, notifyReceitaPronta, notifyEstorno } from '../services/pushService.js';
+import { notifyConsultaAceita, notifyReceitaPronta, notifyEstorno, sendPushToUser } from '../services/pushService.js';
 import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -554,9 +554,9 @@ export const remarcarConsulta = async (req, res) => {
 
   try {
     const rows = await prisma.$queryRawUnsafe(
-      `SELECT status, "dataHora", remarcacoes, "pacienteId" FROM "FilaAgendada" WHERE id = $1`, id
+      `SELECT status, "dataHora", remarcacoes, "pacienteId", "farmaceuticoId" FROM "FilaAgendada" WHERE id = $1`, id
     );
-    if (!rows.length || rows[0].pacienteid !== pacienteId) {
+    if (!rows.length || rows[0].pacienteId !== pacienteId) {
       return res.status(404).json({ error: 'Consulta não encontrada.' });
     }
     const fila = rows[0];
@@ -567,13 +567,24 @@ export const remarcarConsulta = async (req, res) => {
     if (remarcacoes >= 2) {
       return res.status(400).json({ error: 'Limite de 2 remarcações atingido. Para mudar o horário, cancele e reagende.' });
     }
-    const diffHoras = (new Date(fila.datahora).getTime() - Date.now()) / 3600000;
+    const diffHoras = (new Date(fila.dataHora).getTime() - Date.now()) / 3600000;
     if (diffHoras < 2) {
       return res.status(400).json({ error: 'Remarcação só é permitida até 2 horas antes da consulta.' });
     }
     const novaData = new Date(nova_data_hora);
     if (isNaN(novaData.getTime()) || novaData <= new Date()) {
       return res.status(400).json({ error: 'nova_data_hora inválida.' });
+    }
+
+    const novaDataBR = new Date(novaData.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const horario = await prisma.sistemaHorario.findUnique({ where: { diaSemana: novaDataBR.getDay() } });
+    const horaStr = `${String(novaDataBR.getHours()).padStart(2, '0')}:${String(novaDataBR.getMinutes()).padStart(2, '0')}`;
+    if (!horario || !horario.ativo || horaStr < horario.horaInicio || horaStr >= horario.horaFim) {
+      return res.status(400).json({
+        error: horario?.ativo
+          ? `Horário fora do funcionamento do sistema (das ${horario.horaInicio} às ${horario.horaFim}).`
+          : 'O sistema não funciona neste dia.',
+      });
     }
 
     await prisma.$executeRawUnsafe(
@@ -584,6 +595,22 @@ export const remarcarConsulta = async (req, res) => {
     );
 
     await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcado', detalhes: { nova_data_hora, remarcacoes: remarcacoes + 1 } });
+
+    if (fila.farmaceuticoId) {
+      await criarNotificacao({
+        userId:     fila.farmaceuticoId,
+        tipo:       'consulta_remarcada_paciente',
+        titulo:     'Paciente remarcou a consulta',
+        mensagem:   `O paciente remarcou a consulta para ${novaData.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.`,
+        consultaId: id,
+      });
+      await sendPushToUser(fila.farmaceuticoId, {
+        title: '🔄 Consulta remarcada',
+        body:  'O paciente remarcou uma consulta que você aceitou.',
+        url:   '/dashboard',
+      });
+    }
+
     return res.json({ success: true, nova_data_hora: novaData, remarcacoes: remarcacoes + 1 });
   } catch (err) {
     console.error('remarcarConsulta:', err);

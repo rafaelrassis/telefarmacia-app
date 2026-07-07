@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import ConsultaModal from './ConsultaModal';
 import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
 import ReceitaViewer from './ReceitaViewer';
+import RemarcarModal from './RemarcarModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -60,6 +61,9 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
   const [viewingDetalhes, setViewingDetalhes] = useState(null); // { id, tipo }
   // Ver receita inline
   const [viewingReceita,  setViewingReceita]  = useState(null); // { id, tipo, data }
+  // Remarcar consulta (paciente, agendada)
+  const [remarcandoConsulta, setRemarcandoConsulta] = useState(null);
+  const [remarcarToast, setRemarcarToast] = useState(null);
 
   // Timer para contagem regressiva / destaque "É agora"
   const [agoraNow, setAgoraNow] = useState(Date.now());
@@ -264,6 +268,35 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
         />
       )}
 
+      {/* Modal: remarcar consulta agendada */}
+      {remarcandoConsulta && (
+        <RemarcarModal
+          consulta={remarcandoConsulta}
+          onClose={() => setRemarcandoConsulta(null)}
+          onRemarcado={(data) => {
+            setAppointments((prev) => prev.map((a) =>
+              a.id === remarcandoConsulta.id
+                ? { ...a, dataHora: data.nova_data_hora, remarcacoes: data.remarcacoes }
+                : a
+            ));
+            setRemarcandoConsulta(null);
+            setRemarcarToast({ type: 'success', msg: 'Consulta remarcada com sucesso!' });
+            setTimeout(() => setRemarcarToast(null), 4000);
+          }}
+        />
+      )}
+
+      {/* Toast de resultado de remarcação */}
+      {remarcarToast && (
+        <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
+          remarcarToast.type === 'success'
+            ? 'bg-green-50 border border-green-200 text-green-800'
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {remarcarToast.type === 'success' ? '✓' : '✕'} {remarcarToast.msg}
+        </div>
+      )}
+
       {/* Toast de resultado de cancelamento */}
       {cancelToast && (
         <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
@@ -440,6 +473,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               const nomeFarm        = app.farmaceutico?.name;
               const isCancelled     = app.status === 'cancelado';
               const canCancelFila   = !isPharmacist && ['aguardando', 'aceito'].includes(app.status) && app.status !== 'remarcacao_pendente';
+              const canRemarcar     = !isPharmacist && tipo === 'agendada' && ['aguardando', 'aceito'].includes(app.status);
               const eAgora          = !isPharmacist && isEAgora(app);
 
               return (
@@ -527,6 +561,16 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                         }}
                       >
                         👁 Ver detalhes
+                      </button>
+                    )}
+
+                    {/* Remarcar (paciente, agendada aguardando ou aceita) */}
+                    {canRemarcar && (
+                      <button
+                        onClick={() => setRemarcandoConsulta(app)}
+                        className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 font-bold rounded hover:bg-indigo-50 transition text-sm"
+                      >
+                        Remarcar
                       </button>
                     )}
 
