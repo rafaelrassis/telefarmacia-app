@@ -32,6 +32,7 @@
    - 6.3 [LGPD](#63-lgpd)
 7. [Variáveis de ambiente](#7-variáveis-de-ambiente)
 8. [Scripts de manutenção](#8-scripts-de-manutenção)
+9. [Testes](#9-testes)
 
 ---
 
@@ -385,6 +386,15 @@ As tabelas `FilaAgendada` e `FilaUrgente` têm colunas adicionadas via migration
 | `lembrete_enviado` | `FilaAgendada` | `BOOLEAN` | `true` após o cron enviar o push de lembrete (~1h antes), evita reenvio |
 | `retorno_sugerido` | ambas | `JSONB` | `{ dias_sugeridos, observacao }` definido pelo farmacêutico ao concluir |
 | `retorno_dispensado` | ambas | `BOOLEAN` | `true` quando o paciente dispensa ou agenda o retorno sugerido |
+| `motivo_cancelamento` | ambas | `TEXT` | Motivo do cancelamento (farmacêutico, sem-contato, expiração) |
+| `remarcacoes` | ambas | `INTEGER` | Contador de remarcações já usadas (limite de 2) |
+| `remarcacao_pendente` | ambas | `JSONB` | Proposta de nova data feita pelo farmacêutico, aguardando resposta do paciente |
+| `encaminhamento_detalhe` | ambas | `TEXT` | Resumo clínico livre, fallback para o PDF de encaminhamento |
+| `whatsapp_contato` | ambas | `TEXT` | Telefone informado na triagem para contato do atendimento |
+| `modalidade_atend` | ambas | `TEXT` | `'whatsapp'` ou `'meet'` — preferência de atendimento |
+| `sem_contato_log` | ambas | `JSONB` | Histórico de tentativas de contato sem sucesso pelo farmacêutico |
+
+Também é raw a tabela `comissoes_individuais` (`farmaceutico_id` PK, `percentual`, `atualizado_em`) — override de comissão por farmacêutico, e o campo `dados_saude` (`JSONB`) em `PacienteProfile`.
 
 > **Importante:** Ao fazer queries raw, o PostgreSQL retorna os aliases em **letras minúsculas** (ex.: `r.data_hora`, `r.has_receita`). O código acessa sempre com `.toLowerCase()` ou alias explícito.
 
@@ -854,7 +864,64 @@ Localizados em `backend/scripts/`. Todos são módulos ESM executados com `node 
 | `migrate-lembrete-enviado.mjs` | Adiciona `lembrete_enviado` em `FilaAgendada` (controle do push de lembrete 1h antes) |
 | `migrate-triagem-contato-campos.mjs` | Adiciona `triagem`, `whatsapp_contato`, `modalidade_atend`, `sem_contato_log`, `finalizacao` em `FilaAgendada` e `FilaUrgente` |
 | `migrate-retorno-sugerido.mjs` | Adiciona `retorno_sugerido` e `retorno_dispensado` em `FilaAgendada` e `FilaUrgente` |
+| `migrate-comissoes-individuais.mjs` | Cria a tabela `comissoes_individuais` (override de comissão por farmacêutico — usada por `AdminController`/`RepasseController`/`PharmacistController`/`concluirConsulta`, referenciada em várias queries raw mas sem tabela até esta migration) |
+| `migrate-cancelamento-remarcacao-campos.mjs` | Adiciona `motivo_cancelamento`, `remarcacoes`, `remarcacao_pendente`, `encaminhamento_detalhe` em `FilaAgendada` e `FilaUrgente` |
+| `migrate-paciente-dados-saude.mjs` | Adiciona `dados_saude` em `PacienteProfile` |
 | `auditoria-estados-travados.mjs` | Script de diagnóstico — lista consultas presas em estados inconsistentes |
+
+---
+
+## 9. Testes
+
+Suíte de integração do backend: rotas HTTP reais (via Supertest) contra um banco Postgres de teste real (sem mock do Prisma). Frontend ainda não tem testes automatizados (previsto para depois do redesign).
+
+### 9.1 Rodando localmente
+
+1. Crie o banco de teste (uma vez): `createdb telefarmacia_test` (ou `psql -c "CREATE DATABASE telefarmacia_test"`).
+2. Confirme `backend/.env.test` — já vem commitado com valores padrão (`DATABASE_URL` apontando para `telefarmacia_test`, `JWT_SECRET` de teste, `ADMIN_EMAILS` de teste). Não contém segredo real.
+3. `cd backend && npm test` — roda a suíte inteira uma vez (`vitest run`).
+4. `npm run test:watch` — modo watch para desenvolvimento.
+5. `npm run test:coverage` — gera relatório de cobertura (`text` + `html` em `backend/coverage/`).
+
+### 9.2 Proteção contra rodar no banco errado
+
+`tests/_guard.js` verifica se `DATABASE_URL` contém a substring `"test"` — se não contiver, a suíte aborta imediatamente com erro explícito, antes de tocar em qualquer tabela. A checagem roda duas vezes: uma no `globalSetup` (antes de aplicar o schema) e outra em `tests/setup.js` (por arquivo de teste).
+
+### 9.3 Setup do banco de teste
+
+`tests/globalSetup.js` roda uma vez por execução da suíte:
+1. `npx prisma db push --accept-data-loss` — aplica o schema Prisma no banco de teste.
+2. Executa, em sequência, os scripts de `backend/scripts/migrate-*.mjs` que ainda não estão no schema Prisma (ver §3.2 e §3.4) — o banco de teste fica no mesmo estado que dev/produção.
+
+`tests/setup.js` roda antes de cada teste (`beforeEach`, não apenas entre arquivos — isolamento mais forte):
+1. `TRUNCATE` de todas as tabelas do schema `public` (`RESTART IDENTITY CASCADE` — não precisa respeitar ordem de FK manualmente).
+2. Semeia `SystemConfig` essencial (preço, comissão padrão, tolerâncias) e `SistemaHorario` cobrindo os 7 dias da semana das `00:00` às `23:59` — nenhum teste depende da hora/dia em que a suíte roda.
+
+Os arquivos de teste rodam **sequencialmente** (`fileParallelism: false` em `vitest.config.js`): todos compartilham o mesmo banco Postgres, então paralelismo causaria truncates cruzados entre arquivos.
+
+### 9.4 Ambiente de teste no app
+
+- `NODE_ENV=test` desliga o agendamento dos crons (`initCronJobs()` retorna cedo) — os jobs (`jobExpirarUrgentesAguardando`, `jobExpirarUrgentesAceitas`, `jobAlertarAtendimentosLongos`, `jobExpirarAgendadasOrfas`, `jobLembreteConsulta`) são exportados de `src/cronJobs.js` para invocação direta nos testes, nunca por espera de agendamento real.
+- Web Push (`pushService.sendPushToUser`) e e-mail (`emailService`) já são no-ops naturais quando `VAPID_PUBLIC_KEY`/`SMTP_HOST` não estão configurados — `.env.test` deliberadamente não define essas variáveis.
+
+### 9.5 Helpers (`tests/helpers.js`)
+
+Convenção: helpers passam pela API real (registro, login, onboarding, aprovação via rota admin), nunca inserção direta no banco — exceto o próprio Prisma Client usado no setup/truncate. Principais:
+
+| Helper | O que faz |
+|---|---|
+| `registerPaciente` / `loginPaciente` | Cria/loga paciente, retorna token |
+| `registerFarmaceutico` | Registra + completa onboarding como `FARMACEUTICO` (ainda não aprovado) |
+| `getAdminToken` | Loga com o e-mail de `ADMIN_EMAILS` do `.env.test` |
+| `approveFarmaceutico` / `setFarmaceuticoOnline` | Aprova via rota admin real / liga o toggle de disponibilidade |
+| `criarFarmaceuticoAprovado` | Composição: onboarding + aprovado + online + disponível para urgências |
+| `creditarCarteira` / `getSaldo` | Crédito de teste (`/api/creditos/adicionar-teste`) / consulta de saldo |
+| `bookAgendada` / `bookUrgente`, `acceptAgendada` / `acceptUrgente`, `iniciarConsulta`, `concluirConsulta`, `cancelarAgendada` / `cancelarUrgente` | Primitivas do ciclo de vida da consulta — compostas livremente por cada teste |
+| `criarConsultaAgendadaConcluida` | Atalho: agendar → aceitar → iniciar → concluir |
+
+### 9.6 CI
+
+`.github/workflows/tests.yml` roda a suíte em todo push/PR para `main`, com um service container `postgres:16` provisionando `telefarmacia_test`.
 
 ---
 
