@@ -14,6 +14,11 @@ import { isPushSupported, getCurrentPushSubscription, subscribeToPush, unsubscri
 const API_URL   = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PRECO_CONSULTA = 50;
 
+const toLocalDateStr = (date = new Date()) => {
+  const d = new Date(date);
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+};
+
 const DEP_COLORS = [
   'from-pink-400 to-rose-500',
   'from-amber-400 to-orange-500',
@@ -103,6 +108,9 @@ const PatientDashboard = () => {
   // ── Retorno sugerido ────────────────────────────────────────────────────────
   const [retornoSugerido, setRetornoSugerido] = useState(null);
   const [dispensandoRetorno, setDispensandoRetorno] = useState(false);
+  const [agendandoRetorno, setAgendandoRetorno] = useState(false);
+  const [retornoAgendando, setRetornoAgendando] = useState(null); // { consultaId, tipo } — dispensa ao concluir o agendamento
+  const [retornoInitialDate, setRetornoInitialDate] = useState(null);
 
   // ── Dependentes ─────────────────────────────────────────────────────────────
   const [dependentes, setDependentes] = useState([]);
@@ -440,6 +448,44 @@ const PatientDashboard = () => {
       if (res.ok) setRetornoSugerido(null);
     } catch {}
     finally { setDispensandoRetorno(false); }
+  };
+
+  // "Agendar retorno": pré-preenche a data (hoje + dias_sugeridos, ajustada para o
+  // próximo dia com sistema aberto e horários disponíveis) e abre o fluxo normal de
+  // agendamento. Ao concluir, dispensa o retorno sugerido automaticamente.
+  const handleAgendarRetorno = async () => {
+    if (!retornoSugerido) return;
+    const retorno = retornoSugerido;
+    setAgendandoRetorno(true);
+    try {
+      const diasSugeridos = retorno.retornoSugerido?.dias_sugeridos ?? 1;
+      let candidate = new Date(Date.now() + diasSugeridos * 86400000);
+      let foundDate = null;
+      for (let i = 0; i < 30; i++) {
+        const dataStr = toLocalDateStr(candidate);
+        try {
+          const res = await fetch(`${API_URL}/api/disponibilidade?data=${dataStr}`);
+          if (res.ok) {
+            const d = await res.json();
+            if (Array.isArray(d.slots) && d.slots.length > 0) { foundDate = dataStr; break; }
+          }
+        } catch {}
+        candidate = new Date(candidate.getTime() + 86400000);
+      }
+      setRetornoAgendando({ consultaId: retorno.consultaId, tipo: retorno.tipo });
+      setRetornoInitialDate(foundDate || toLocalDateStr(new Date(Date.now() + diasSugeridos * 86400000)));
+      setRetornoSugerido(null);
+      setShowDataModal(true);
+    } finally {
+      setAgendandoRetorno(false);
+    }
+  };
+
+  const closeDataModal = () => {
+    setShowDataModal(false);
+    setRetornoAgendando(null);
+    setRetornoInitialDate(null);
+    fetchWalletBalance();
   };
 
   const handleCancelarUrgente = async () => {
@@ -1062,13 +1108,15 @@ const PatientDashboard = () => {
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => { setRetornoSugerido(null); setShowDataModal(true); }}
+                onClick={handleAgendarRetorno}
+                disabled={agendandoRetorno}
                 style={{
                   flex: 2, padding: '8px 0', background: '#16a34a', color: 'white',
-                  border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                  cursor: agendandoRetorno ? 'wait' : 'pointer', opacity: agendandoRetorno ? 0.7 : 1,
                 }}
               >
-                Agendar retorno
+                {agendandoRetorno ? 'Verificando horários...' : 'Agendar retorno'}
               </button>
               <button
                 onClick={handleDispensarRetorno}
@@ -1386,19 +1434,28 @@ const PatientDashboard = () => {
       {/* Modal: escolher data e horário + triagem */}
       {showDataModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowDataModal(false); fetchWalletBalance(); }} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeDataModal} />
           <div
             className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
             style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}
           >
             <TriagemForm
               tipo="agendado"
-              onBack={() => { setShowDataModal(false); fetchWalletBalance(); }}
+              initialDate={retornoInitialDate}
+              onBack={closeDataModal}
               onBooked={() => {
                 setBookedSuccess(true);
                 setTimeout(() => setBookedSuccess(false), 4000);
                 setAppointmentsRefreshKey((k) => k + 1);
                 maybeRequestPush();
+                if (retornoAgendando) {
+                  fetch(`${API_URL}/api/consulta/${retornoAgendando.consultaId}/dispensar-retorno`, {
+                    method: 'PATCH',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo: retornoAgendando.tipo }),
+                  }).catch(() => {});
+                  setRetornoAgendando(null);
+                }
               }}
               onAddCredits={() => { setShowDataModal(false); setShowWalletTopup(true); }}
               pacienteNome={user?.name || ''}

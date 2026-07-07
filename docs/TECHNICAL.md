@@ -383,6 +383,8 @@ As tabelas `FilaAgendada` e `FilaUrgente` têm colunas adicionadas via migration
 | `finalizacao` | ambas | `JSONB` | Dados de finalização: retorno sugerido, observações de alta |
 | `encaminhamento_pdf_url` | ambas | `TEXT` | Caminho relativo do PDF de encaminhamento |
 | `lembrete_enviado` | `FilaAgendada` | `BOOLEAN` | `true` após o cron enviar o push de lembrete (~1h antes), evita reenvio |
+| `retorno_sugerido` | ambas | `JSONB` | `{ dias_sugeridos, observacao }` definido pelo farmacêutico ao concluir |
+| `retorno_dispensado` | ambas | `BOOLEAN` | `true` quando o paciente dispensa ou agenda o retorno sugerido |
 
 > **Importante:** Ao fazer queries raw, o PostgreSQL retorna os aliases em **letras minúsculas** (ex.: `r.data_hora`, `r.has_receita`). O código acessa sempre com `.toLowerCase()` ou alias explícito.
 
@@ -849,6 +851,9 @@ Localizados em `backend/scripts/`. Todos são módulos ESM executados com `node 
 | `migrate-fila-agendada-aceito-em.mjs` | Adiciona `aceitoEm` em `FilaAgendada` (tempo de aceite) |
 | `migrate-push-subscription.mjs` | Cria a tabela `PushSubscription` (Web Push) |
 | `migrate-comissao-percentual.mjs` | Adiciona `comissao_percentual` em `FilaAgendada` e `FilaUrgente` (comissão gravada por consulta) |
+| `migrate-lembrete-enviado.mjs` | Adiciona `lembrete_enviado` em `FilaAgendada` (controle do push de lembrete 1h antes) |
+| `migrate-triagem-contato-campos.mjs` | Adiciona `triagem`, `whatsapp_contato`, `modalidade_atend`, `sem_contato_log`, `finalizacao` em `FilaAgendada` e `FilaUrgente` |
+| `migrate-retorno-sugerido.mjs` | Adiciona `retorno_sugerido` e `retorno_dispensado` em `FilaAgendada` e `FilaUrgente` |
 | `auditoria-estados-travados.mjs` | Script de diagnóstico — lista consultas presas em estados inconsistentes |
 
 ---

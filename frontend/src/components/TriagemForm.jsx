@@ -118,12 +118,13 @@ const TriagemForm = ({
   pacienteIdade = null,
   preSelectedPerson = null,
   dependentes = [],
+  initialDate = null,
 }) => {
   const isAgendado = tipo === 'agendado';
   const { token } = useAuth();
   const today = toLocalDateStr();
   const [agStep, setAgStep] = useState(isAgendado ? 'select' : 'triagem');
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState(initialDate || today);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
