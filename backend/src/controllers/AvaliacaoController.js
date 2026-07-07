@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { criarNotificacao } from './NotificacaoController.js';
 
 const prisma = new PrismaClient();
 
@@ -41,6 +42,15 @@ export const avaliarConsulta = async (req, res) => {
           comentario: comentario?.trim()?.slice(0, 500) || null,
         },
       });
+      if (fila.farmaceuticoId) {
+        await criarNotificacao({
+          userId:     fila.farmaceuticoId,
+          tipo:       'avaliacao',
+          titulo:     'Você recebeu uma nova avaliação',
+          mensagem:   'Um paciente avaliou o atendimento. Confira na aba Avaliações.',
+          consultaId: id,
+        });
+      }
       return res.status(201).json({ success: true, avaliacao });
     }
 
@@ -67,6 +77,15 @@ export const avaliarConsulta = async (req, res) => {
           comentario: comentario?.trim()?.slice(0, 500) || null,
         },
       });
+      if (fila.farmaceuticoId) {
+        await criarNotificacao({
+          userId:     fila.farmaceuticoId,
+          tipo:       'avaliacao',
+          titulo:     'Você recebeu uma nova avaliação',
+          mensagem:   'Um paciente avaliou o atendimento. Confira na aba Avaliações.',
+          consultaId: id,
+        });
+      }
       return res.status(201).json({ success: true, avaliacao });
     }
 
@@ -112,33 +131,46 @@ export const getAvaliacaoPendente = async (req, res) => {
   }
 };
 
-// GET /api/farmaceuticos/:id/avaliacoes
-export const getAvaliacoesFarmaceutico = async (req, res) => {
+// GET /api/farmaceutico/me/avaliacoes?page=&limit=
+export const getMinhasAvaliacoes = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const pharmacistId = req.user.id;
+  const pageNum  = Math.max(1, parseInt(req.query.page ?? '1'));
+  const limitNum = Math.min(50, Math.max(1, parseInt(req.query.limit ?? '20')));
+  const skip     = (pageNum - 1) * limitNum;
+
   try {
-    const { id } = req.params;
+    const [avaliacoes, distribuicaoRows] = await Promise.all([
+      prisma.avaliacao.findMany({
+        where:   { pharmacistId },
+        include: { paciente: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip, take: limitNum,
+      }),
+      prisma.avaliacao.groupBy({ by: ['nota'], where: { pharmacistId }, _count: { nota: true } }),
+    ]);
 
-    const avaliacoes = await prisma.avaliacao.findMany({
-      where: { pharmacistId: id },
-      include: { paciente: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const distribuicao = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    for (const r of distribuicaoRows) distribuicao[String(r.nota)] = r._count.nota;
 
-    const total = avaliacoes.length;
-    const media = total > 0
-      ? Math.round((avaliacoes.reduce((s, a) => s + a.nota, 0) / total) * 10) / 10
-      : null;
+    const total = Object.values(distribuicao).reduce((s, q) => s + q, 0);
+    const soma  = Object.entries(distribuicao).reduce((s, [nota, qtd]) => s + Number(nota) * qtd, 0);
+    const media = total > 0 ? Math.round((soma / total) * 10) / 10 : null;
+
+    const data = avaliacoes.map((a) => ({
+      id:           a.id,
+      nota:         a.nota,
+      comentario:   a.comentario,
+      pacienteNome: a.paciente?.name?.split(' ')[0] ?? '—',
+      createdAt:    a.createdAt,
+    }));
 
     return res.status(200).json({
-      media,
-      total,
-      avaliacoes: avaliacoes.map((a) => ({
-        nota:          a.nota,
-        comentario:    a.comentario,
-        paciente_nome: a.paciente.name.split(' ')[0],
-        createdAt:     a.createdAt,
-      })),
+      media, total, distribuicao,
+      data, page: pageNum, totalPages: Math.ceil(total / limitNum) || 1,
     });
   } catch (error) {
+    console.error('getMinhasAvaliacoes error:', error);
     return res.status(500).json({ error: 'Erro ao buscar avaliações.' });
   }
 };

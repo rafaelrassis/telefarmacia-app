@@ -1170,6 +1170,134 @@ export const getFilaTempoReal = async (req, res) => {
   }
 };
 
+// ── GET /api/admin/avaliacoes?page=&limit=&nota=&farmaceuticoId=&de=&ate= ────
+
+export const getAvaliacoesAdmin = async (req, res) => {
+  const { page = '1', limit = '20', nota, farmaceuticoId, de, ate } = req.query;
+  const pageNum  = Math.max(1, parseInt(page));
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+  const skip     = (pageNum - 1) * limitNum;
+
+  const where = {};
+  if (nota)           where.nota         = parseInt(nota, 10);
+  if (farmaceuticoId) where.pharmacistId = farmaceuticoId;
+  if (de || ate) {
+    where.createdAt = {};
+    if (de)  where.createdAt.gte = new Date(`${de}T00:00:00-03:00`);
+    if (ate) where.createdAt.lte = new Date(`${ate}T23:59:59-03:00`);
+  }
+
+  try {
+    const [total, avaliacoes] = await Promise.all([
+      prisma.avaliacao.count({ where }),
+      prisma.avaliacao.findMany({
+        where,
+        include: {
+          paciente:   { select: { name: true } },
+          pharmacist: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip, take: limitNum,
+      }),
+    ]);
+
+    const data = avaliacoes.map((a) => ({
+      id:               a.id,
+      data:             a.createdAt,
+      nota:             a.nota,
+      comentario:       a.comentario,
+      pacienteNome:     a.paciente?.name ?? '—',
+      farmaceuticoNome: a.pharmacist?.name ?? '—',
+      farmaceuticoId:   a.pharmacistId,
+      tipo:             a.filaAgendadaId ? 'agendada' : 'urgente',
+      consultaId:       a.filaAgendadaId ?? a.filaUrgenteId,
+    }));
+
+    return res.status(200).json({ data, total, page: pageNum, totalPages: Math.ceil(total / limitNum) || 1 });
+  } catch (err) {
+    console.error('getAvaliacoesAdmin error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar avaliações.' });
+  }
+};
+
+// ── GET /api/admin/avaliacoes/resumo?de=&ate= ────────────────────────────────
+
+export const getResumoAvaliacoes = async (req, res) => {
+  const { de, ate } = req.query;
+
+  const where = {};
+  if (de || ate) {
+    where.createdAt = {};
+    if (de)  where.createdAt.gte = new Date(`${de}T00:00:00-03:00`);
+    if (ate) where.createdAt.lte = new Date(`${ate}T23:59:59-03:00`);
+  }
+
+  try {
+    const [avaliacoesPeriodo, seisMeses] = await Promise.all([
+      prisma.avaliacao.findMany({
+        where,
+        select: { nota: true, pharmacistId: true, pharmacist: { select: { name: true } } },
+      }),
+      (() => {
+        const inicio = new Date();
+        inicio.setMonth(inicio.getMonth() - 5);
+        inicio.setDate(1);
+        inicio.setHours(0, 0, 0, 0);
+        return prisma.avaliacao.findMany({
+          where: { createdAt: { gte: inicio } },
+          select: { nota: true, createdAt: true },
+        });
+      })(),
+    ]);
+
+    const total = avaliacoesPeriodo.length;
+    const soma  = avaliacoesPeriodo.reduce((s, a) => s + a.nota, 0);
+    const media_geral = total > 0 ? Math.round((soma / total) * 10) / 10 : null;
+
+    const distribuicao = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    for (const a of avaliacoesPeriodo) distribuicao[String(a.nota)] = (distribuicao[String(a.nota)] ?? 0) + 1;
+
+    // Evolução mensal — sempre os últimos 6 meses corridos, independente do filtro de/ate
+    const inicio6m = new Date();
+    inicio6m.setMonth(inicio6m.getMonth() - 5);
+    inicio6m.setDate(1);
+    inicio6m.setHours(0, 0, 0, 0);
+    const mesesMap = {};
+    for (let i = 0; i < 6; i++) {
+      const d   = new Date(inicio6m.getFullYear(), inicio6m.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      mesesMap[key] = { soma: 0, total: 0 };
+    }
+    for (const a of seisMeses) {
+      const d   = new Date(a.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (mesesMap[key]) { mesesMap[key].soma += a.nota; mesesMap[key].total += 1; }
+    }
+    const evolucao_mensal = Object.entries(mesesMap).map(([mes, v]) => ({
+      mes, media: v.total > 0 ? Math.round((v.soma / v.total) * 10) / 10 : null, total: v.total,
+    }));
+
+    // Ranking por farmacêutico — apenas quem tem ao menos 1 avaliação no período filtrado
+    const farmMap = {};
+    for (const a of avaliacoesPeriodo) {
+      if (!a.pharmacistId) continue;
+      if (!farmMap[a.pharmacistId]) {
+        farmMap[a.pharmacistId] = { id: a.pharmacistId, nome: a.pharmacist?.name ?? '—', soma: 0, total: 0 };
+      }
+      farmMap[a.pharmacistId].soma += a.nota;
+      farmMap[a.pharmacistId].total += 1;
+    }
+    const por_farmaceutico = Object.values(farmMap)
+      .map((f) => ({ id: f.id, nome: f.nome, media: Math.round((f.soma / f.total) * 10) / 10, total: f.total }))
+      .sort((a, b) => b.media - a.media);
+
+    return res.status(200).json({ media_geral, total, distribuicao, evolucao_mensal, por_farmaceutico });
+  } catch (err) {
+    console.error('getResumoAvaliacoes error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar resumo de avaliações.' });
+  }
+};
+
 // ── Gestão de administradores (SystemConfig 'admin_emails' + fallback env) ──
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

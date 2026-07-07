@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const applyPlaceholders = (text, { pacienteNome, triagem }) => {
+const applyPlaceholders = (text, { pacienteNome, triagem, farmaceuticoNome }) => {
   const hoje = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
@@ -19,13 +19,19 @@ const applyPlaceholders = (text, { pacienteNome, triagem }) => {
   }
 
   return text
+    // sintaxe atual (chave dupla) — processada antes para não deixar sobra de chaves
+    .replace(/\{\{\s*paciente_nome\s*\}\}/g,     pacienteNome     || '')
+    .replace(/\{\{\s*data\s*\}\}/g,               hoje)
+    .replace(/\{\{\s*farmaceutico_nome\s*\}\}/g, farmaceuticoNome || '')
+    // sintaxe legada (chave simples)
     .replace(/\{paciente\}/g, pacienteNome || '')
     .replace(/\{data\}/g,     hoje)
     .replace(/\{idade\}/g,    idade);
 };
 
 const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const farmaceuticoNome = user?.name || '';
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [busca, setBusca]         = useState('');
@@ -106,7 +112,7 @@ const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
           filtrados.map((t) => (
             <button
               key={t.id}
-              onClick={() => onInsert(applyPlaceholders(t.conteudo, { pacienteNome, triagem }))}
+              onClick={() => onInsert(applyPlaceholders(t.conteudo, { pacienteNome, triagem, farmaceuticoNome }))}
               style={{
                 display: 'block', width: '100%', textAlign: 'left',
                 padding: '10px 14px', background: 'transparent',
@@ -131,9 +137,9 @@ const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
       {/* Dica de placeholders */}
       <div style={{ padding: '8px 12px', borderTop: '1px solid #f3f4f6', background: '#fafafa' }}>
         <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>
-          Placeholders: <code style={{ fontFamily: 'monospace' }}>{'{paciente}'}</code>,{' '}
-          <code style={{ fontFamily: 'monospace' }}>{'{data}'}</code>,{' '}
-          <code style={{ fontFamily: 'monospace' }}>{'{idade}'}</code>
+          Placeholders: <code style={{ fontFamily: 'monospace' }}>{'{{paciente_nome}}'}</code>,{' '}
+          <code style={{ fontFamily: 'monospace' }}>{'{{data}}'}</code>,{' '}
+          <code style={{ fontFamily: 'monospace' }}>{'{{farmaceutico_nome}}'}</code>
         </p>
       </div>
     </div>

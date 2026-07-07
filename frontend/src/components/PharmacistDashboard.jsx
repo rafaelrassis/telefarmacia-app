@@ -8,6 +8,8 @@ import ConsultaModal from './ConsultaModal';
 import GanhosTab from './GanhosTab';
 import ScheduleManager from './ScheduleManager';
 import BloqueioModal from './BloqueioModal';
+import { isPushSupported, getCurrentPushSubscription, subscribeToPush, unsubscribeFromPush } from '../utils/push';
+import AvaliacoesTab from './AvaliacoesTab';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -742,7 +744,7 @@ const AgendaTab = () => {
 
 // ── Aba Templates ─────────────────────────────────────────────────────────────
 
-const PLACEHOLDER_HINT = '{paciente}, {data}, {idade}';
+const PLACEHOLDER_HINT = '{{paciente_nome}}, {{data}}, {{farmaceutico_nome}}';
 
 const TemplateFormModal = ({ initial, onClose, onSaved }) => {
   const { token } = useAuth();
@@ -814,9 +816,9 @@ const TemplateFormModal = ({ initial, onClose, onSaved }) => {
               className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y font-mono"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Placeholders disponíveis: <code className="font-mono bg-slate-100 px-1 rounded">{'{paciente}'}</code>,{' '}
-              <code className="font-mono bg-slate-100 px-1 rounded">{'{data}'}</code>,{' '}
-              <code className="font-mono bg-slate-100 px-1 rounded">{'{idade}'}</code>
+              Placeholders disponíveis: <code className="font-mono bg-slate-100 px-1 rounded">{'{{paciente_nome}}'}</code>,{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">{'{{data}}'}</code>,{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">{'{{farmaceutico_nome}}'}</code>
             </p>
           </div>
 
@@ -989,12 +991,89 @@ const TemplatesTab = () => {
   );
 };
 
+// ── Card "Resumo do dia" ──────────────────────────────────────────────────────
+
+const brDateKey = (d) => {
+  const brt = new Date(new Date(d).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  return `${brt.getFullYear()}-${brt.getMonth()}-${brt.getDate()}`;
+};
+
+const fmtEmMinOuHora = (dataIso) => {
+  const alvo = new Date(dataIso);
+  const diffMin = Math.round((alvo.getTime() - Date.now()) / 60000);
+  const hora = alvo.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+  if (diffMin <= 0) return `${hora} (agora)`;
+  if (diffMin < 60) return `${hora} (em ${diffMin} min)`;
+  return hora;
+};
+
+const ResumoDoDia = ({ token, refreshTrigger }) => {
+  const [resumo, setResumo] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [calRes, urgRes] = await Promise.all([
+        fetch(`${API_URL}/api/farmaceutico/calendario`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/fila/urgentes?status=aguardando`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const calendario = calRes.ok ? await calRes.json() : [];
+      const urgentes    = urgRes.ok ? await urgRes.json() : [];
+
+      const hojeKey = brDateKey(new Date());
+      const hojeAgendadas = calendario
+        .filter((f) => f.tipo === 'agendada' && brDateKey(f.data_hora) === hojeKey)
+        .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+
+      const proxima = hojeAgendadas.find((f) => new Date(f.data_hora).getTime() >= Date.now() - 15 * 60000);
+
+      setResumo({
+        totalHoje: hojeAgendadas.length,
+        proximaHorario: proxima ? proxima.data_hora : null,
+        urgentesAguardando: urgentes.length,
+      });
+    } catch { /* silencioso — card não crítico */ }
+  }, [token]);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 60000);
+    return () => clearInterval(id);
+  }, [load, refreshTrigger]);
+
+  if (!resumo) return null;
+
+  const alerta = resumo.urgentesAguardando > 0;
+
+  return (
+    <div className={`flex flex-wrap items-center gap-x-6 gap-y-2 border rounded-xl px-4 py-3 mb-4 ${
+      alerta ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'
+    }`}>
+      <div>
+        <p className="text-xs text-gray-500">Consultas de hoje</p>
+        <p className="text-sm font-semibold text-gray-800">
+          {resumo.totalHoje} {resumo.totalHoje === 1 ? 'aceita' : 'aceitas'}
+          {resumo.proximaHorario && (
+            <span className="text-gray-400 font-normal"> · próxima {fmtEmMinOuHora(resumo.proximaHorario)}</span>
+          )}
+        </p>
+      </div>
+      <div>
+        <p className="text-xs text-gray-500">Urgentes aguardando</p>
+        <p className={`text-sm font-bold ${alerta ? 'text-red-600' : 'text-gray-800'}`}>
+          {resumo.urgentesAguardando} {alerta ? '🔴' : ''}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const TABS = [
   { id: 'calendario', label: 'Calendário'   },
   { id: 'agenda',     label: 'Minha agenda' },
   { id: 'templates',  label: 'Templates'    },
   { id: 'consultas',  label: 'Consultas'    },
   { id: 'ganhos',     label: '💰 Ganhos'   },
+  { id: 'avaliacoes', label: '⭐ Avaliações' },
 ];
 
 const PharmacistDashboard = () => {
@@ -1007,6 +1086,8 @@ const PharmacistDashboard = () => {
   const [consultaAlvo, setConsultaAlvo]       = useState(null);
   const [hasEmAtendimento, setHasEmAtendimento] = useState(false);
   const [togglingDisponivel, setTogglingDisponivel] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [togglingPush, setTogglingPush] = useState(false);
 
   const isApproved         = user?.pharmacistProfile?.isApproved;
   const docEnviado         = Boolean(user?.pharmacistProfile?.urlDocCrf);
@@ -1020,15 +1101,53 @@ const PharmacistDashboard = () => {
     }
   }, [isApproved]);
 
+  // Sincroniza estado do toggle de push com a subscription real do navegador
+  useEffect(() => {
+    if (!isApproved || !isPushSupported()) return;
+    getCurrentPushSubscription().then((sub) => setPushEnabled(Boolean(sub))).catch(() => {});
+  }, [isApproved]);
+
+  // Se já está disponível para urgências e a permissão foi concedida, garante a subscription
+  useEffect(() => {
+    if (!isApproved || !disponivelUrgencias) return;
+    if (Notification.permission !== 'granted') return;
+    subscribeToPush(token).then((sub) => { if (sub) setPushEnabled(true); }).catch(() => {});
+  }, [isApproved, disponivelUrgencias, token]);
+
+  const togglePush = async () => {
+    setTogglingPush(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush(token);
+        setPushEnabled(false);
+      } else {
+        if (Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+        const sub = await subscribeToPush(token);
+        setPushEnabled(Boolean(sub));
+      }
+    } catch {}
+    setTogglingPush(false);
+  };
+
   const toggleDisponivelUrgencias = async () => {
     setTogglingDisponivel(true);
     try {
+      const novoValor = !disponivelUrgencias;
       await fetch(`${API_URL}/api/farmaceuticos/me/disponibilidade`, {
         method:  'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ disponivelUrgencias: !disponivelUrgencias }),
+        body:    JSON.stringify({ disponivelUrgencias: novoValor }),
       });
       await refreshUser();
+      if (!novoValor) {
+        await unsubscribeFromPush(token).catch(() => {});
+        setPushEnabled(false);
+      } else if (Notification.permission === 'granted') {
+        const sub = await subscribeToPush(token).catch(() => null);
+        if (sub) setPushEnabled(true);
+      }
     } catch {}
     setTogglingDisponivel(false);
   };
@@ -1138,6 +1257,8 @@ const PharmacistDashboard = () => {
       )}
 
       {/* ── Toggle: Disponível para urgências ── */}
+      {isApproved && <ResumoDoDia token={token} refreshTrigger={calendarTrigger} />}
+
       {isApproved && (
         <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4">
           <div className="flex items-center gap-3">
@@ -1164,6 +1285,38 @@ const PharmacistDashboard = () => {
           >
             <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
               disponivelUrgencias ? 'translate-x-5' : 'translate-x-0'
+            }`} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Toggle: Notificações push ── */}
+      {isApproved && isPushSupported() && (
+        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4">
+          <div className="flex items-center gap-3">
+            <span className={`text-xl ${pushEnabled ? 'text-violet-500' : 'text-gray-400'}`}>
+              {pushEnabled ? '🔔' : '🔕'}
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Notificações push</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {pushEnabled
+                  ? 'Você recebe um alerta no celular/navegador quando surge uma urgência'
+                  : 'Ative para ser avisado de novas urgências mesmo com o app fechado'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={togglePush}
+            disabled={togglingPush}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+              pushEnabled ? 'bg-violet-600' : 'bg-gray-300'
+            }`}
+            role="switch"
+            aria-checked={pushEnabled}
+          >
+            <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+              pushEnabled ? 'translate-x-5' : 'translate-x-0'
             }`} />
           </button>
         </div>
@@ -1209,6 +1362,7 @@ const PharmacistDashboard = () => {
       {activeTab === 'templates'  && <TemplatesTab />}
       {activeTab === 'consultas'  && <MyAppointments />}
       {activeTab === 'ganhos'     && <GanhosTab />}
+      {activeTab === 'avaliacoes' && <AvaliacoesTab />}
       {activeTab === 'perfil'     && <PharmacistProfileEditor />}
 
       {consultaAlvo && (

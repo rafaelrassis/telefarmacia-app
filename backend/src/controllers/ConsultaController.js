@@ -170,6 +170,19 @@ export const concluirConsulta = async (req, res) => {
   const table           = tableName(tipo);
 
   try {
+    // Comissão vigente no momento da conclusão — gravada para auditoria retroativa
+    let comissaoPercentual = null;
+    try {
+      const [comissaoRow, comissaoInd] = await Promise.all([
+        prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+        prisma.$queryRawUnsafe(
+          `SELECT CAST(percentual AS FLOAT) AS percentual FROM comissoes_individuais WHERE farmaceutico_id = $1`,
+          pharmacistId
+        ).catch(() => []),
+      ]);
+      comissaoPercentual = comissaoInd[0]?.percentual ?? parseFloat(comissaoRow?.value ?? '70');
+    } catch { /* segue sem comissão gravada — cálculo cai no fallback "estimado" */ }
+
     let count;
     try {
       const sets   = [`status = 'concluido'`, `"observacoes" = $1`, `"motivo" = $2`];
@@ -178,6 +191,7 @@ export const concluirConsulta = async (req, res) => {
       if (receitaStr)     { sets.push(`"receita" = $${pi}::jsonb`);          params.push(receitaStr);     pi++; }
       if (finalizacaoStr) { sets.push(`"finalizacao" = $${pi}::jsonb`);      params.push(finalizacaoStr); pi++; }
       if (retornoStr)     { sets.push(`"retorno_sugerido" = $${pi}::jsonb`); params.push(retornoStr);     pi++; }
+      if (comissaoPercentual != null) { sets.push(`"comissao_percentual" = $${pi}`); params.push(comissaoPercentual); pi++; }
       params.push(id, pharmacistId);
       count = await prisma.$executeRawUnsafe(
         `UPDATE "${table}" SET ${sets.join(', ')} WHERE id = $${pi} AND "farmaceuticoId" = $${pi + 1} AND status = 'em_atendimento'`,
@@ -635,9 +649,9 @@ export const responderRemarcacao = async (req, res) => {
 
   try {
     const rows = await prisma.$queryRawUnsafe(
-      `SELECT status, "creditoDebitado", "remarcacao_pendente", "pacienteId" FROM "FilaAgendada" WHERE id = $1`, id
+      `SELECT status, "creditoDebitado", "remarcacao_pendente", "pacienteId", "farmaceuticoId" FROM "FilaAgendada" WHERE id = $1`, id
     );
-    if (!rows.length || rows[0].pacienteid !== pacienteId) {
+    if (!rows.length || rows[0].pacienteId !== pacienteId) {
       return res.status(404).json({ error: 'Consulta não encontrada.' });
     }
     const fila = rows[0];
@@ -648,7 +662,7 @@ export const responderRemarcacao = async (req, res) => {
 
     if (decisao === 'cancelar') {
       // Estorno integral — cancelamento partiu do farmacêutico
-      const credito = Number(fila.creditodebitado);
+      const credito = Number(fila.creditoDebitado);
       await prisma.$transaction(async (tx) => {
         await tx.$executeRawUnsafe(
           `UPDATE "FilaAgendada" SET status = 'cancelado', "remarcacao_pendente" = NULL, "motivo_cancelamento" = 'Paciente recusou remarcação proposta pelo farmacêutico' WHERE id = $1`, id
@@ -658,7 +672,16 @@ export const responderRemarcacao = async (req, res) => {
           await tx.transacaoCarteira.create({ data: { carteiraId: carteira.id, tipo: 'credito', valor: credito, saldoApos: carteira.saldo, descricao: 'Estorno — paciente recusou remarcação do farmacêutico', consultaId: id } });
         }
       });
-      await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcacao_recusada', detalhes: { estorno: Number(fila.creditodebitado) } });
+      await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcacao_recusada', detalhes: { estorno: credito } });
+      if (fila.farmaceuticoId) {
+        await criarNotificacao({
+          userId:     fila.farmaceuticoId,
+          tipo:       'remarcacao_recusada',
+          titulo:     'Paciente recusou a remarcação',
+          mensagem:   'O paciente recusou o novo horário proposto. A consulta foi cancelada e o valor estornado.',
+          consultaId: id,
+        });
+      }
       return res.json({ success: true, status: 'cancelado' });
     }
 
@@ -678,6 +701,15 @@ export const responderRemarcacao = async (req, res) => {
       novaData, id
     );
     await logAction(prisma, { consultaId: id, usuarioId: pacienteId, role: req.user.role, acao: 'remarcacao_aceita', detalhes: { decisao, nova_data_hora: novaData } });
+    if (fila.farmaceuticoId) {
+      await criarNotificacao({
+        userId:     fila.farmaceuticoId,
+        tipo:       'remarcacao_respondida',
+        titulo:     decisao === 'aceitar' ? 'Paciente aceitou o novo horário' : 'Paciente propôs outro horário',
+        mensagem:   `Novo horário confirmado: ${novaData.toLocaleString('pt-BR')}.`,
+        consultaId: id,
+      });
+    }
     return res.json({ success: true, status: 'aceito', nova_data_hora: novaData });
   } catch (err) {
     console.error('responderRemarcacao:', err);
@@ -929,14 +961,14 @@ export const getHistoricoCompleto = async (req, res) => {
            AND fa.status IN ('concluido', 'cancelado')
            ${depFilterAg}
          ORDER BY fa."criadoEm" DESC
-         LIMIT 30`,
+         LIMIT 10`,
         patientId, id
       );
     } catch {
       const rows = await prisma.filaAgendada.findMany({
         where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] }, NOT: { id } },
         select:  { id: true, dataHora: true, status: true, criadoEm: true },
-        orderBy: { criadoEm: 'desc' }, take: 30,
+        orderBy: { criadoEm: 'desc' }, take: 10,
       });
       agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
     }
@@ -961,21 +993,21 @@ export const getHistoricoCompleto = async (req, res) => {
            AND fu.status IN ('concluido', 'cancelado')
            ${depFilterUr}
          ORDER BY fu."criadoEm" DESC
-         LIMIT 30`,
+         LIMIT 10`,
         patientId, id
       );
     } catch {
       const rows = await prisma.filaUrgente.findMany({
         where:   { pacienteId: patientId, status: { in: ['concluido', 'cancelado'] }, NOT: { id } },
         select:  { id: true, criadoEm: true, status: true },
-        orderBy: { criadoEm: 'desc' }, take: 30,
+        orderBy: { criadoEm: 'desc' }, take: 10,
       });
       urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
     }
 
     const normalized = [...agendadas, ...urgentes]
       .sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora))
-      .slice(0, 30)
+      .slice(0, 10)
       .map((r) => ({
         id:               r.id,
         dataHora:         r.data_hora,

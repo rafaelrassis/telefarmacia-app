@@ -29,6 +29,8 @@ import {
   listAdmins,
   addAdmin,
   removeAdmin,
+  getAvaliacoesAdmin,
+  getResumoAvaliacoes,
 } from '../controllers/AdminController.js';
 import {
   listParceiros, createParceiro, updateParceiro, deleteParceiro,
@@ -84,6 +86,10 @@ router.get('/admin/consultas',                        ...guard, getConsultasAdmi
 
 // Dashboard operacional em tempo real
 router.get('/admin/fila/tempo-real',                  ...guard, getFilaTempoReal);
+
+// Avaliações
+router.get('/admin/avaliacoes',                       ...guard, getAvaliacoesAdmin);
+router.get('/admin/avaliacoes/resumo',                ...guard, getResumoAvaliacoes);
 
 // Ajuste manual de carteira (paciente)
 router.post('/admin/carteira/:pacienteId/ajuste',    ...guard, ajustarCarteira);

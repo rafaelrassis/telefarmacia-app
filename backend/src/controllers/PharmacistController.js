@@ -608,6 +608,27 @@ export const getGanhosFarmaceutico = async (req, res) => {
       }),
     ].sort((a, b) => new Date(b.data) - new Date(a.data));
 
+    // Comissão gravada no momento da conclusão (por consulta) — quando ausente
+    // (consultas concluídas antes desta coluna existir), usa a taxa atual e marca "estimado"
+    if (allItems.length > 0) {
+      const agIds = agendadas.map((f) => f.id);
+      const urIds = urgentes.map((f) => f.id);
+      const [comAg, comUr] = await Promise.all([
+        agIds.length ? prisma.$queryRawUnsafe(`SELECT id, comissao_percentual FROM "FilaAgendada" WHERE id = ANY($1::text[])`, agIds).catch(() => []) : [],
+        urIds.length ? prisma.$queryRawUnsafe(`SELECT id, comissao_percentual FROM "FilaUrgente" WHERE id = ANY($1::text[])`, urIds).catch(() => []) : [],
+      ]);
+      const comissaoStoredMap = {};
+      for (const r of [...comAg, ...comUr]) {
+        if (r.comissao_percentual != null) comissaoStoredMap[r.id] = Number(r.comissao_percentual);
+      }
+      for (const item of allItems) {
+        const stored = comissaoStoredMap[item.id];
+        item.comissaoPercentual = stored ?? percentual;
+        item.estimado           = stored == null;
+        item.ganho              = Math.round(item.valor * (item.comissaoPercentual / 100) * 100) / 100;
+      }
+    }
+
     // Marca status de repasse por item (repassado / a receber)
     if (allItems.length > 0) {
       const allIds = allItems.map((i) => i.id);
@@ -717,6 +738,99 @@ export const getGanhosFarmaceutico = async (req, res) => {
   } catch (err) {
     console.error('getGanhosFarmaceutico error:', err);
     return res.status(500).json({ error: 'Erro ao buscar ganhos.' });
+  }
+};
+
+// ── GET /api/farmaceutico/ganhos/export?de=&ate= ─────────────────────────────
+
+export const exportGanhosFarmaceutico = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const pharmacistId = req.user.id;
+
+  const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const yyyy  = nowBR.getFullYear();
+  const mm    = String(nowBR.getMonth() + 1).padStart(2, '0');
+  const dd    = String(nowBR.getDate()).padStart(2, '0');
+  const de    = req.query.de  || `${yyyy}-${mm}-01`;
+  const ate   = req.query.ate || `${yyyy}-${mm}-${dd}`;
+
+  const deDate  = new Date(`${de}T00:00:00-03:00`);
+  const ateDate = new Date(`${ate}T23:59:59-03:00`);
+
+  try {
+    const [agendadas, urgentes, comissaoRow, comissaoInd] = await Promise.all([
+      prisma.filaAgendada.findMany({
+        where:   { farmaceuticoId: pharmacistId, status: 'concluido', dataHora: { gte: deDate, lte: ateDate } },
+        include: { paciente: { select: { name: true } } },
+        orderBy: { dataHora: 'desc' },
+      }),
+      prisma.filaUrgente.findMany({
+        where:   { farmaceuticoId: pharmacistId, status: 'concluido', criadoEm: { gte: deDate, lte: ateDate } },
+        include: { paciente: { select: { name: true } } },
+        orderBy: { criadoEm: 'desc' },
+      }),
+      prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+      prisma.$queryRawUnsafe(
+        `SELECT CAST(percentual AS FLOAT) AS percentual FROM comissoes_individuais WHERE farmaceutico_id = $1`,
+        pharmacistId
+      ).catch(() => []),
+    ]);
+
+    const percentualAtual = comissaoInd[0]?.percentual ?? parseFloat(comissaoRow?.value ?? '70');
+
+    const allItems = [
+      ...agendadas.map((f) => ({ id: f.id, tipo: 'agendada', data: f.dataHora, paciente: f.paciente?.name ?? '—', valor: Number(f.creditoDebitado) })),
+      ...urgentes.map((f)  => ({ id: f.id, tipo: 'urgente',  data: f.criadoEm,  paciente: f.paciente?.name ?? '—', valor: Number(f.creditoDebitado) })),
+    ].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    if (allItems.length > 0) {
+      const agIds = agendadas.map((f) => f.id);
+      const urIds = urgentes.map((f) => f.id);
+      const [comAg, comUr, repasseRows] = await Promise.all([
+        agIds.length ? prisma.$queryRawUnsafe(`SELECT id, comissao_percentual FROM "FilaAgendada" WHERE id = ANY($1::text[])`, agIds).catch(() => []) : [],
+        urIds.length ? prisma.$queryRawUnsafe(`SELECT id, comissao_percentual FROM "FilaUrgente" WHERE id = ANY($1::text[])`, urIds).catch(() => []) : [],
+        prisma.$queryRawUnsafe(
+          `SELECT ri."consultaId", ri."consultaTipo", r."criadoEm" AS "repassadoEm"
+           FROM "RepasseItem" ri JOIN "Repasse" r ON r.id = ri."repasseId"
+           WHERE ri."consultaId" = ANY($1::text[])`,
+          allItems.map((i) => i.id)
+        ).catch(() => []),
+      ]);
+      const comissaoStoredMap = {};
+      for (const r of [...comAg, ...comUr]) {
+        if (r.comissao_percentual != null) comissaoStoredMap[r.id] = Number(r.comissao_percentual);
+      }
+      const repasseMap = {};
+      for (const ri of repasseRows) repasseMap[`${ri.consultaId}-${ri.consultaTipo}`] = ri.repassadoEm;
+
+      for (const item of allItems) {
+        const pct = comissaoStoredMap[item.id] ?? percentualAtual;
+        item.comissaoPercentual = pct;
+        item.ganho     = Math.round(item.valor * (pct / 100) * 100) / 100;
+        const key      = `${item.id}-${item.tipo}`;
+        item.repassado = key in repasseMap;
+        item.repassadoEm = repasseMap[key] ?? null;
+      }
+    }
+
+    const fmtDec = (n) => Number(n).toFixed(2).replace('.', ',');
+    const header = 'Data;Paciente;Tipo;Valor cobrado;Comissão %;Valor líquido;Status;Data repasse\n';
+    const csvRows = allItems.map((i) => {
+      const dt = new Date(i.data).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const dtRepasse = i.repassadoEm ? new Date(i.repassadoEm).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '';
+      return [
+        `"${dt}"`, `"${i.paciente}"`, `"${i.tipo === 'agendada' ? 'Agendada' : 'Urgente'}"`,
+        fmtDec(i.valor), fmtDec(i.comissaoPercentual), fmtDec(i.ganho),
+        `"${i.repassado ? 'Repassado' : 'A receber'}"`, `"${dtRepasse}"`,
+      ].join(';');
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="ganhos-${de}_a_${ate}.csv"`);
+    return res.send('﻿' + header + csvRows.join('\n'));
+  } catch (err) {
+    console.error('exportGanhosFarmaceutico error:', err);
+    return res.status(500).json({ error: 'Erro ao exportar ganhos.' });
   }
 };
 

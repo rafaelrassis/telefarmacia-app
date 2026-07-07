@@ -13,9 +13,11 @@ import {
   getCalendario,
   getConsultasFarmaceutico,
   getGanhosFarmaceutico,
+  exportGanhosFarmaceutico,
   getUrgentesAceitas,
 } from '../controllers/PharmacistController.js';
 import { listarBloqueios, criarBloqueio, excluirBloqueio } from '../controllers/BloqueioController.js';
+import { getMeusRepasses } from '../controllers/RepasseController.js';
 import { listarTemplates, criarTemplate, atualizarTemplate, excluirTemplate } from '../controllers/TemplateController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { uploadDocs } from '../utils/multerConfig.js';
@@ -48,9 +50,13 @@ router.get('/farmaceutico/consultas', authMiddleware, getConsultasFarmaceutico);
 
 // Relatório de ganhos do farmacêutico
 router.get('/farmaceutico/ganhos', authMiddleware, getGanhosFarmaceutico);
+router.get('/farmaceutico/ganhos/export', authMiddleware, exportGanhosFarmaceutico);
 
 // Urgentes aceitas pelo farmacêutico logado
 router.get('/farmaceutico/urgentes-aceitas', authMiddleware, getUrgentesAceitas);
+
+// Repasses recebidos pelo farmacêutico logado
+router.get('/farmaceutico/me/repasses', authMiddleware, getMeusRepasses);
 
 // Bloqueios de agenda
 router.get('/farmaceutico/bloqueios',        authMiddleware, listarBloqueios);

@@ -33,12 +33,13 @@ const daysAgoBR = (n) => {
 // ── Export CSV (client-side) ──────────────────────────────────────────────────
 
 const exportCSV = (items, de, ate, percentual) => {
-  const header = ['Data', 'Paciente', 'Tipo', 'Valor cobrado (R$)', `Comissão (${percentual}%) R$`, 'Status', 'Data repasse'];
+  const header = ['Data', 'Paciente', 'Tipo', 'Valor cobrado (R$)', 'Comissão %', 'Valor líquido (R$)', 'Status', 'Data repasse'];
   const rows = items.map((i) => [
     fmtDateTime(i.data),
     i.paciente,
     i.tipo === 'agendada' ? 'Agendada' : 'Urgente',
     Number(i.valor).toFixed(2).replace('.', ','),
+    `${i.comissaoPercentual ?? percentual}%${i.estimado ? ' (estimado)' : ''}`,
     Number(i.ganho).toFixed(2).replace('.', ','),
     i.repassado ? 'Repassado' : 'A receber',
     i.repassadoEm ? fmtDate(i.repassadoEm) : '',
@@ -160,8 +161,13 @@ const GanhosTab = () => {
   const [loading, setLoading]         = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [fetchError, setFetchError]   = useState('');
+  const [exportingCsv, setExportingCsv] = useState(false);
   // Mantém todos os itens carregados (para export)
   const [allLoadedItems, setAllLoadedItems] = useState([]);
+
+  // Repasses recebidos (independente do filtro de período acima)
+  const [repassesData, setRepassesData]       = useState(null);
+  const [loadingRepasses, setLoadingRepasses] = useState(true);
 
   const { today, firstOfMonth } = useMemo(() => getBRDate(), []);
 
@@ -200,6 +206,20 @@ const GanhosTab = () => {
     return () => { cancelled = true; };
   }, [de, ate, token, preset]);
 
+  // Repasses recebidos (independente do período filtrado acima)
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingRepasses(true);
+    fetch(`${API_URL}/api/farmaceutico/me/repasses`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => { if (!cancelled) setRepassesData(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingRepasses(false); });
+    return () => { cancelled = true; };
+  }, [token]);
+
   const handleLoadMore = async () => {
     const nextPage = page + 1;
     setLoadingMore(true);
@@ -223,9 +243,35 @@ const GanhosTab = () => {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (!gData) return;
-    exportCSV(allLoadedItems, de, ate, gData.metricas.percentualComissao);
+    setExportingCsv(true);
+    try {
+      const params = new URLSearchParams();
+      if (de)  params.set('de',  de);
+      if (ate) params.set('ate', ate);
+      const res = await fetch(`${API_URL}/api/farmaceutico/ganhos/export?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `ganhos-${de}_a_${ate}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // Fallback: exporta os itens já carregados no cliente
+        exportCSV(allLoadedItems, de, ate, gData.metricas.percentualComissao);
+      }
+    } catch {
+      exportCSV(allLoadedItems, de, ate, gData.metricas.percentualComissao);
+    } finally {
+      setExportingCsv(false);
+    }
   };
 
   const handleExportPDF = () => {
@@ -349,6 +395,58 @@ const GanhosTab = () => {
             </div>
           )}
 
+          {/* ── Repasses recebidos ── */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-700">Repasses</h3>
+            </div>
+            {loadingRepasses ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : !repassesData ? (
+              <p className="text-sm text-gray-400 text-center py-8">Erro ao carregar repasses.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3 p-5">
+                  <MetricCard
+                    label="Saldo pendente"
+                    value={fmtBRL(repassesData.resumo.saldo_pendente)}
+                    sub="ainda não repassado"
+                    highlight
+                  />
+                  <MetricCard
+                    label="Total repassado"
+                    value={fmtBRL(repassesData.resumo.total_repassado)}
+                    subColor="text-green-600"
+                  />
+                  <MetricCard
+                    label="Líquido acumulado"
+                    value={fmtBRL(repassesData.resumo.liquido_acumulado)}
+                    sub="histórico completo"
+                  />
+                </div>
+                {repassesData.data.length > 0 && (
+                  <div className="divide-y divide-gray-50 border-t border-gray-100">
+                    {repassesData.data.map((r) => (
+                      <div key={r.id} className="px-5 py-3 flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm text-gray-700">
+                            {fmtDate(r.periodoInicio)} – {fmtDate(r.periodoFim)}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            recebido em {fmtDate(r.criadoEm)}{r.referencia ? ` · ref: ${r.referencia}` : ''}
+                          </p>
+                        </div>
+                        <p className="text-sm font-bold text-green-700">{fmtBRL(r.valor)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {/* ── Lista detalhada ── */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-3">
@@ -362,9 +460,10 @@ const GanhosTab = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportCSV}
-                    className="text-xs font-semibold text-violet-700 border border-violet-200 rounded-lg px-3 py-1.5 hover:bg-violet-50 transition"
+                    disabled={exportingCsv}
+                    className="text-xs font-semibold text-violet-700 border border-violet-200 rounded-lg px-3 py-1.5 hover:bg-violet-50 transition disabled:opacity-50"
                   >
-                    ↓ CSV
+                    {exportingCsv ? 'Exportando…' : '↓ CSV'}
                   </button>
                   <button
                     onClick={handleExportPDF}
@@ -413,6 +512,12 @@ const GanhosTab = () => {
                         <p className="text-sm font-bold text-violet-700">{fmtBRL(item.ganho ?? item.valor)}</p>
                         {item.ganho != null && item.ganho !== item.valor && (
                           <p className="text-[10px] text-gray-400 mt-0.5">{fmtBRL(item.valor)} cobrado</p>
+                        )}
+                        {item.comissaoPercentual != null && (
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            comissão {item.comissaoPercentual}%
+                            {item.estimado && <span className="text-amber-500"> · estimado</span>}
+                          </p>
                         )}
                       </div>
                     </div>

@@ -16,6 +16,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import filaRoutes from './routes/filaRoutes.js';
 import consultaRoutes from './routes/consultaRoutes.js';
 import dependentRoutes from './routes/dependentRoutes.js';
+import pushRoutes from './routes/pushRoutes.js';
 import { getDocumentoUpload } from './controllers/ConsultaController.js';
 import { getDocumentoIdentidade, DOC_IDENTIDADE_REGEX } from './controllers/PharmacistController.js';
 import { authMiddleware } from './middlewares/authMiddleware.js';
@@ -74,6 +75,7 @@ app.use('/api', adminRoutes);
 app.use('/api', filaRoutes);
 app.use('/api', consultaRoutes);
 app.use('/api', dependentRoutes);
+app.use('/api', pushRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado.' });

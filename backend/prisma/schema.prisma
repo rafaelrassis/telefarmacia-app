@@ -42,6 +42,17 @@ model User {
   templatesOrientacao          TemplateOrientacao[] @relation("FarmaceuticoTemplates")
   repasses                     Repasse[] @relation("FarmaceuticoRepasses")
   adminAudits                  AdminAuditLog[] @relation("AdminAudits")
+  pushSubscriptions            PushSubscription[] @relation("UserPushSubs")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserPushSubs", fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  keys      Json
+  createdAt DateTime @default(now())
+  @@index([userId])
 }
 
 model Notificacao {

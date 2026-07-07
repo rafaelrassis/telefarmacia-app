@@ -25,6 +25,8 @@ Fornece ao(s) administrador(es) visibilidade e controle sobre farmacêuticos, pa
 | `DELETE` | `/api/admin/pharmacists/:userId` | JWT + Admin | Descadastra farmacêutico (converte conta em paciente) |
 | `GET` | `/api/admin/consultas` | JWT + Admin | Visão unificada da fila agendada + urgente, com filtros e paginação |
 | `GET` | `/api/admin/fila/tempo-real` | JWT + Admin | Dashboard operacional (urgentes aguardando, espera, online, expiradas hoje, etc.) |
+| `GET` | `/api/admin/avaliacoes` | JWT + Admin | Tabela paginada de avaliações (filtros: `nota`, `farmaceuticoId`, `de`, `ate`) |
+| `GET` | `/api/admin/avaliacoes/resumo` | JWT + Admin | Média geral, distribuição por nota, evolução mensal (6 meses) e ranking por farmacêutico |
 | `POST` | `/api/admin/carteira/:pacienteId/ajuste` | JWT + Admin | Ajuste manual de saldo (crédito/débito) com motivo obrigatório |
 | `GET` | `/api/admin/admins` | JWT + Admin | Lista administradores (origem: `env` ou `config`) |
 | `POST` | `/api/admin/admins` | JWT + Admin | Adiciona administrador (persistido em `SystemConfig`) |
@@ -113,6 +115,10 @@ Os endpoints de listagem novos e atualizados (`/admin/pharmacists`, `/admin/pati
 ### Exportação CSV
 
 `/api/admin/logs`, `/api/admin/financeiro/export` e `/api/admin/repasses/export` geram CSV com BOM UTF-8; os dois últimos usam `;` como separador e vírgula como separador decimal (compatibilidade com Excel pt-BR).
+
+### Área de Avaliações
+
+`GET /api/admin/avaliacoes/resumo` calcula `media_geral`, `total` e `distribuicao` (contagem por nota 1–5) sobre o período filtrado (`de`/`ate`); `evolucao_mensal` é sempre uma janela fixa dos últimos 6 meses corridos, independente do filtro; `por_farmaceutico` é o ranking (média desc) apenas de quem tem ao menos 1 avaliação no período filtrado. A antiga rota pública `GET /api/farmaceuticos/:id/avaliacoes` foi removida (sem consumidor no frontend) em favor de `GET /api/farmaceutico/me/avaliacoes` (auto-atendido, paginado).
 
 ---
 

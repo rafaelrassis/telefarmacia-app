@@ -302,7 +302,7 @@ Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` n
 Relações:
 - `1:1` com `PacienteProfile` ou `PharmacistProfile`
 - `1:1` com `Carteira`
-- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`
+- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`, `PushSubscription` (Web Push), `AdminAuditLog`
 
 #### `PacienteProfile`
 Dados clínicos e pessoais do paciente. Campos de endereço são opcionais (preenchidos no onboarding). `onboardingConcluido` é `false` até o paciente completar o wizard de 3 etapas.
@@ -797,6 +797,9 @@ A exclusão de conta:
 | `SMTP_PASS` | Para e-mail | Senha SMTP |
 | `ADMIN_NOTIFICATION_EMAIL` | Para e-mail | Destinatário de alertas |
 | `UPLOAD_DIR` | Não (`./uploads`) | Diretório de arquivos enviados |
+| `VAPID_PUBLIC_KEY` | Para Web Push | Chave pública VAPID (gerar com `npx web-push generate-vapid-keys`) |
+| `VAPID_PRIVATE_KEY` | Para Web Push | Chave privada VAPID |
+| `VAPID_SUBJECT` | Para Web Push | `mailto:` ou URL de contato exigido pelo protocolo VAPID |
 
 ### Frontend (`frontend/.env`)
 
@@ -827,6 +830,8 @@ Localizados em `backend/scripts/`. Todos são módulos ESM executados com `node 
 | `migrate-template-orientacao.mjs` | Adiciona template de orientação de finalização |
 | `migrate-admin-audit-log.mjs` | Cria a tabela `AdminAuditLog` (auditoria de ações administrativas, separada do `log_acoes`) |
 | `migrate-fila-agendada-aceito-em.mjs` | Adiciona `aceitoEm` em `FilaAgendada` (tempo de aceite) |
+| `migrate-push-subscription.mjs` | Cria a tabela `PushSubscription` (Web Push) |
+| `migrate-comissao-percentual.mjs` | Adiciona `comissao_percentual` em `FilaAgendada` e `FilaUrgente` (comissão gravada por consulta) |
 | `auditoria-estados-travados.mjs` | Script de diagnóstico — lista consultas presas em estados inconsistentes |
 
 ---

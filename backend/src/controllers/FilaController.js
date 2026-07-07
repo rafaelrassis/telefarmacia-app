@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
+import { notifyFarmaceuticosUrgente } from '../services/pushService.js';
 
 const prisma = new PrismaClient();
 
@@ -249,6 +250,9 @@ export const agendarUrgente = async (req, res) => {
       }
       return nova;
     });
+
+    // Fire-and-forget: falha no push nunca pode derrubar a criação da urgência.
+    notifyFarmaceuticosUrgente({ motivo: triagem?.queixa_principal || triagem?.tipo_consulta }).catch(() => {});
 
     return res.status(201).json({ id: fila.id, status: fila.status });
   } catch (err) {
@@ -542,6 +546,15 @@ export const cancelarUrgente = async (req, res) => {
         consultaId: id,
       });
     }
+    if (fila.farmaceuticoId && ['aceito', 'em_atendimento'].includes(fila.status)) {
+      await criarNotificacao({
+        userId:     fila.farmaceuticoId,
+        tipo:       'consulta_cancelada_paciente',
+        titulo:     'Paciente cancelou a consulta',
+        mensagem:   'A consulta urgente que você havia aceitado foi cancelada pelo paciente.',
+        consultaId: id,
+      });
+    }
     return res.status(200).json({ success: true, creditoDevolvido });
   } catch (err) {
     console.error(err);
@@ -591,6 +604,15 @@ export const cancelarAgendada = async (req, res) => {
         tipo:       'estorno',
         titulo:     'Créditos devolvidos',
         mensagem:   `R$ ${creditoDevolvido.toFixed(2).replace('.', ',')} foram devolvidos à sua carteira.`,
+        consultaId: id,
+      });
+    }
+    if (fila.farmaceuticoId && ['aceito', 'em_atendimento'].includes(fila.status)) {
+      await criarNotificacao({
+        userId:     fila.farmaceuticoId,
+        tipo:       'consulta_cancelada_paciente',
+        titulo:     'Paciente cancelou a consulta',
+        mensagem:   'A consulta agendada que você havia aceitado foi cancelada pelo paciente.',
         consultaId: id,
       });
     }

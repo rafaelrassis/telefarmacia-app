@@ -249,3 +249,76 @@ export const exportRepasses = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao exportar repasses.' });
   }
 };
+
+// ── GET /api/farmaceutico/me/repasses?page= ──────────────────────────────────
+
+export const getMeusRepasses = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const pharmacistId = req.user.id;
+  const pageNum  = Math.max(1, parseInt(req.query.page ?? '1'));
+  const limitNum = 20;
+  const skip     = (pageNum - 1) * limitNum;
+
+  try {
+    const [repasses, total] = await Promise.all([
+      prisma.repasse.findMany({
+        where:   { pharmacistId },
+        select:  { id: true, valorTotal: true, periodoInicio: true, periodoFim: true, criadoEm: true, referenciaTransacao: true },
+        orderBy: { criadoEm: 'desc' },
+        skip, take: limitNum,
+      }),
+      prisma.repasse.count({ where: { pharmacistId } }),
+    ]);
+
+    // Líquido acumulado (todas as concluídas), usando a comissão gravada por consulta
+    // e caindo para a comissão vigente quando ausente (consultas anteriores à coluna).
+    const [comissaoRow, comissaoInd, agendadasConcl, urgentesConcl, totalRepassadoRow] = await Promise.all([
+      prisma.systemConfig.findUnique({ where: { key: 'comissao_padrao' } }),
+      prisma.$queryRawUnsafe(
+        `SELECT CAST(percentual AS FLOAT) AS percentual FROM comissoes_individuais WHERE farmaceutico_id = $1`,
+        pharmacistId
+      ).catch(() => []),
+      prisma.$queryRawUnsafe(
+        `SELECT "creditoDebitado"::float AS valor, comissao_percentual FROM "FilaAgendada" WHERE "farmaceuticoId" = $1 AND status = 'concluido'`,
+        pharmacistId
+      ).catch(() => []),
+      prisma.$queryRawUnsafe(
+        `SELECT "creditoDebitado"::float AS valor, comissao_percentual FROM "FilaUrgente" WHERE "farmaceuticoId" = $1 AND status = 'concluido'`,
+        pharmacistId
+      ).catch(() => []),
+      prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(ri."valorLiquido"), 0)::float AS total FROM "RepasseItem" ri JOIN "Repasse" r ON r.id = ri."repasseId" WHERE r."pharmacistId" = $1`,
+        pharmacistId
+      ),
+    ]);
+
+    const percentualAtual = comissaoInd[0]?.percentual ?? parseFloat(comissaoRow?.value ?? '70');
+    const liquidoAcumulado = [...agendadasConcl, ...urgentesConcl].reduce((s, r) => {
+      const pct = r.comissao_percentual != null ? Number(r.comissao_percentual) : percentualAtual;
+      return s + r.valor * (pct / 100);
+    }, 0);
+
+    const totalRepassado = Number(totalRepassadoRow[0]?.total ?? 0);
+    const saldoPendente  = Math.round((liquidoAcumulado - totalRepassado) * 100) / 100;
+
+    return res.status(200).json({
+      resumo: {
+        liquido_acumulado: Math.round(liquidoAcumulado * 100) / 100,
+        total_repassado:   Math.round(totalRepassado * 100) / 100,
+        saldo_pendente:    saldoPendente,
+      },
+      data: repasses.map((r) => ({
+        id:            r.id,
+        valor:         Number(r.valorTotal),
+        periodoInicio: r.periodoInicio,
+        periodoFim:    r.periodoFim,
+        criadoEm:      r.criadoEm,
+        referencia:    r.referenciaTransacao,
+      })),
+      total, page: pageNum, totalPages: Math.ceil(total / limitNum) || 1,
+    });
+  } catch (err) {
+    console.error('getMeusRepasses error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar repasses.' });
+  }
+};
