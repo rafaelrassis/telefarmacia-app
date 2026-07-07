@@ -125,7 +125,7 @@ Acesse `http://localhost:5174`.
 |--------|-----------|
 | Autenticação | E-mail/senha + Google OAuth. JWT com expiração configurável. |
 | Onboarding de paciente | Wizard em 3 etapas: dados pessoais → dados de saúde → termo de consentimento LGPD |
-| Agendamento | Seleção de farmacêutico, slot de horário, tipo de consulta e pagamento via carteira |
+| Agendamento | Paciente escolhe apenas data e horário (fila geral) e paga via carteira; qualquer farmacêutico disponível aceita a consulta |
 | Fila urgente | Consulta sem agendamento prévio; farmacêutico online aceita em tempo real |
 | Triagem | Formulário pré-consulta (tipo, motivo, medicamentos, condições de saúde) preenchido pelo paciente |
 | Consulta | Farmacêutico acessa triagem, elabora observações, emite receita (PDF gerado server-side) |
