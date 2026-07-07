@@ -47,12 +47,24 @@ export async function registerFarmaceutico(app, overrides = {}) {
   return { token: res.body.token, user: res.body.user, userId: user.id };
 }
 
-// Admin de teste — email definido em ADMIN_EMAILS (.env.test).
+// Admin de teste — email definido em ADMIN_EMAILS (.env.test). Cacheado por
+// senha fixa: se outra chamada já registrou esse e-mail neste teste (ex.:
+// criarFarmaceuticoAprovado chamado mais de uma vez), cai para login.
+const ADMIN_PASSWORD = 'senha_admin_teste_123';
+
 export async function getAdminToken(app) {
   const email = (process.env.ADMIN_EMAILS || '').split(',')[0].trim();
   if (!email) throw new Error('ADMIN_EMAILS não configurado no .env.test.');
-  const { token } = await registerPaciente(app, { email, nome: 'Admin Teste' });
-  return token;
+  const registro = await request(app)
+    .post('/api/auth/register')
+    .send({ email, password: ADMIN_PASSWORD, nome: 'Admin Teste' });
+  if (registro.status === 201) return registro.body.token;
+
+  const login = await request(app).post('/api/auth/login').send({ email, password: ADMIN_PASSWORD });
+  if (login.status !== 200) {
+    throw new Error(`getAdminToken falhou (${login.status}): ${JSON.stringify(login.body)}`);
+  }
+  return login.body.token;
 }
 
 export async function approveFarmaceutico(app, adminToken, userId) {

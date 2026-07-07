@@ -38,11 +38,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting: 20 tentativas de login por IP a cada 15 min
+// Em testes, todas as requisições do Supertest saem do mesmo "IP" (loopback),
+// então o limite seria atingido em poucos arquivos de teste — desligado com
+// NODE_ENV=test (nunca em produção).
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
 

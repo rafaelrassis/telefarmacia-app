@@ -4,7 +4,7 @@ import app from '../src/app.js';
 import { prisma } from './db.js';
 import {
   registerPaciente, criarFarmaceuticoAprovado, creditarCarteira, getSaldo,
-  bookAgendada, acceptAgendada,
+  bookAgendada, acceptAgendada, getAdminToken,
 } from './helpers.js';
 
 describe('carteira — recarga', () => {
@@ -97,14 +97,10 @@ describe('carteira — débito ao agendar', () => {
 describe('carteira — ajuste manual do admin', () => {
   it('sem motivo → 400', async () => {
     const paciente = await registerPaciente(app);
-    const admin = await request(app).post('/api/auth/register').send({
-      email: (process.env.ADMIN_EMAILS || '').split(',')[0].trim(),
-      password: 'senha123',
-      nome: 'Admin',
-    });
+    const adminToken = await getAdminToken(app);
     const res = await request(app)
       .post(`/api/admin/carteira/${paciente.user.id}/ajuste`)
-      .set('Authorization', `Bearer ${admin.body.token}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({ valor: 20 });
     expect(res.status).toBe(400);
   });
@@ -112,14 +108,10 @@ describe('carteira — ajuste manual do admin', () => {
   it('débito que negativaria o saldo → 400', async () => {
     const paciente = await registerPaciente(app);
     await creditarCarteira(app, paciente.token, 30);
-    const admin = await request(app).post('/api/auth/register').send({
-      email: (process.env.ADMIN_EMAILS || '').split(',')[0].trim(),
-      password: 'senha123',
-      nome: 'Admin',
-    });
+    const adminToken = await getAdminToken(app);
     const res = await request(app)
       .post(`/api/admin/carteira/${paciente.user.id}/ajuste`)
-      .set('Authorization', `Bearer ${admin.body.token}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({ valor: -50, motivo: 'teste de estorno indevido' });
     expect(res.status).toBe(400);
 
@@ -130,14 +122,11 @@ describe('carteira — ajuste manual do admin', () => {
   it('ajuste válido grava saldo, transação ajuste_admin e AdminAuditLog', async () => {
     const paciente = await registerPaciente(app);
     await creditarCarteira(app, paciente.token, 30);
-    const adminEmail = (process.env.ADMIN_EMAILS || '').split(',')[0].trim();
-    const admin = await request(app).post('/api/auth/register').send({
-      email: adminEmail, password: 'senha123', nome: 'Admin',
-    });
+    const adminToken = await getAdminToken(app);
 
     const res = await request(app)
       .post(`/api/admin/carteira/${paciente.user.id}/ajuste`)
-      .set('Authorization', `Bearer ${admin.body.token}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({ valor: 25, motivo: 'correção de cobrança duplicada' });
     expect(res.status).toBe(200);
 
