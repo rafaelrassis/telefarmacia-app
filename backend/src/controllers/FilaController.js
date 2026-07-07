@@ -38,6 +38,34 @@ function nowInBR() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
 }
 
+// Farmacêuticos com ping recente (2 min) e disponíveis para urgência —
+// mesmo critério de "online agora" usado no dashboard operacional do admin.
+async function countFarmaceuticosOnlineUrgencia() {
+  const doisMinAtras = new Date(Date.now() - 2 * 60 * 1000);
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT COUNT(*)::int AS total
+     FROM "FarmaceuticoStatus" fs
+     JOIN "PharmacistProfile" pp ON pp."userId" = fs."farmaceuticoId"
+     WHERE fs."ultimoPing" >= $1
+       AND pp."isApproved" = true AND pp."isSuspended" = false
+       AND pp."disponivel_urgencias" = true`,
+    doisMinAtras
+  );
+  return rows[0]?.total ?? 0;
+}
+
+// Tempo médio (min) entre criadoEm e aceitoEm nos últimos 7 dias.
+async function tempoMedioAceiteUrgenteMin() {
+  const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const rows = await prisma.filaUrgente.findMany({
+    where: { aceitoEm: { not: null }, criadoEm: { gte: seteDiasAtras } },
+    select: { criadoEm: true, aceitoEm: true },
+  });
+  if (rows.length === 0) return null;
+  const total = rows.reduce((s, r) => s + (new Date(r.aceitoEm) - new Date(r.criadoEm)), 0);
+  return Math.round(total / rows.length / 60000);
+}
+
 function timeStr(date) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
@@ -488,6 +516,24 @@ export const minhaUrgenteAtiva = async (req, res) => {
       }
     } catch {}
 
+    let filaInfo = {};
+    if (urgente.status === 'aguardando') {
+      const [posicaoRow, totalAguardando, tempoMedio, farmaceuticosOnline] = await Promise.all([
+        prisma.filaUrgente.count({
+          where: { status: 'aguardando', criadoEm: { lt: urgente.criadoEm } },
+        }),
+        prisma.filaUrgente.count({ where: { status: 'aguardando' } }),
+        tempoMedioAceiteUrgenteMin(),
+        countFarmaceuticosOnlineUrgencia(),
+      ]);
+      filaInfo = {
+        posicao:                posicaoRow + 1,
+        total_aguardando:       totalAguardando,
+        tempo_medio_aceite_min: tempoMedio,
+        farmaceuticos_online:   farmaceuticosOnline,
+      };
+    }
+
     return res.status(200).json({
       urgente: {
         id: urgente.id,
@@ -495,6 +541,7 @@ export const minhaUrgenteAtiva = async (req, res) => {
         farmaceutico: urgente.farmaceutico?.name ?? null,
         whatsappContato,
         modalidadeAtend,
+        ...filaInfo,
       },
     });
   } catch (err) {

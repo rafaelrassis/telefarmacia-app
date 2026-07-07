@@ -531,6 +531,35 @@ const PatientDashboard = () => {
     }
   };
 
+  // Posição na fila / farmacêuticos online — atualiza em paralelo ao poll de status,
+  // num ritmo mais espaçado (não precisa da mesma frequência que a detecção de aceite).
+  const [filaInfo, setFilaInfo] = useState(null);
+  useEffect(() => {
+    if (passarAgoraMsg?.type !== 'waiting') { setFilaInfo(null); return; }
+
+    const pollFilaInfo = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/fila/urgente/ativa`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.urgente?.status === 'aguardando') {
+          setFilaInfo({
+            posicao:              data.urgente.posicao,
+            totalAguardando:      data.urgente.total_aguardando,
+            tempoMedioAceiteMin:  data.urgente.tempo_medio_aceite_min,
+            farmaceuticosOnline:  data.urgente.farmaceuticos_online,
+          });
+        }
+      } catch {}
+    };
+
+    pollFilaInfo();
+    const interval = setInterval(pollFilaInfo, 15000);
+    return () => clearInterval(interval);
+  }, [passarAgoraMsg?.type, token]);
+
   useEffect(() => {
     if (passarAgoraMsg?.type !== 'waiting') return;
 
@@ -1193,6 +1222,21 @@ const PatientDashboard = () => {
                       Cancelar
                     </button>
                   </div>
+                )}
+                {passarAgoraMsg.type === 'waiting' && filaInfo && (
+                  <p style={{ fontSize: '12px', color: '#1d4ed8', margin: '6px 0 0' }}>
+                    {filaInfo.farmaceuticosOnline > 0 ? (
+                      <>
+                        Você é o <strong>{filaInfo.posicao}º</strong> da fila
+                        {filaInfo.tempoMedioAceiteMin != null && (
+                          <> · tempo médio de aceite ~<strong>{filaInfo.tempoMedioAceiteMin} min</strong></>
+                        )}
+                        {' '}· <strong>{filaInfo.farmaceuticosOnline}</strong> farmacêutico{filaInfo.farmaceuticosOnline !== 1 ? 's' : ''} online
+                      </>
+                    ) : (
+                      'Nenhum farmacêutico online agora — você será notificado assim que alguém aceitar.'
+                    )}
+                  </p>
                 )}
                 {passarAgoraMsg.type === 'success' && (
                   <>
