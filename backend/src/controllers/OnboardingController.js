@@ -1,12 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { validateCrf } from '../utils/crfValidation.js';
 
 const prisma = new PrismaClient();
-
-const CRF_REGEX = /^\d{1,6}$/;
-
-const UF_LIST = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
 // ── GET /api/auth/convite/:token ─────────────────────────────────────────────
 
@@ -36,11 +33,9 @@ export const registrarViaConvite = async (req, res) => {
   if (password.length < 6) {
     return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres.' });
   }
-  if (!UF_LIST.includes(crfUF.toUpperCase())) {
-    return res.status(400).json({ error: 'UF do CRF inválida.' });
-  }
-  if (!CRF_REGEX.test(crfNumber.trim())) {
-    return res.status(400).json({ error: 'Número do CRF inválido (somente dígitos, até 6 caracteres).' });
+  const crfError = validateCrf(crfNumber, crfUF);
+  if (crfError) {
+    return res.status(400).json({ error: crfError });
   }
 
   try {

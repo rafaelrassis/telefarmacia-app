@@ -69,8 +69,9 @@ export async function getAdminToken(app) {
 
 export async function approveFarmaceutico(app, adminToken, userId) {
   const res = await request(app)
-    .patch(`/api/admin/pharmacists/${userId}/approve`)
-    .set('Authorization', `Bearer ${adminToken}`);
+    .patch(`/api/admin/farmaceuticos/${userId}/status`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ status: 'Ativo' });
   if (res.status !== 200) {
     throw new Error(`approveFarmaceutico falhou (${res.status}): ${JSON.stringify(res.body)}`);
   }

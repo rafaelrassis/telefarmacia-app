@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar.jsx';
 import Footer from '../home/Footer.jsx';
-import PharmacistRegisterModal from '../PharmacistRegisterModal.jsx';
+import PharmacistSignupWizard from '../pharmacist/PharmacistSignupWizard.jsx';
 
 const Layout = () => {
   const [pharmacistModalOpen, setPharmacistModalOpen] = useState(false);
@@ -15,7 +15,7 @@ const Layout = () => {
       </main>
       <Footer onRegisterPharmacist={() => setPharmacistModalOpen(true)} />
       {pharmacistModalOpen && (
-        <PharmacistRegisterModal onClose={() => setPharmacistModalOpen(false)} />
+        <PharmacistSignupWizard onClose={() => setPharmacistModalOpen(false)} />
       )}
     </div>
   );

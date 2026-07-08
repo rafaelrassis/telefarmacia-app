@@ -3,11 +3,8 @@ import {
   getMetricas,
   listPharmacists,
   listPatients,
-  approvePharmacist,
-  revokePharmacist,
   deletePharmacist,
   listarPendentes,
-  ativarFarmaceutico,
   getDocumentos,
   setStatus,
   getSistemaStatus,
@@ -50,11 +47,8 @@ const guard = [authMiddleware, adminMiddleware];
 // Existentes
 router.get('/admin/pharmacists',                    ...guard, listPharmacists);
 router.get('/admin/patients',                       ...guard, listPatients);
-router.patch('/admin/pharmacists/:userId/approve',  ...guard, approvePharmacist);
-router.patch('/admin/pharmacists/:userId/revoke',   ...guard, revokePharmacist);
 router.delete('/admin/pharmacists/:userId',         ...guard, deletePharmacist);
 router.get('/admin/farmaceuticos/pendentes',        ...guard, listarPendentes);
-router.patch('/admin/farmaceuticos/:id/ativar',     ...guard, ativarFarmaceutico);
 
 // Novos v2
 router.get('/admin/metricas',                        ...guard, getMetricas);

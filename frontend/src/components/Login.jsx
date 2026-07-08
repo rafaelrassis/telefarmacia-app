@@ -2,157 +2,7 @@ import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
-const ALL_TAGS = [
-  'Dosagem Infantil',
-  'Sintomas Leves',
-  'Interação Medicamentosa',
-  'Acompanhamento Crônico',
-  'Dermatologia',
-  'Nutrição e Suplementos',
-];
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-// ── Onboarding (compartilhado entre Google e e-mail) ────────────────────────
-const OnboardingForm = ({ tempToken, onDone }) => {
-  const [role, setRole] = useState('PACIENTE');
-  const [crfNumber, setCrfNumber] = useState('');
-  const [crfUF, setCrfUF] = useState('');
-  const [bio, setBio] = useState('');
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const toggleTag = (tag) =>
-    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
-
-  const handleSubmit = async () => {
-    setError('');
-    if (role === 'FARMACEUTICO' && (!crfNumber.trim() || !crfUF.trim())) {
-      setError('Preencha o número do CRF e a UF.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/auth/onboarding`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tempToken}` },
-        body: JSON.stringify({ role, crfNumber, crfUF, bio, tags: selectedTags }),
-      });
-      const data = await res.json();
-      if (res.ok) onDone(data.token, data.user);
-      else setError(data.error || 'Erro ao salvar perfil.');
-    } catch {
-      setError('Erro de conexão. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div>
-      <div className="mb-6">
-        <h2 className="font-heading text-xl font-bold text-gray-800">Complete seu perfil</h2>
-        <p className="text-sm text-gray-500 mt-1">Só mais um passo para começar.</p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Você é:</label>
-          <div className="grid grid-cols-2 gap-3">
-            {['PACIENTE', 'FARMACEUTICO'].map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRole(r)}
-                className={`py-3 rounded-xl border-2 font-semibold text-sm transition ${
-                  role === r
-                    ? 'border-brand bg-brand-wash text-brand-deep'
-                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                }`}
-              >
-                {r === 'PACIENTE' ? '🧑 Paciente' : '👨‍⚕️ Farmacêutico'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {role === 'FARMACEUTICO' && (
-          <>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Número do CRF</label>
-                <input
-                  type="text"
-                  placeholder="Ex: 12345"
-                  value={crfNumber}
-                  onChange={(e) => setCrfNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
-                />
-              </div>
-              <div className="w-24">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">UF</label>
-                <input
-                  type="text"
-                  placeholder="SP"
-                  value={crfUF}
-                  maxLength={2}
-                  onChange={(e) => setCrfUF(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand uppercase outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Biografia <span className="font-normal text-gray-400">(opcional)</span>
-              </label>
-              <textarea
-                placeholder="Descreva brevemente sua especialidade..."
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-2">Áreas de atuação</label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1 rounded-full border text-xs font-medium transition ${
-                      selectedTags.includes(tag)
-                        ? 'bg-brand text-white border-brand'
-                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-brand/50'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {error && (
-        <p className="mt-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-      )}
-
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="mt-6 w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-3 rounded-xl transition"
-      >
-        {loading ? 'Salvando...' : 'Concluir Cadastro →'}
-      </button>
-    </div>
-  );
-};
 
 // ── Formulário de e-mail/senha ───────────────────────────────────────────────
 const EmailForm = ({ onSuccess }) => {
@@ -262,16 +112,14 @@ const EmailForm = ({ onSuccess }) => {
 // ── Componente principal ─────────────────────────────────────────────────────
 const Login = () => {
   const { login } = useAuth();
-  const [onboardingToken, setOnboardingToken] = useState(null);
   const [authMethod, setAuthMethod] = useState('google'); // 'google' | 'email'
   const [error, setError] = useState('');
 
-  const handleAuthSuccess = (token, user, isNewUser) => {
-    if (isNewUser) {
-      setOnboardingToken(token);
-    } else {
-      login(token, user);
-    }
+  // Toda conta nova entra como PACIENTE (papel padrão do backend); virar
+  // farmacêutico é um fluxo à parte (PharmacistSignupWizard), não uma
+  // escolha feita aqui no primeiro login.
+  const handleAuthSuccess = (token, user) => {
+    login(token, user);
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -284,20 +132,11 @@ const Login = () => {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Erro ao autenticar.'); return; }
-      handleAuthSuccess(data.token, data.user, data.isNewUser);
+      handleAuthSuccess(data.token, data.user);
     } catch {
       setError('Erro de conexão. Tente novamente.');
     }
   };
-
-  if (onboardingToken) {
-    return (
-      <OnboardingForm
-        tempToken={onboardingToken}
-        onDone={(token, user) => login(token, user)}
-      />
-    );
-  }
 
   return (
     <div>

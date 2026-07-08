@@ -31,7 +31,6 @@ const PharmacistDashboard = () => {
   const { token, user, refreshUser } = useAuth();
   const isLg = useIsLg();
   const [activeTab, setActiveTab]         = useState('calendario');
-  const [refreshing, setRefreshing]       = useState(false);
   const [showDocForm, setShowDocForm]     = useState(false);
   const [calendarTrigger, setCalendarTrigger] = useState(0);
   const [consultaAlvo, setConsultaAlvo]       = useState(null);
@@ -51,6 +50,14 @@ const PharmacistDashboard = () => {
       Notification.requestPermission();
     }
   }, [isApproved]);
+
+  // Enquanto a conta está pendente, verifica a aprovação sozinho em segundo
+  // plano — sem exigir que o farmacêutico clique em nada.
+  useEffect(() => {
+    if (isApproved) return;
+    const id = setInterval(refreshUser, 20000);
+    return () => clearInterval(id);
+  }, [isApproved, refreshUser]);
 
   // Sincroniza estado do toggle de push com a subscription real do navegador
   useEffect(() => {
@@ -148,37 +155,22 @@ const PharmacistDashboard = () => {
     return () => clearInterval(id);
   }, [isApproved, token]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refreshUser();
-    setRefreshing(false);
-  };
-
   return (
     <div className="w-full">
 
       {/* Banner de aprovação pendente */}
       {!isApproved && (
         <div className="mb-5 space-y-3">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="text-amber-500 mt-0.5">⏳</span>
-              <div>
-                <p className="font-semibold text-amber-800 text-sm">Conta aguardando aprovação</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  {docEnviado
-                    ? 'Documentos enviados. Um administrador irá analisar e ativar seu cadastro em breve.'
-                    : 'Envie seus documentos para que um administrador possa analisar e ativar seu cadastro.'}
-                </p>
-              </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+            <span className="text-amber-500 mt-0.5">⏳</span>
+            <div>
+              <p className="font-semibold text-amber-800 text-sm">Conta aguardando aprovação</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                {docEnviado
+                  ? 'Documentos enviados. Um administrador irá analisar seu CRF e seus documentos — assim que aprovado, sua conta é liberada automaticamente e você recebe um aviso aqui.'
+                  : 'Envie seus documentos para que um administrador possa analisar e ativar seu cadastro.'}
+              </p>
             </div>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="shrink-0 text-xs text-amber-700 border border-amber-300 rounded-lg px-3 py-1.5 hover:bg-amber-100 transition disabled:opacity-50"
-            >
-              {refreshing ? 'Verificando...' : 'Verificar status'}
-            </button>
           </div>
 
           {!docEnviado && (

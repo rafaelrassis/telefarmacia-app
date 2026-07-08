@@ -133,42 +133,6 @@ export const listPatients = async (req, res) => {
   }
 };
 
-export const approvePharmacist = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const profile = await prisma.pharmacistProfile.findUnique({ where: { userId } });
-    if (!profile) return res.status(404).json({ error: 'Perfil não encontrado.' });
-    await prisma.pharmacistProfile.update({ where: { userId }, data: { isApproved: true } });
-    await logAdminAction(prisma, {
-      adminId: req.user?.id, acao: 'aprovar_farmaceutico', alvoTipo: 'farmaceutico', alvoId: userId,
-    });
-    await criarNotificacao({
-      userId,
-      tipo:     'conta_aprovada',
-      titulo:   'Cadastro aprovado!',
-      mensagem: 'Seu cadastro de farmacêutico foi aprovado. Você já pode receber consultas.',
-    });
-    return res.status(200).json({ message: 'Farmacêutico aprovado com sucesso.' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao aprovar farmacêutico.' });
-  }
-};
-
-export const revokePharmacist = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const profile = await prisma.pharmacistProfile.findUnique({ where: { userId } });
-    if (!profile) return res.status(404).json({ error: 'Perfil não encontrado.' });
-    await prisma.pharmacistProfile.update({ where: { userId }, data: { isApproved: false } });
-    await logAdminAction(prisma, {
-      adminId: req.user?.id, acao: 'revogar_aprovacao_farmaceutico', alvoTipo: 'farmaceutico', alvoId: userId,
-    });
-    return res.status(200).json({ message: 'Aprovação revogada.' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao revogar aprovação.' });
-  }
-};
-
 export const deletePharmacist = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -271,6 +235,7 @@ export const setStatus = async (req, res) => {
     if (!user?.pharmacistProfile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
 
     const isAtivando = status === 'Ativo';
+    const jaAprovado = user.pharmacistProfile.isApproved;
 
     await prisma.pharmacistProfile.update({ where: { userId: id }, data: { isApproved: isAtivando } });
 
@@ -278,6 +243,15 @@ export const setStatus = async (req, res) => {
       adminId: req.user?.id, acao: 'alterar_status_farmaceutico', alvoTipo: 'farmaceutico', alvoId: id,
       detalhes: { status },
     });
+
+    if (isAtivando && !jaAprovado) {
+      await criarNotificacao({
+        userId:   id,
+        tipo:     'conta_aprovada',
+        titulo:   'Cadastro aprovado!',
+        mensagem: 'Seu cadastro de farmacêutico foi aprovado. Você já pode receber consultas.',
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -317,28 +291,6 @@ export const listarPendentes = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao buscar pendentes.' });
   }
 };
-
-export const ativarFarmaceutico = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const profile = await prisma.pharmacistProfile.findUnique({ where: { userId: id } });
-    if (!profile) return res.status(404).json({ error: 'Farmacêutico não encontrado.' });
-    await prisma.pharmacistProfile.update({ where: { userId: id }, data: { isApproved: true } });
-    await logAdminAction(prisma, {
-      adminId: req.user?.id, acao: 'ativar_farmaceutico', alvoTipo: 'farmaceutico', alvoId: id,
-    });
-    await criarNotificacao({
-      userId:   id,
-      tipo:     'conta_aprovada',
-      titulo:   'Cadastro aprovado!',
-      mensagem: 'Seu cadastro de farmacêutico foi aprovado. Você já pode receber consultas.',
-    });
-    return res.status(200).json({ message: 'Cadastro ativado com sucesso. Profissional liberado.' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao ativar farmacêutico.' });
-  }
-};
-
 
 // ── Sistema de agendamentos ───────────────────────────────────────────────────
 

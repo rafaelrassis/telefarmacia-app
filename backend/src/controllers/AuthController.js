@@ -2,6 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
+import { validateCrf } from '../utils/crfValidation.js';
 
 const prisma = new PrismaClient();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -149,23 +150,25 @@ export const getMe = async (req, res) => {
 };
 
 export const completeOnboarding = async (req, res) => {
-  const { role, crfNumber, crfUF, bio, tags } = req.body;
+  const { role, crfNumber, crfUF, bio, tags, phone } = req.body;
   const userId = req.user.id;
 
   try {
     if (role === 'FARMACEUTICO') {
-      if (!crfNumber || !crfUF) {
-        return res.status(400).json({ error: 'CRF e UF são obrigatórios.' });
+      const crfError = validateCrf(crfNumber, crfUF);
+      if (crfError) {
+        return res.status(400).json({ error: crfError });
       }
 
       await prisma.user.update({
         where: { id: userId },
         data: {
           role: 'FARMACEUTICO',
+          ...(phone?.trim() ? { phone: phone.trim() } : {}),
           pharmacistProfile: {
             create: {
-              crfNumber,
-              crfUF,
+              crfNumber: crfNumber.trim(),
+              crfUF: crfUF.toUpperCase(),
               bio: bio || '',
               tags: Array.isArray(tags) ? tags : [],
             },
