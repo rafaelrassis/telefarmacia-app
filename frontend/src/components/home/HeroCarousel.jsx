@@ -31,25 +31,25 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
 
       {/* Soft glow accents */}
-      <div className="absolute right-1/4 top-1/3 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute right-10 bottom-1/4 w-56 h-56 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute right-1/4 top-1/3 w-80 h-80 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute right-10 bottom-1/4 w-56 h-56 bg-brand-deep/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
         <div className="max-w-3xl">
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-blue-600/15 border border-blue-500/30 text-blue-300 text-xs font-semibold px-4 py-1.5 rounded-full mb-8 backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-brand/15 border border-brand/30 text-brand text-xs font-semibold px-4 py-1.5 rounded-full mb-8 backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
             Orientação Farmacêutica Online · 100% certificado
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-extrabold text-white leading-[1.1] tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-heading font-extrabold text-white leading-[1.1] tracking-tight mb-6">
             Tire suas dúvidas sobre{' '}
             <span
               className="text-transparent bg-clip-text"
-              style={{ backgroundImage: 'linear-gradient(135deg, #60A5FA 0%, #2DD4BF 100%)' }}
+              style={{ backgroundImage: 'linear-gradient(135deg, #3B9FE0 0%, #8ED2F6 100%)' }}
             >
               medicamentos
             </span>{' '}
@@ -65,8 +65,8 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
             <Link
               to="/entrar"
-              className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-150 shadow-lg text-base"
-              style={{ boxShadow: '0 8px 24px -4px rgba(37,99,235,0.35)' }}
+              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep active:bg-brand-deep text-white font-bold px-8 py-4 rounded-2xl transition-all duration-150 shadow-lg text-base"
+              style={{ boxShadow: '0 8px 24px -4px rgba(59,159,224,0.35)' }}
             >
               Encontrar Farmacêutico
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +78,7 @@ const HeroSection = () => {
               className="inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl transition-all duration-150 text-base border"
               style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
             >
-              <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -87,7 +87,7 @@ const HeroSection = () => {
             {outletCtx.onRegisterPharmacist && (
               <button
                 onClick={outletCtx.onRegisterPharmacist}
-                className="sm:hidden inline-flex items-center justify-center text-blue-300 font-medium text-sm underline underline-offset-4 py-2"
+                className="sm:hidden inline-flex items-center justify-center text-brand font-medium text-sm underline underline-offset-4 py-2"
               >
                 Sou farmacêutico
               </button>

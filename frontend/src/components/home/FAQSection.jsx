@@ -47,8 +47,8 @@ const FAQSection = () => {
     <section id="faq" className="bg-white border-t border-slate-200 py-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <p className="text-[11px] font-bold text-blue-600 uppercase tracking-[0.12em] mb-3">FAQ</p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">FAQ</p>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Ainda tem dúvidas?
           </h2>
           <p className="text-slate-500 text-sm mt-2">Encontre respostas para as perguntas mais comuns.</p>
@@ -60,13 +60,13 @@ const FAQSection = () => {
             return (
               <div
                 key={i}
-                className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${isOpen ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${isOpen ? 'border-brand/40 bg-brand-wash/60' : 'border-slate-200 bg-white hover:border-slate-300'}`}
               >
                 <button
                   onClick={() => setOpen(isOpen ? null : i)}
                   className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
                 >
-                  <span className={`text-sm font-semibold leading-snug transition-colors ${isOpen ? 'text-blue-700' : 'text-slate-700'}`}>
+                  <span className={`text-sm font-semibold leading-snug transition-colors ${isOpen ? 'text-brand-deep' : 'text-slate-700'}`}>
                     {faq.q}
                   </span>
                   <ChevronIcon open={isOpen} />
@@ -90,7 +90,7 @@ const FAQSection = () => {
           <p className="text-sm text-slate-500 mb-3">Não encontrou o que procurava?</p>
           <Link
             to="/entrar"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition shadow-sm shadow-blue-200"
+            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-white font-semibold px-6 py-3 rounded-xl text-sm transition shadow-sm shadow-brand-wash"
           >
             Falar com um farmacêutico agora
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

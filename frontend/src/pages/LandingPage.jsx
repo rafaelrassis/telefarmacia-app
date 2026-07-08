@@ -71,13 +71,13 @@ const SearchSection = () => {
   return (
     <section className="py-14 bg-[#F8FAFC]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-[0.12em] mb-2">Busca rápida</p>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">
+        <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-2">Busca rápida</p>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">
           Como podemos ajudar você hoje?
         </h2>
 
         {/* Search box */}
-        <div className="flex gap-2 bg-white border border-slate-200 rounded-2xl p-2 shadow-lg shadow-slate-100/80 hover:shadow-xl hover:border-blue-200 transition-shadow duration-300">
+        <div className="flex gap-2 bg-white border border-slate-200 rounded-2xl p-2 shadow-lg shadow-slate-100/80 hover:shadow-xl hover:border-brand/40 transition-shadow duration-300">
           <div className="flex-1 relative flex items-center">
             <svg className="absolute left-4 w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -101,7 +101,7 @@ const SearchSection = () => {
           </div>
           <Link
             to="/entrar"
-            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl transition text-sm"
+            className="shrink-0 bg-brand hover:bg-brand-deep text-white font-bold px-5 py-3 rounded-xl transition text-sm"
           >
             Agendar Consulta
           </Link>
@@ -113,7 +113,7 @@ const SearchSection = () => {
             <Link
               key={label}
               to="/entrar"
-              className="text-xs text-slate-600 bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 px-3.5 py-1.5 rounded-full transition-colors duration-150"
+              className="text-xs text-slate-600 bg-white border border-slate-200 hover:border-brand/50 hover:text-brand-deep hover:bg-brand-wash px-3.5 py-1.5 rounded-full transition-colors duration-150"
             >
               {label}
             </Link>
@@ -139,8 +139,8 @@ const SPECS = [
 const SpecialtiesSection = () => (
   <section id="especialidades" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div className="text-center mb-12">
-      <p className="text-[11px] font-bold text-blue-600 uppercase tracking-[0.12em] mb-3">Especialidades</p>
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">O que você quer resolver?</h2>
+      <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Especialidades</p>
+      <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">O que você quer resolver?</h2>
       <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">
         Selecione uma área e encontre o farmacêutico especializado para a sua necessidade.
       </p>
@@ -158,7 +158,7 @@ const SpecialtiesSection = () => (
             {icon}
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-base mb-1.5">{label}</h3>
+            <h3 className="font-heading font-bold text-slate-900 text-base mb-1.5">{label}</h3>
             <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
           </div>
         </Link>
@@ -181,8 +181,8 @@ const HowItWorksSection = () => (
   <section id="como-funciona" className="bg-slate-100 border-y border-slate-200 py-16">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-14">
-        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-[0.12em] mb-3">Passo a passo</p>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Como funciona?</h2>
+        <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Passo a passo</p>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Como funciona?</h2>
         <p className="text-slate-500 text-sm mt-2">Do primeiro acesso à orientação em menos de 30 minutos.</p>
       </div>
 
@@ -202,7 +202,7 @@ const HowItWorksSection = () => (
                 </div>
                 <span className="text-2xl">{icon}</span>
               </div>
-              <h4 className="font-bold text-slate-900 mb-2 leading-tight">{title}</h4>
+              <h4 className="font-heading font-bold text-slate-900 mb-2 leading-tight">{title}</h4>
               <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
             </div>
           ))}
@@ -247,8 +247,8 @@ const TestimonialsSection = () => {
     <section className="bg-white py-16 border-t border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <p className="text-[11px] font-bold text-blue-600 uppercase tracking-[0.12em] mb-3">Depoimentos</p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Depoimentos</p>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             O que dizem nossos pacientes
           </h2>
           <div className="flex items-center justify-center gap-2 mt-3">
@@ -297,7 +297,7 @@ const TestimonialsSection = () => {
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'bg-blue-600 w-8' : 'bg-slate-300 w-2'}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'bg-brand w-8' : 'bg-slate-300 w-2'}`}
               />
             ))}
           </div>
@@ -318,27 +318,27 @@ const CTASection = () => {
         className="relative overflow-hidden rounded-3xl text-white text-center flex items-center justify-center"
         style={{
           minHeight: '240px',
-          background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 40%, #0891B2 100%)',
-          boxShadow: '0 20px 60px -10px rgba(37,99,235,0.4)',
+          background: 'linear-gradient(135deg, #123F63 0%, #1D74B8 55%, #2E86D6 100%)',
+          boxShadow: '0 20px 60px -10px rgba(29,116,184,0.4)',
         }}
       >
         {/* Decorative blobs */}
         <div className="absolute -right-16 -top-16 w-72 h-72 bg-white/5 rounded-full pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-teal-400/10 rounded-full pointer-events-none" />
-        <div className="absolute right-1/3 top-0 w-40 h-40 bg-blue-300/10 rounded-full pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-white/10 rounded-full pointer-events-none" />
+        <div className="absolute right-1/3 top-0 w-40 h-40 bg-white/10 rounded-full pointer-events-none" />
 
         <div className="relative z-10 px-6 py-12 max-w-xl mx-auto">
-          <p className="text-blue-200 text-[11px] font-bold uppercase tracking-[0.12em] mb-3">Atendimento online</p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
+          <p className="text-brand-wash text-[11px] font-bold uppercase tracking-[0.12em] mb-3">Atendimento online</p>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
             Precisa de orientação agora?
           </h2>
-          <p className="text-blue-100 text-sm mb-8 leading-relaxed">
+          <p className="text-brand-wash text-sm mb-8 leading-relaxed">
             Encontre um farmacêutico disponível e agende sua consulta online de forma simples, rápida e segura.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/entrar"
-              className="inline-flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-slate-50 font-bold px-7 py-3.5 rounded-xl text-sm transition shadow-lg"
+              className="inline-flex items-center justify-center gap-2 bg-white text-brand-deep hover:bg-slate-50 font-bold px-7 py-3.5 rounded-xl text-sm transition shadow-lg"
             >
               Encontrar Farmacêutico
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

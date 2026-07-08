@@ -7,7 +7,7 @@ import ExcluirContaModal from '../ExcluirContaModal.jsx';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const ENV_CFG = {
-  patient:    { label: 'Paciente',     dotCls: 'bg-blue-500',   badgeCls: 'bg-blue-50 text-blue-700 border-blue-100'       },
+  patient:    { label: 'Paciente',     dotCls: 'bg-brand',      badgeCls: 'bg-brand-wash text-brand-deep border-brand/20'  },
   pharmacist: { label: 'Farmacêutico', dotCls: 'bg-violet-500', badgeCls: 'bg-violet-50 text-violet-700 border-violet-100' },
   admin:      { label: 'Admin',        dotCls: 'bg-red-500',    badgeCls: 'bg-red-50 text-red-700 border-red-100'          },
 };
@@ -34,7 +34,7 @@ const maskCPF = (v) => {
   return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
 };
 
-const inp = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none transition';
+const inp = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none transition';
 const inpRO = 'w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed';
 const lbl = 'block text-xs font-semibold text-gray-600 mb-1';
 const sec = 'text-xs font-bold text-gray-500 uppercase tracking-wide mt-5 mb-3 flex items-center gap-2';
@@ -203,7 +203,7 @@ const PerfilModal = ({ onClose }) => {
                 <div className="relative">
                   {preview
                     ? <img src={preview} alt="Foto" className="w-20 h-20 rounded-full object-cover border-2 border-gray-200" />
-                    : <div className="w-20 h-20 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 text-2xl font-bold border-2 border-violet-200">{initials}</div>
+                    : <div className="w-20 h-20 rounded-full bg-brand-wash flex items-center justify-center text-brand-deep text-2xl font-bold border-2 border-brand/30">{initials}</div>
                   }
                   <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-50 shadow-sm text-sm select-none">
                     📷<input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhoto} />
@@ -434,7 +434,7 @@ const PerfilModal = ({ onClose }) => {
           <button
             onClick={handleSave}
             disabled={saving || loadingInit}
-            className="w-full py-3 bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white font-bold rounded-xl transition text-sm"
+            className="w-full py-3 bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold rounded-xl transition text-sm"
           >
             {saving ? 'Salvando...' : '💾 Salvar alterações'}
           </button>
@@ -557,11 +557,11 @@ const Navbar = () => {
 
   const Logo = ({ linked }) => (
     <div className={`flex items-center gap-2 shrink-0 ${!linked ? 'cursor-default select-none' : ''}`}>
-      <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md shadow-blue-200">
+      <div className="w-9 h-9 bg-brand rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-wash">
         F
       </div>
-      <span className="text-xl font-bold tracking-tight text-slate-900">
-        Farma<span className="text-blue-600">Consulta</span>
+      <span className="text-xl font-heading font-bold tracking-tight text-slate-900">
+        Farma<span className="text-brand-deep">Consulta</span>
       </span>
     </div>
   );
@@ -722,7 +722,7 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/entrar"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition shadow-sm shadow-blue-200"
+                className="bg-brand hover:bg-brand-deep text-white px-5 py-2.5 rounded-xl font-semibold transition shadow-sm shadow-brand-wash"
               >
                 Entrar
               </Link>
@@ -825,7 +825,7 @@ const Navbar = () => {
               <Link
                 to="/entrar"
                 onClick={() => setMenuOpen(false)}
-                className="block text-center bg-blue-600 text-white font-bold py-3 px-4 rounded-xl text-sm mt-2"
+                className="block text-center bg-brand text-white font-bold py-3 px-4 rounded-xl text-sm mt-2"
               >
                 Entrar
               </Link>

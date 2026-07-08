@@ -8,8 +8,8 @@ const Footer = ({ onRegisterPharmacist }) => (
         {/* Brand */}
         <div>
           <div className="flex items-center gap-2 text-white font-bold text-sm mb-3">
-            <span className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-sm font-black">F</span>
-            Farma<span className="text-blue-400">Consulta</span>
+            <span className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center text-sm font-black">F</span>
+            Farma<span className="text-brand font-heading">Consulta</span>
           </div>
           <p className="text-sm leading-relaxed text-slate-500 max-w-xs">
             Conectando pacientes a farmacêuticos clínicos para orientação segura sobre medicamentos. 100% online.
