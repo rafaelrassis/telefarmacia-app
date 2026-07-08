@@ -84,7 +84,7 @@ const InviteRegistro = () => {
   if (validating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -94,7 +94,7 @@ const InviteRegistro = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white border border-red-200 rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
           <p className="text-4xl mb-4">🔗</p>
-          <h1 className="font-bold text-gray-900 text-lg mb-2">Link inválido ou expirado</h1>
+          <h1 className="font-heading font-bold text-gray-900 text-lg mb-2">Link inválido ou expirado</h1>
           <p className="text-sm text-gray-500">
             Este convite não existe, já foi utilizado ou expirou (validade de 7 dias).
           </p>
@@ -111,7 +111,7 @@ const InviteRegistro = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white border border-green-200 rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
           <p className="text-4xl mb-4">🎉</p>
-          <h1 className="font-bold text-gray-900 text-lg mb-2">Cadastro realizado!</h1>
+          <h1 className="font-heading font-bold text-gray-900 text-lg mb-2">Cadastro realizado!</h1>
           <p className="text-sm text-gray-500">
             Seu acesso foi criado. Aguarde a aprovação do administrador para começar a atender.
           </p>
@@ -128,8 +128,8 @@ const InviteRegistro = () => {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm w-full max-w-md">
 
         <div className="px-8 pt-8 pb-4 border-b border-gray-100">
-          <p className="text-violet-700 font-bold text-sm uppercase tracking-widest mb-1">Telefarmácia</p>
-          <h1 className="text-xl font-bold text-gray-900">Criar sua conta</h1>
+          <p className="text-brand-deep font-bold text-sm uppercase tracking-widest mb-1">Telefarmácia</p>
+          <h1 className="font-heading text-xl font-bold text-gray-900">Criar sua conta</h1>
           <p className="text-sm text-gray-500 mt-1">
             Convite para <strong>{convite?.nome}</strong>
           </p>
@@ -144,7 +144,7 @@ const InviteRegistro = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-wash focus:border-brand"
             />
           </div>
 
@@ -155,7 +155,7 @@ const InviteRegistro = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-wash focus:border-brand"
             />
           </div>
 
@@ -168,7 +168,7 @@ const InviteRegistro = () => {
               required
               minLength={6}
               placeholder="Mínimo 6 caracteres"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-wash focus:border-brand"
             />
           </div>
 
@@ -178,7 +178,7 @@ const InviteRegistro = () => {
               <select
                 value={crfUF}
                 onChange={(e) => setCrfUF(e.target.value)}
-                className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-wash focus:border-brand"
               >
                 {UF_LIST.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
               </select>
@@ -188,7 +188,7 @@ const InviteRegistro = () => {
                 onChange={(e) => setCrfNumber(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 required
                 placeholder="Número (ex: 12345)"
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-wash focus:border-brand"
               />
             </div>
             <p className="text-xs text-gray-400 mt-1">Somente os dígitos do número do CRF, sem a UF.</p>
@@ -203,7 +203,7 @@ const InviteRegistro = () => {
               value={chavePix}
               onChange={(e) => setChavePix(e.target.value)}
               placeholder="CPF, e-mail, telefone ou chave aleatória"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-wash focus:border-brand"
             />
           </div>
 
@@ -216,7 +216,7 @@ const InviteRegistro = () => {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-violet-700 hover:bg-violet-800 text-white font-bold py-3 rounded-xl transition disabled:opacity-50 text-sm"
+            className="w-full bg-brand hover:bg-brand-deep text-white font-bold py-3 rounded-xl transition disabled:opacity-50 text-sm"
           >
             {saving ? 'Criando conta...' : 'Criar minha conta'}
           </button>

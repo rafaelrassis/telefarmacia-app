@@ -78,7 +78,7 @@ const OnboardingSlider = ({ onConcluido }) => {
           </div>
 
           {/* Título */}
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', textAlign: 'center', margin: '0 0 20px' }}>
+          <h2 style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 20, fontWeight: 800, color: '#111827', textAlign: 'center', margin: '0 0 20px' }}>
             {s.titulo}
           </h2>
 
@@ -89,7 +89,7 @@ const OnboardingSlider = ({ onConcluido }) => {
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <span style={{
                     width: 36, height: 36, borderRadius: 10,
-                    background: '#f5f3ff', flexShrink: 0,
+                    background: '#EAF6FE', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 18,
                   }}>
@@ -126,7 +126,7 @@ const OnboardingSlider = ({ onConcluido }) => {
                 onClick={() => setSlide(i)}
                 style={{
                   width: i === slide ? 20 : 8, height: 8, borderRadius: 4,
-                  background: i === slide ? '#7c3aed' : '#e5e7eb',
+                  background: i === slide ? '#3B9FE0' : '#e5e7eb',
                   border: 'none', cursor: 'pointer', padding: 0,
                   transition: 'width 0.2s, background 0.2s',
                 }}
@@ -141,7 +141,7 @@ const OnboardingSlider = ({ onConcluido }) => {
               disabled={loading}
               style={{
                 width: '100%', padding: '14px 0',
-                background: loading ? '#a78bfa' : '#7c3aed',
+                background: loading ? '#8ED2F6' : '#3B9FE0',
                 color: 'white', border: 'none', borderRadius: 12,
                 fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'background 0.15s',
@@ -154,7 +154,7 @@ const OnboardingSlider = ({ onConcluido }) => {
               onClick={() => setSlide((s) => s + 1)}
               style={{
                 width: '100%', padding: '14px 0',
-                background: '#2563eb', color: 'white',
+                background: '#3B9FE0', color: 'white',
                 border: 'none', borderRadius: 12,
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
               }}

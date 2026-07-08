@@ -7,8 +7,8 @@ const ENV_CONFIG = {
     icon: '🧑',
     label: 'Paciente',
     description: 'Agendar consultas, ver histórico e receitas',
-    color: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50',
-    badge: 'bg-blue-100 text-blue-700',
+    color: 'border-brand/30 hover:border-brand hover:bg-brand-wash',
+    badge: 'bg-brand-wash text-brand-deep',
   },
   pharmacist: {
     icon: '👨‍⚕️',
@@ -43,7 +43,7 @@ const SelecionarPerfilPage = () => {
 
         <div className="text-center mb-8">
           <p className="text-sm text-gray-400 mb-1">Bem-vindo de volta</p>
-          <h1 className="text-2xl font-bold text-gray-900">{user.name?.split(' ')[0]}</h1>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">{user.name?.split(' ')[0]}</h1>
           <p className="text-sm text-gray-400 mt-1">{user.email}</p>
         </div>
 

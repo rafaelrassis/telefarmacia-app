@@ -107,7 +107,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
     <form onSubmit={handleSubmit} className="space-y-5">
       {!compact && (
         <div className="mb-1">
-          <h2 className="text-lg font-bold text-gray-800">Complete seu cadastro</h2>
+          <h2 className="font-heading text-lg font-bold text-gray-800">Complete seu cadastro</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             Seus dados pessoais e de contato. CPF e data de nascimento não poderão ser alterados depois.
           </p>
@@ -126,7 +126,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
               onChange={(e) => set('nome_completo', e.target.value)}
               placeholder="Como consta no documento"
               required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
             />
           </div>
 
@@ -139,7 +139,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 onChange={(e) => set('data_nascimento', e.target.value)}
                 required
                 max={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div>
@@ -148,7 +148,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 value={form.genero}
                 onChange={(e) => set('genero', e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none bg-white"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none bg-white"
               >
                 <option value="">Selecione</option>
                 {GENEROS.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -166,7 +166,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 placeholder="000.000.000-00"
                 required
                 inputMode="numeric"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div>
@@ -179,7 +179,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 onChange={(e) => set('telefone', maskPhone(e.target.value))}
                 placeholder="(11) 99999-8888"
                 inputMode="numeric"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
           </div>
@@ -206,7 +206,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                   }}
                   placeholder="00000-000"
                   inputMode="numeric"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
                 />
                 {cepLoading && (
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">...</span>
@@ -220,7 +220,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 value={form.logradouro}
                 onChange={(e) => set('logradouro', e.target.value)}
                 placeholder="Rua, Av., etc."
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
           </div>
@@ -233,7 +233,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 value={form.numero}
                 onChange={(e) => set('numero', e.target.value)}
                 placeholder="123"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div className="col-span-2">
@@ -243,7 +243,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 value={form.complemento}
                 onChange={(e) => set('complemento', e.target.value)}
                 placeholder="Apto, bloco..."
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
           </div>
@@ -255,7 +255,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 type="text"
                 value={form.bairro}
                 onChange={(e) => set('bairro', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div className="col-span-1">
@@ -264,7 +264,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 type="text"
                 value={form.cidade}
                 onChange={(e) => set('cidade', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div>
@@ -275,7 +275,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 onChange={(e) => set('estado', e.target.value.toUpperCase().slice(0, 2))}
                 placeholder="SP"
                 maxLength={2}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none uppercase"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none uppercase"
               />
             </div>
           </div>
@@ -288,11 +288,11 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
           type="checkbox"
           checked={form.aceite_termos}
           onChange={(e) => set('aceite_termos', e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded accent-violet-600 shrink-0"
+          className="mt-0.5 w-4 h-4 rounded accent-brand shrink-0"
         />
         <span className="text-xs text-gray-600 leading-relaxed">
           Li e aceito os{' '}
-          <span className="text-violet-600 font-semibold">Termos de Uso e Política de Privacidade</span>.
+          <span className="text-brand-deep font-semibold">Termos de Uso e Política de Privacidade</span>.
           Autorizo o uso dos meus dados pessoais conforme a{' '}
           <span className="font-semibold">LGPD (Lei 13.709/2018)</span> para fins de atendimento farmacêutico.
         </span>
@@ -315,7 +315,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
+          className="flex-1 bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
         >
           {loading ? 'Salvando...' : 'Salvar cadastro'}
         </button>

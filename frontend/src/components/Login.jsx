@@ -52,7 +52,7 @@ const OnboardingForm = ({ tempToken, onDone }) => {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Complete seu perfil</h2>
+        <h2 className="font-heading text-xl font-bold text-gray-800">Complete seu perfil</h2>
         <p className="text-sm text-gray-500 mt-1">Só mais um passo para começar.</p>
       </div>
 
@@ -67,7 +67,7 @@ const OnboardingForm = ({ tempToken, onDone }) => {
                 onClick={() => setRole(r)}
                 className={`py-3 rounded-xl border-2 font-semibold text-sm transition ${
                   role === r
-                    ? 'border-violet-600 bg-violet-50 text-violet-700'
+                    ? 'border-brand bg-brand-wash text-brand-deep'
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
@@ -87,7 +87,7 @@ const OnboardingForm = ({ tempToken, onDone }) => {
                   placeholder="Ex: 12345"
                   value={crfNumber}
                   onChange={(e) => setCrfNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
                 />
               </div>
               <div className="w-24">
@@ -98,7 +98,7 @@ const OnboardingForm = ({ tempToken, onDone }) => {
                   value={crfUF}
                   maxLength={2}
                   onChange={(e) => setCrfUF(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 uppercase outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand uppercase outline-none"
                 />
               </div>
             </div>
@@ -112,7 +112,7 @@ const OnboardingForm = ({ tempToken, onDone }) => {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
               />
             </div>
 
@@ -126,8 +126,8 @@ const OnboardingForm = ({ tempToken, onDone }) => {
                     onClick={() => toggleTag(tag)}
                     className={`px-3 py-1 rounded-full border text-xs font-medium transition ${
                       selectedTags.includes(tag)
-                        ? 'bg-violet-600 text-white border-violet-600'
-                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-violet-300'
+                        ? 'bg-brand text-white border-brand'
+                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-brand/50'
                     }`}
                   >
                     {tag}
@@ -146,7 +146,7 @@ const OnboardingForm = ({ tempToken, onDone }) => {
       <button
         onClick={handleSubmit}
         disabled={loading}
-        className="mt-6 w-full bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition"
+        className="mt-6 w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-3 rounded-xl transition"
       >
         {loading ? 'Salvando...' : 'Concluir Cadastro →'}
       </button>
@@ -201,7 +201,7 @@ const EmailForm = ({ onSuccess }) => {
             placeholder="Seu nome completo"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
           />
         </div>
       )}
@@ -214,7 +214,7 @@ const EmailForm = ({ onSuccess }) => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
         />
       </div>
 
@@ -227,7 +227,7 @@ const EmailForm = ({ onSuccess }) => {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={mode === 'register' ? 6 : undefined}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
         />
       </div>
 
@@ -238,7 +238,7 @@ const EmailForm = ({ onSuccess }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
+        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
       >
         {loading
           ? 'Aguarde...'
@@ -250,7 +250,7 @@ const EmailForm = ({ onSuccess }) => {
         <button
           type="button"
           onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
-          className="text-violet-600 font-semibold hover:underline"
+          className="text-brand-deep font-semibold hover:underline"
         >
           {mode === 'login' ? 'Criar conta' : 'Entrar'}
         </button>
@@ -312,7 +312,7 @@ const Login = () => {
             onClick={() => { setAuthMethod(key); setError(''); }}
             className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
               authMethod === key
-                ? 'bg-white text-violet-700 shadow-sm'
+                ? 'bg-white text-brand-deep shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
