@@ -7,7 +7,7 @@ const PushToggleBanner = ({ pushEnabled, togglingPush, togglePush }) => {
   return (
     <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
       <div className="flex items-center gap-3">
-        <span className={`text-xl ${pushEnabled ? 'text-violet-500' : 'text-gray-400'}`}>
+        <span className={`text-xl ${pushEnabled ? 'text-brand' : 'text-gray-400'}`}>
           {pushEnabled ? '🔔' : '🔕'}
         </span>
         <div>
@@ -23,7 +23,7 @@ const PushToggleBanner = ({ pushEnabled, togglingPush, togglePush }) => {
         onClick={togglePush}
         disabled={togglingPush}
         className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-          pushEnabled ? 'bg-violet-600' : 'bg-gray-300'
+          pushEnabled ? 'bg-brand' : 'bg-gray-300'
         }`}
         role="switch"
         aria-checked={pushEnabled}

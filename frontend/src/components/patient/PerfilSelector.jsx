@@ -31,7 +31,7 @@ const PerfilSelector = ({
             gap: 12,
             padding: '12px 14px',
             background: 'white',
-            border: dropdownOpen ? '1.5px solid #7c3aed' : '1.5px solid #e5e7eb',
+            border: dropdownOpen ? '1.5px solid #3B9FE0' : '1.5px solid #e5e7eb',
             borderRadius: dropdownOpen ? '10px 10px 0 0' : 10,
             cursor: 'pointer',
             textAlign: 'left',
@@ -42,7 +42,7 @@ const PerfilSelector = ({
             width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
             background: selectedPerson
               ? `linear-gradient(135deg, ${DEP_COLORS[dependentes.findIndex(d => d.id === selectedPerson.id) % DEP_COLORS.length].replace('from-', '').replace(' to-', ',')})`
-              : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              : 'linear-gradient(135deg, #3B9FE0, #1D74B8)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 700, color: 'white',
           }}>
@@ -75,7 +75,7 @@ const PerfilSelector = ({
         {dropdownOpen && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-            background: 'white', border: '1.5px solid #7c3aed', borderTop: 'none',
+            background: 'white', border: '1.5px solid #3B9FE0', borderTop: 'none',
             borderRadius: '0 0 10px 10px',
             boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
             overflow: 'hidden',
@@ -88,14 +88,14 @@ const PerfilSelector = ({
                 onClick={() => { setSelectedPerson(null); setDropdownOpen(false); setConfirmDeleteInDropdown(null); }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '11px 14px', border: 'none', background: selectedPerson === null ? '#f5f3ff' : 'white',
+                  padding: '11px 14px', border: 'none', background: selectedPerson === null ? '#EAF6FE' : 'white',
                   cursor: 'pointer', textAlign: 'left',
                   borderBottom: '1px solid #f3f4f6',
                 }}
               >
                 <span style={{
                   width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                  background: 'linear-gradient(135deg, #3B9FE0, #1D74B8)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, color: 'white',
                 }}>
@@ -106,7 +106,7 @@ const PerfilSelector = ({
                   <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>Titular da conta</p>
                 </div>
                 {selectedPerson === null && (
-                  <span style={{ fontSize: 15, color: '#7c3aed', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                  <span style={{ fontSize: 15, color: '#3B9FE0', fontWeight: 700, flexShrink: 0 }}>✓</span>
                 )}
               </button>
 
@@ -147,7 +147,7 @@ const PerfilSelector = ({
                 return (
                   <div key={dep.id} style={{
                     display: 'flex', alignItems: 'center',
-                    background: isSelected ? '#f5f3ff' : 'white',
+                    background: isSelected ? '#EAF6FE' : 'white',
                     borderBottom: '1px solid #f3f4f6',
                   }}>
                     <button
@@ -171,7 +171,7 @@ const PerfilSelector = ({
                         {subtitulo && <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>{subtitulo}</p>}
                       </div>
                       {isSelected && (
-                        <span style={{ fontSize: 15, color: '#7c3aed', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                        <span style={{ fontSize: 15, color: '#3B9FE0', fontWeight: 700, flexShrink: 0 }}>✓</span>
                       )}
                     </button>
                     <button
@@ -206,7 +206,7 @@ const PerfilSelector = ({
                   width: '100%', padding: '11px 14px', border: 'none',
                   background: 'white', cursor: podeAdicionarMais ? 'pointer' : 'not-allowed',
                   textAlign: 'left', fontSize: 13, fontWeight: 600,
-                  color: podeAdicionarMais ? '#7c3aed' : '#9ca3af',
+                  color: podeAdicionarMais ? '#3B9FE0' : '#9ca3af',
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}
               >

@@ -181,7 +181,7 @@ const AgendamentoButtons = ({
           title={saldoInsuficiente ? 'Saldo insuficiente — adicione créditos para continuar' : undefined}
           style={{
             flex: 1,
-            background: '#2563eb',
+            background: '#3B9FE0',
             color: 'white',
             padding: '12px 16px',
             borderRadius: '8px',
@@ -223,10 +223,10 @@ const AgendamentoButtons = ({
           style={{
             flex: 1,
             background: 'white',
-            color: '#2563eb',
+            color: '#3B9FE0',
             padding: '12px 16px',
             borderRadius: '8px',
-            border: '2px solid #2563eb',
+            border: '2px solid #3B9FE0',
             fontSize: '15px',
             fontWeight: 'bold',
             cursor: (passarAgoraLoading || saldoInsuficiente || urgenteBloqueado) ? 'not-allowed' : 'pointer',

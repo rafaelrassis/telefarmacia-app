@@ -92,7 +92,7 @@ const CadastroDependenteModal = ({
             type="checkbox"
             checked={cadastroForm.aceito}
             onChange={e => setCadastroForm(f => ({ ...f, aceito: e.target.checked }))}
-            style={{ marginTop: 2, width: 16, height: 16, accentColor: '#7c3aed', flexShrink: 0 }}
+            style={{ marginTop: 2, width: 16, height: 16, accentColor: '#3B9FE0', flexShrink: 0 }}
           />
           Confirmo que sou responsável por este dependente e autorizo o uso desta plataforma em seu nome.
         </label>
@@ -111,7 +111,7 @@ const CadastroDependenteModal = ({
           <button
             onClick={handleCadastroDependente}
             disabled={cadastroLoading}
-            style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 8, background: '#7c3aed', color: 'white', fontSize: 14, fontWeight: 700, cursor: cadastroLoading ? 'not-allowed' : 'pointer', opacity: cadastroLoading ? 0.6 : 1 }}
+            style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 8, background: '#3B9FE0', color: 'white', fontSize: 14, fontWeight: 700, cursor: cadastroLoading ? 'not-allowed' : 'pointer', opacity: cadastroLoading ? 0.6 : 1 }}
           >
             {cadastroLoading ? 'Salvando...' : 'Salvar'}
           </button>

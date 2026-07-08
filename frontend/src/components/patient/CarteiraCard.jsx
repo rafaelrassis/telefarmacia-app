@@ -44,7 +44,7 @@ const CarteiraCard = ({ walletBalance, setWalletBalance }) => {
     <>
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold shrink-0">
+          <div className="w-9 h-9 rounded-full bg-brand-wash flex items-center justify-center text-brand-deep font-bold shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a5 5 0 00-10 0v2M3 9h18l-1.5 10H4.5L3 9z" />
             </svg>
@@ -61,7 +61,7 @@ const CarteiraCard = ({ walletBalance, setWalletBalance }) => {
             )}
             <button
               onClick={() => { setShowExtrato(true); fetchExtrato(); }}
-              style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: '#7c3aed', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', marginTop: 2 }}
+              style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: '#3B9FE0', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', marginTop: 2 }}
             >
               Ver extrato
             </button>
@@ -70,7 +70,7 @@ const CarteiraCard = ({ walletBalance, setWalletBalance }) => {
         <button
           onClick={handleAdicionarCredito}
           disabled={addingCredito}
-          className="shrink-0 text-xs font-bold bg-violet-100 hover:bg-violet-200 disabled:opacity-50 text-violet-700 px-4 py-2 rounded-lg transition"
+          className="shrink-0 text-xs font-bold bg-brand-wash hover:bg-brand/20 disabled:opacity-50 text-brand-deep px-4 py-2 rounded-lg transition"
         >
           {addingCredito ? '...' : '+ Adicionar créditos'}
         </button>

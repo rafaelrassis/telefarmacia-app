@@ -177,7 +177,7 @@ const PatientDashboard = () => {
             onClick={() => setShowDocumentos(true)}
             style={{
               background: 'none', border: '1.5px solid #e5e7eb', borderRadius: 8,
-              padding: '5px 10px', fontSize: 12, fontWeight: 600, color: '#7c3aed',
+              padding: '5px 10px', fontSize: 12, fontWeight: 600, color: '#3B9FE0',
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >

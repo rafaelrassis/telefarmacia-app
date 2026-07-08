@@ -104,7 +104,7 @@ const PassarAgoraResultPanel = ({
               onClick={onAgendarHorario}
               style={{
                 fontSize: '13px', fontWeight: 700, color: '#fff',
-                background: '#2563eb', border: 'none', borderRadius: '6px',
+                background: '#3B9FE0', border: 'none', borderRadius: '6px',
                 padding: '6px 14px', cursor: 'pointer',
               }}
             >
@@ -122,7 +122,7 @@ const PassarAgoraResultPanel = ({
             {passarAgoraMsg.error}{' '}
             <button
               onClick={onOpenWalletTopup}
-              style={{ color: '#2563eb', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}
+              style={{ color: '#3B9FE0', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}
             >
               Adicionar créditos
             </button>
