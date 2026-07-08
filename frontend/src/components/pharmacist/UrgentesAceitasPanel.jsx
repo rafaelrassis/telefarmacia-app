@@ -60,7 +60,7 @@ const UrgentesAceitasPanel = ({ onCardClick, refreshTrigger }) => {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-          <div className="w-5 h-5 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
@@ -120,7 +120,7 @@ const UrgentesAceitasPanel = ({ onCardClick, refreshTrigger }) => {
                   onClick={() => onCardClick?.({ id: item.id, tipo: 'urgente' })}
                   style={{
                     width: '100%',
-                    background: '#7c3aed',
+                    background: '#3B9FE0',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',

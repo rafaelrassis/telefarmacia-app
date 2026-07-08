@@ -60,7 +60,7 @@ const TemplateFormModal = ({ initial, onClose, onSaved }) => {
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ex.: Orientação para hipertensão"
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
@@ -71,7 +71,7 @@ const TemplateFormModal = ({ initial, onClose, onSaved }) => {
               onChange={(e) => setConteudo(e.target.value)}
               rows={8}
               placeholder={`Escreva o texto do template.\nUse placeholders: ${PLACEHOLDER_HINT}`}
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y font-mono"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-y font-mono"
             />
             <p className="text-xs text-slate-400 mt-1">
               Placeholders disponíveis: <code className="font-mono bg-slate-100 px-1 rounded">{'{{paciente_nome}}'}</code>,{' '}
@@ -95,7 +95,7 @@ const TemplateFormModal = ({ initial, onClose, onSaved }) => {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm font-bold bg-violet-700 hover:bg-violet-800 text-white rounded-xl transition disabled:opacity-50"
+              className="px-5 py-2 text-sm font-bold bg-brand hover:bg-brand-deep text-white rounded-xl transition disabled:opacity-50"
             >
               {saving ? 'Salvando...' : 'Salvar'}
             </button>

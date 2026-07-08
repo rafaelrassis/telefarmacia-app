@@ -12,19 +12,19 @@ const FileInput = ({ label, name, accept, file, onChange }) => {
         onClick={() => ref.current?.click()}
         className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition ${
           file
-            ? 'border-violet-400 bg-violet-50'
-            : 'border-gray-200 hover:border-violet-300 bg-gray-50'
+            ? 'border-brand bg-brand-wash'
+            : 'border-gray-200 hover:border-brand/60 bg-gray-50'
         }`}
       >
         <span className="text-xl">{file ? '📄' : '⬆️'}</span>
         <div className="min-w-0">
-          <p className={`text-sm font-medium truncate ${file ? 'text-violet-700' : 'text-gray-500'}`}>
+          <p className={`text-sm font-medium truncate ${file ? 'text-brand-deep' : 'text-gray-500'}`}>
             {file ? file.name : 'Clique para selecionar'}
           </p>
           <p className="text-xs text-gray-400">JPG, PNG ou PDF · máx. 5MB</p>
         </div>
         {file && (
-          <span className="ml-auto text-xs text-violet-600 font-semibold shrink-0">
+          <span className="ml-auto text-xs text-brand-deep font-semibold shrink-0">
             ✓ Selecionado
           </span>
         )}
@@ -112,7 +112,7 @@ const DocUploadForm = ({ onSuccess }) => {
       <button
         type="submit"
         disabled={loading || !rgFile || !crfFile}
-        className="w-full bg-violet-700 hover:bg-violet-800 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition text-sm"
+        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition text-sm"
       >
         {loading ? 'Enviando...' : 'Enviar documentos'}
       </button>

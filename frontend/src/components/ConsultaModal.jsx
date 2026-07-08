@@ -69,7 +69,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
         {/* ── Conteúdo rolável ── */}
         {loading ? (
           <div className="flex justify-center py-16 flex-1">
-            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : error && !consulta ? (
           <div className="p-6 text-center text-red-600 text-sm flex-1">{error}</div>

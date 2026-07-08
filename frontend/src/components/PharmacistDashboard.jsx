@@ -196,7 +196,7 @@ const PharmacistDashboard = () => {
                   </div>
                   <button
                     onClick={() => setShowDocForm(true)}
-                    className="shrink-0 bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition"
+                    className="shrink-0 bg-brand hover:bg-brand-deep text-white text-xs font-bold px-4 py-2 rounded-lg transition"
                   >
                     Enviar
                   </button>
@@ -245,7 +245,7 @@ const PharmacistDashboard = () => {
       {isApproved && isPushSupported() && (
         <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4">
           <div className="flex items-center gap-3">
-            <span className={`text-xl ${pushEnabled ? 'text-violet-500' : 'text-gray-400'}`}>
+            <span className={`text-xl ${pushEnabled ? 'text-brand' : 'text-gray-400'}`}>
               {pushEnabled ? '🔔' : '🔕'}
             </span>
             <div>
@@ -261,7 +261,7 @@ const PharmacistDashboard = () => {
             onClick={togglePush}
             disabled={togglingPush}
             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-              pushEnabled ? 'bg-violet-600' : 'bg-gray-300'
+              pushEnabled ? 'bg-brand' : 'bg-gray-300'
             }`}
             role="switch"
             aria-checked={pushEnabled}
@@ -289,7 +289,7 @@ const PharmacistDashboard = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap ${
               activeTab === tab.id
-                ? 'border-violet-700 text-violet-700'
+                ? 'border-brand text-brand-deep'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >

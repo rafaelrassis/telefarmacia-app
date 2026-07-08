@@ -68,7 +68,7 @@ const FilaPanel = ({ onAccepted, onCardClick, hasEmAtendimento }) => {
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <div className="w-5 h-5 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : sorted.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
@@ -84,14 +84,14 @@ const FilaPanel = ({ onAccepted, onCardClick, hasEmAtendimento }) => {
             >
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-gray-800 text-sm truncate">{f.paciente?.name}</p>
-                <p className="text-xs text-violet-600 font-medium mt-0.5">{fmtDateTime(f.dataHora)}</p>
+                <p className="text-xs text-brand-deep font-medium mt-0.5">{fmtDateTime(f.dataHora)}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{timeUntil(f.dataHora)}</p>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); aceitar(f.id, f.paciente?.name); }}
                 disabled={accepting[f.id] || hasEmAtendimento}
                 title={hasEmAtendimento ? 'Finalize o atendimento atual primeiro' : undefined}
-                className="shrink-0 bg-violet-700 hover:bg-violet-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                className="shrink-0 bg-brand hover:bg-brand-deep disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
               >
                 {accepting[f.id] ? '...' : '✅ Aceitar'}
               </button>

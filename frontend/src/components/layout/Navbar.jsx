@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const ENV_CFG = {
   patient:    { label: 'Paciente',     dotCls: 'bg-brand',      badgeCls: 'bg-brand-wash text-brand-deep border-brand/20'  },
-  pharmacist: { label: 'Farmacêutico', dotCls: 'bg-violet-500', badgeCls: 'bg-violet-50 text-violet-700 border-violet-100' },
+  pharmacist: { label: 'Farmacêutico', dotCls: 'bg-brand',      badgeCls: 'bg-brand-wash text-brand-deep border-brand/20'  },
   admin:      { label: 'Admin',        dotCls: 'bg-red-500',    badgeCls: 'bg-red-50 text-red-700 border-red-100'          },
 };
 

@@ -72,7 +72,7 @@ const AgendaTab = () => {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="shrink-0 bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition"
+            className="shrink-0 bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-xl transition"
           >
             + Novo bloqueio
           </button>

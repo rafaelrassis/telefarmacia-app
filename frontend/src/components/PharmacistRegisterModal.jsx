@@ -132,7 +132,7 @@ const PharmacistRegisterModal = ({ onClose }) => {
           {step === 'login' && (
             <div>
               <div className="text-center mb-6">
-                <div className="w-14 h-14 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 bg-brand-wash rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">👨‍⚕️</span>
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -192,7 +192,7 @@ const PharmacistRegisterModal = ({ onClose }) => {
                     placeholder="Ex: 12345"
                     value={crfNumber}
                     onChange={(e) => setCrfNumber(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
                   />
                 </div>
                 <div className="w-24">
@@ -203,7 +203,7 @@ const PharmacistRegisterModal = ({ onClose }) => {
                     value={crfUF}
                     maxLength={2}
                     onChange={(e) => setCrfUF(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none uppercase"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none uppercase"
                   />
                 </div>
               </div>
@@ -217,7 +217,7 @@ const PharmacistRegisterModal = ({ onClose }) => {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none resize-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
                 />
               </div>
 
@@ -231,8 +231,8 @@ const PharmacistRegisterModal = ({ onClose }) => {
                       onClick={() => toggleTag(tag)}
                       className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
                         selectedTags.includes(tag)
-                          ? 'bg-violet-600 text-white border-violet-600'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
+                          ? 'bg-brand text-white border-brand'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand/60'
                       }`}
                     >
                       {tag}
@@ -248,7 +248,7 @@ const PharmacistRegisterModal = ({ onClose }) => {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="w-full bg-violet-700 hover:bg-violet-800 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition mt-2"
+                className="w-full bg-brand hover:bg-brand-deep disabled:opacity-60 text-white font-bold py-3 rounded-xl transition mt-2"
               >
                 {loading ? 'Enviando...' : 'Concluir Cadastro →'}
               </button>
@@ -269,7 +269,7 @@ const PharmacistRegisterModal = ({ onClose }) => {
               </p>
               <button
                 onClick={() => setStep('login')}
-                className="text-sm text-violet-600 hover:underline"
+                className="text-sm text-brand-deep hover:underline"
               >
                 ← Tentar com outro e-mail
               </button>

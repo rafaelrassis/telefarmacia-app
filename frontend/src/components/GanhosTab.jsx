@@ -109,9 +109,9 @@ const exportPDF = (items, de, ate, metricas) => {
 // ── Subcomponentes ────────────────────────────────────────────────────────────
 
 const MetricCard = ({ label, value, sub, subColor, highlight }) => (
-  <div className={`border rounded-xl p-4 flex flex-col gap-1 min-w-0 ${highlight ? 'bg-violet-50 border-violet-200' : 'bg-white border-gray-200'}`}>
+  <div className={`border rounded-xl p-4 flex flex-col gap-1 min-w-0 ${highlight ? 'bg-brand-wash border-brand/30' : 'bg-white border-gray-200'}`}>
     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest truncate">{label}</p>
-    <p className={`text-xl font-bold truncate ${highlight ? 'text-violet-700' : 'text-gray-900'}`}>{value}</p>
+    <p className={`text-xl font-bold truncate ${highlight ? 'text-brand-deep' : 'text-gray-900'}`}>{value}</p>
     {sub && <p className={`text-xs font-medium truncate ${subColor ?? 'text-gray-400'}`}>{sub}</p>}
   </div>
 );
@@ -129,7 +129,7 @@ const BarChart = ({ data }) => {
             <div
               key={d.data}
               className="shrink-0 rounded-t-sm transition-colors cursor-default"
-              style={{ flex: 1, minWidth: data.length > 60 ? 4 : 8, height: h || 2, backgroundColor: d.total > 0 ? '#7c3aed' : '#e5e7eb' }}
+              style={{ flex: 1, minWidth: data.length > 60 ? 4 : 8, height: h || 2, backgroundColor: d.total > 0 ? '#3B9FE0' : '#e5e7eb' }}
               title={`${d.label}: ${fmtBRL(d.total)}`}
             />
           );
@@ -149,7 +149,7 @@ const BarChart = ({ data }) => {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 const TIPO_LABEL = { agendada: 'Agendada', urgente: 'Urgente' };
-const TIPO_CLS   = { agendada: 'bg-violet-100 text-violet-700', urgente: 'bg-red-100 text-red-700' };
+const TIPO_CLS   = { agendada: 'bg-brand-wash text-brand-deep', urgente: 'bg-red-100 text-red-700' };
 
 const GanhosTab = () => {
   const { token } = useAuth();
@@ -303,8 +303,8 @@ const GanhosTab = () => {
             onClick={() => setPreset(p.id)}
             className={`px-3.5 py-1.5 text-sm font-medium rounded-lg transition ${
               preset === p.id
-                ? 'bg-violet-700 text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-violet-400'
+                ? 'bg-brand text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-brand'
             }`}
           >
             {p.label}
@@ -316,12 +316,12 @@ const GanhosTab = () => {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 font-medium">De</label>
               <input type="date" value={customDe} max={today} onChange={(e) => setCustomDe(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none" />
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 font-medium">Até</label>
               <input type="date" value={customAte} min={customDe || undefined} max={today} onChange={(e) => setCustomAte(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none" />
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
             </div>
           </>
         )}
@@ -330,7 +330,7 @@ const GanhosTab = () => {
       {/* ── Estados de carga / erro ── */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : fetchError ? (
         <p className="text-red-500 text-sm py-4 text-center">{fetchError}</p>
@@ -363,7 +363,7 @@ const GanhosTab = () => {
               label="Ganho líquido (período)"
               value={fmtBRL(m.totalRecebido)}
               sub={m.percentualComissao != null ? `${m.percentualComissao}% de comissão` : undefined}
-              subColor="text-violet-500"
+              subColor="text-brand"
             />
             <MetricCard
               label="Total cobrado"
@@ -402,7 +402,7 @@ const GanhosTab = () => {
             </div>
             {loadingRepasses ? (
               <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
               </div>
             ) : !repassesData ? (
               <p className="text-sm text-gray-400 text-center py-8">Erro ao carregar repasses.</p>
@@ -461,7 +461,7 @@ const GanhosTab = () => {
                   <button
                     onClick={handleExportCSV}
                     disabled={exportingCsv}
-                    className="text-xs font-semibold text-violet-700 border border-violet-200 rounded-lg px-3 py-1.5 hover:bg-violet-50 transition disabled:opacity-50"
+                    className="text-xs font-semibold text-brand-deep border border-brand/30 rounded-lg px-3 py-1.5 hover:bg-brand-wash transition disabled:opacity-50"
                   >
                     {exportingCsv ? 'Exportando…' : '↓ CSV'}
                   </button>
@@ -509,7 +509,7 @@ const GanhosTab = () => {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-violet-700">{fmtBRL(item.ganho ?? item.valor)}</p>
+                        <p className="text-sm font-bold text-brand-deep">{fmtBRL(item.ganho ?? item.valor)}</p>
                         {item.ganho != null && item.ganho !== item.valor && (
                           <p className="text-[10px] text-gray-400 mt-0.5">{fmtBRL(item.valor)} cobrado</p>
                         )}

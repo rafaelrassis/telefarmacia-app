@@ -65,7 +65,7 @@ const PharmacistProfileEditor = () => {
           value={chavePix}
           onChange={(e) => setChavePix(e.target.value)}
           placeholder="CPF, e-mail, telefone ou chave aleatória"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
         />
         <p className="text-xs text-gray-400 mt-1">
           Usada pelo administrador para processar pagamentos de comissões.
@@ -80,7 +80,7 @@ const PharmacistProfileEditor = () => {
           onChange={(e) => setBio(e.target.value)}
           placeholder="Descreva sua especialização e como pode ajudar os pacientes..."
           rows={3}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none resize-none"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
         />
       </div>
 
@@ -95,8 +95,8 @@ const PharmacistProfileEditor = () => {
               onClick={() => toggleTag(tag)}
               className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
                 tags.includes(tag)
-                  ? 'bg-violet-600 text-white border-violet-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
+                  ? 'bg-brand text-white border-brand'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-brand/60'
               }`}
             >
               {tag}
@@ -116,7 +116,7 @@ const PharmacistProfileEditor = () => {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-violet-700 hover:bg-violet-800 text-white font-bold py-2.5 rounded-xl transition disabled:opacity-50 text-sm"
+        className="w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition disabled:opacity-50 text-sm"
       >
         {saving ? 'Salvando...' : 'Salvar alterações'}
       </button>

@@ -14,8 +14,8 @@ const ENV_CONFIG = {
     icon: '👨‍⚕️',
     label: 'Farmacêutico',
     description: 'Gerenciar agenda, horários e atender consultas',
-    color: 'border-violet-200 hover:border-violet-400 hover:bg-violet-50',
-    badge: 'bg-violet-100 text-violet-700',
+    color: 'border-brand/30 hover:border-brand hover:bg-brand-wash',
+    badge: 'bg-brand-wash text-brand-deep',
   },
   admin: {
     icon: '⚙',

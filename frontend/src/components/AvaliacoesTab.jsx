@@ -53,7 +53,7 @@ const AvaliacoesTab = () => {
   if (loading && !resumo) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ const AvaliacoesTab = () => {
         </div>
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="p-10 text-center text-gray-400 text-sm">Você ainda não recebeu avaliações.</div>

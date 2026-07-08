@@ -77,7 +77,7 @@ const TemplatesTab = () => {
           </div>
           <button
             onClick={() => setModalData({})}
-            className="shrink-0 bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition"
+            className="shrink-0 bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-xl transition"
           >
             + Novo template
           </button>
@@ -117,7 +117,7 @@ const TemplatesTab = () => {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => setModalData(t)}
-                        className="text-xs text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 rounded-lg px-2.5 py-1 transition"
+                        className="text-xs text-brand-deep hover:text-brand border border-brand/30 hover:border-brand rounded-lg px-2.5 py-1 transition"
                       >
                         Editar
                       </button>
