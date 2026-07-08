@@ -20,7 +20,7 @@ const ConvitesTab = ({ api, showToast }) => {
           {!conviteForm && (
             <button
               onClick={() => { setConviteForm({}); setConviteNome(''); setConviteEmail(''); setConviteLink(null); }}
-              className="bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition"
+              className="bg-brand hover:bg-brand-deep text-white text-xs font-bold px-4 py-2 rounded-xl transition"
             >
               + Novo convite
             </button>
@@ -28,19 +28,19 @@ const ConvitesTab = ({ api, showToast }) => {
         </div>
 
         {conviteForm !== null && (
-          <form onSubmit={handleCriarConvite} className="border border-violet-100 rounded-xl p-4 bg-violet-50 space-y-3">
+          <form onSubmit={handleCriarConvite} className="border border-brand/20 rounded-xl p-4 bg-brand-wash space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-violet-700 mb-1">Nome completo</label>
+                <label className="block text-xs font-semibold text-brand-deep mb-1">Nome completo</label>
                 <input type="text" value={conviteNome} onChange={(e) => setConviteNome(e.target.value)}
                   placeholder="Dra. Fulana da Silva"
-                  className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-brand/30 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-violet-700 mb-1">E-mail</label>
+                <label className="block text-xs font-semibold text-brand-deep mb-1">E-mail</label>
                 <input type="email" value={conviteEmail} onChange={(e) => setConviteEmail(e.target.value)}
                   placeholder="farmaceutico@exemplo.com"
-                  className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-brand/30 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
             </div>
             {conviteErr && <p className="text-xs text-red-600">{conviteErr}</p>}
@@ -66,7 +66,7 @@ const ConvitesTab = ({ api, showToast }) => {
                 Fechar
               </button>
               <button type="submit" disabled={savingConvite}
-                className="text-sm font-bold bg-violet-700 hover:bg-violet-800 text-white px-5 py-2 rounded-xl transition disabled:opacity-50">
+                className="text-sm font-bold bg-brand hover:bg-brand-deep text-white px-5 py-2 rounded-xl transition disabled:opacity-50">
                 {savingConvite ? 'Enviando...' : 'Gerar convite'}
               </button>
             </div>
@@ -109,7 +109,7 @@ const ConvitesTab = ({ api, showToast }) => {
                       <>
                         <button
                           onClick={() => navigator.clipboard.writeText(window.location.origin + '/convite/' + c.token)}
-                          className="text-xs text-violet-600 border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+                          className="text-xs text-brand-deep border border-brand/30 rounded-lg px-2 py-1 hover:bg-brand-wash transition"
                         >
                           Copiar link
                         </button>

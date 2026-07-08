@@ -23,7 +23,7 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
             <select
               value={repasseFarmId}
               onChange={(e) => { setRepasseFarmId(e.target.value); setRepassePreview(null); }}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">Selecionar...</option>
               {pharmacists.filter((p) => p.pharmacistProfile?.isApproved || p.pharmacistProfile?.isSuspended).map((p) => (
@@ -34,12 +34,12 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1">De</label>
             <input type="date" value={repasseDe} onChange={(e) => { setRepasseDe(e.target.value); setRepassePreview(null); }}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1">Até</label>
             <input type="date" value={repasseAte} onChange={(e) => { setRepasseAte(e.target.value); setRepassePreview(null); }}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
           </div>
         </div>
         {repassePreviewErr && (
@@ -48,27 +48,27 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
         <button
           onClick={handlePreviewRepasse}
           disabled={repasseLoading}
-          className="bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold px-5 py-2 rounded-xl transition disabled:opacity-50"
+          className="bg-brand hover:bg-brand-deep text-white text-sm font-bold px-5 py-2 rounded-xl transition disabled:opacity-50"
         >
           {repasseLoading ? 'Carregando...' : 'Pré-visualizar'}
         </button>
 
         {/* Prévia */}
         {repassePreview && (
-          <div className="mt-5 border border-violet-200 rounded-xl overflow-hidden">
-            <div className="bg-violet-50 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="mt-5 border border-brand/30 rounded-xl overflow-hidden">
+            <div className="bg-brand-wash px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="font-bold text-violet-800 text-sm">{repassePreview.farmaceutico.nome}</p>
-                <p className="text-xs text-violet-600">{repassePreview.farmaceutico.email}</p>
+                <p className="font-bold text-brand-deep text-sm">{repassePreview.farmaceutico.nome}</p>
+                <p className="text-xs text-brand-deep">{repassePreview.farmaceutico.email}</p>
                 {repassePreview.farmaceutico.chavePix && (
-                  <p className="text-xs text-violet-700 mt-0.5">PIX: <strong>{repassePreview.farmaceutico.chavePix}</strong></p>
+                  <p className="text-xs text-brand-deep mt-0.5">PIX: <strong>{repassePreview.farmaceutico.chavePix}</strong></p>
                 )}
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-violet-800">
+                <p className="text-2xl font-bold text-brand-deep">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(repassePreview.valorTotal)}
                 </p>
-                <p className="text-xs text-violet-600">{repassePreview.items.length} consultas · {repassePreview.percentual}% comissão</p>
+                <p className="text-xs text-brand-deep">{repassePreview.items.length} consultas · {repassePreview.percentual}% comissão</p>
               </div>
             </div>
 
@@ -80,22 +80,22 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
                     <p className="text-xs text-gray-400">{new Date(item.data).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })} · {item.tipo}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-bold text-violet-700">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorLiquido)}</p>
+                    <p className="font-bold text-brand-deep">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorLiquido)}</p>
                     <p className="text-[10px] text-gray-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorBruto)} bruto</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="px-5 py-4 border-t border-violet-100 bg-violet-50 flex items-end gap-3 flex-wrap">
+            <div className="px-5 py-4 border-t border-brand/20 bg-brand-wash flex items-end gap-3 flex-wrap">
               <div className="flex-1 min-w-48">
-                <label className="block text-xs font-semibold text-violet-700 mb-1">Referência do pagamento (opcional)</label>
+                <label className="block text-xs font-semibold text-brand-deep mb-1">Referência do pagamento (opcional)</label>
                 <input
                   type="text"
                   value={repasseRef}
                   onChange={(e) => setRepasseRef(e.target.value)}
                   placeholder="ID da transferência, comprovante..."
-                  className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full border border-brand/30 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <button
@@ -124,11 +124,11 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
                 setRepasseExportLoading(false);
               }}
               disabled={repasseExportLoading}
-              className="text-xs font-medium text-violet-600 hover:underline disabled:opacity-50"
+              className="text-xs font-medium text-brand-deep hover:underline disabled:opacity-50"
             >
               {repasseExportLoading ? 'Exportando…' : '📥 Exportar CSV'}
             </button>
-            <button onClick={() => loadRepasseHistorico(repasseFarmId)} className="text-xs text-violet-600 hover:underline">
+            <button onClick={() => loadRepasseHistorico(repasseFarmId)} className="text-xs text-brand-deep hover:underline">
               Atualizar
             </button>
           </div>
@@ -159,7 +159,7 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
                     {r.itens.map((it) => (
                       <div key={it.id} className="flex items-center justify-between px-4 py-2 text-xs border-b border-gray-50 last:border-0">
                         <span className="text-gray-600">{it.consultaTipo} · {it.consultaId.slice(0, 8)}...</span>
-                        <span className="font-semibold text-violet-700">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(it.valorLiquido)}</span>
+                        <span className="font-semibold text-brand-deep">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(it.valorLiquido)}</span>
                       </div>
                     ))}
                   </div>

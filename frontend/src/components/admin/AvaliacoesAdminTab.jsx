@@ -127,7 +127,7 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
 
       {loadingResumo || !resumo ? (
         <div className="flex justify-center py-10">
-          <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <>
@@ -174,7 +174,7 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
                   return (
                     <div key={m.mes} className="flex-1 flex flex-col items-center justify-end gap-1" style={{ height: '100%' }}>
                       <span className="text-[10px] text-gray-500 font-semibold">{m.media != null ? m.media.toFixed(1) : '—'}</span>
-                      <div className="w-full rounded-t-sm bg-violet-500" style={{ height: h }} title={`${m.total} avaliações`} />
+                      <div className="w-full rounded-t-sm bg-brand" style={{ height: h }} title={`${m.total} avaliações`} />
                       <span className="text-[9px] text-gray-400">{m.mes.slice(5)}/{m.mes.slice(2, 4)}</span>
                     </div>
                   );
@@ -226,7 +226,7 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
         </div>
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">Nenhuma avaliação encontrada.</div>
@@ -253,7 +253,7 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
                     <td className="px-4 py-3 text-gray-700 text-xs">{a.farmaceuticoNome}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs max-w-[220px] truncate">{a.comentario || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.tipo === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-violet-100 text-violet-700'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.tipo === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-brand-wash text-brand-deep'}`}>
                         {a.tipo === 'urgente' ? 'Urgente' : 'Agendada'}
                       </span>
                     </td>
@@ -261,8 +261,8 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
                       <button
                         onClick={() => setViewingConsulta({ id: a.consultaId, tipo: a.tipo })}
                         style={{
-                          background: 'transparent', border: '1.5px solid #ddd6fe',
-                          color: '#7c3aed', borderRadius: 8, padding: '4px 10px',
+                          background: 'transparent', border: '1.5px solid #8ED2F6',
+                          color: '#1D74B8', borderRadius: 8, padding: '4px 10px',
                           fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                         }}
                       >

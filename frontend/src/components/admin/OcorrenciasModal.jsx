@@ -46,7 +46,7 @@ const OcorrenciasModal = ({ api, farmaceutico, onClose }) => {
         </div>
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">Nenhuma ocorrência nos últimos 30 dias.</p>

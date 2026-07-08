@@ -77,7 +77,7 @@ const OverviewTab = ({ api, showToast }) => {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard value={metricas.usuarios_ativos?.pacientes}     label="Pacientes"             color="text-blue-600" />
-            <StatCard value={metricas.usuarios_ativos?.farmaceuticos} label="Farmacêuticos ativos"  color="text-violet-600" />
+            <StatCard value={metricas.usuarios_ativos?.farmaceuticos} label="Farmacêuticos ativos"  color="text-teal-600" />
             <StatCard value={metricas.consultas_realizadas}           label="Consultas realizadas"  color="text-green-600" />
             <StatCard value={metricas.consultas_agendadas}            label="Agendadas"             color="text-blue-500" />
           </div>

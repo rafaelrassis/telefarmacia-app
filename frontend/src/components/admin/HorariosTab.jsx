@@ -80,14 +80,14 @@ const HorariosTab = ({ api, showToast }) => {
                     type="time"
                     value={h.horaInicio}
                     onChange={(e) => updateHorario(h.diaSemana, 'horaInicio', e.target.value)}
-                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <span className="text-gray-400 text-xs">até</span>
                   <input
                     type="time"
                     value={h.horaFim}
                     onChange={(e) => updateHorario(h.diaSemana, 'horaFim', e.target.value)}
-                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
               )}
@@ -98,7 +98,7 @@ const HorariosTab = ({ api, showToast }) => {
           <button
             onClick={handleSaveHorarios}
             disabled={savingHorarios}
-            className="bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition disabled:opacity-50"
+            className="bg-brand hover:bg-brand-deep text-white text-sm font-bold px-6 py-2.5 rounded-xl transition disabled:opacity-50"
           >
             {savingHorarios ? 'Salvando...' : '💾 Salvar e Publicar Horários'}
           </button>

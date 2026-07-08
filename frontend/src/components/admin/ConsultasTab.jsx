@@ -9,7 +9,7 @@ export const CONSULTA_STATUS_CFG = {
   aguardando:           { label: 'Aguardando',   cls: 'bg-gray-100 text-gray-600' },
   aceito:               { label: 'Aceito',       cls: 'bg-blue-50 text-blue-700' },
   em_atendimento:       { label: 'Em atendimento', cls: 'bg-green-50 text-green-700' },
-  concluido:            { label: 'Concluído',    cls: 'bg-violet-50 text-violet-700' },
+  concluido:            { label: 'Concluído',    cls: 'bg-teal-50 text-teal-700' },
   cancelado:            { label: 'Cancelado',    cls: 'bg-red-50 text-red-700' },
   expirado:             { label: 'Expirado',     cls: 'bg-gray-100 text-gray-500' },
   remarcacao_pendente:  { label: 'Remarcação pendente', cls: 'bg-amber-50 text-amber-700' },
@@ -126,7 +126,7 @@ const ConsultasTab = ({ api }) => {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">Nenhuma consulta encontrada.</div>
@@ -151,7 +151,7 @@ const ConsultasTab = ({ api }) => {
                     <tr key={`${c.tipo}-${c.id}`} className="hover:bg-gray-50 transition">
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{fmtDt(c.dataHora)}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.tipo === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-violet-100 text-violet-700'}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.tipo === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-brand-wash text-brand-deep'}`}>
                           {c.tipo === 'urgente' ? 'Urgente' : 'Agendada'}
                         </span>
                       </td>
@@ -173,8 +173,8 @@ const ConsultasTab = ({ api }) => {
                         <button
                           onClick={() => setViewingConsulta({ id: c.id, tipo: c.tipo })}
                           style={{
-                            background: 'transparent', border: '1.5px solid #ddd6fe',
-                            color: '#7c3aed', borderRadius: 8, padding: '4px 10px',
+                            background: 'transparent', border: '1.5px solid #8ED2F6',
+                            color: '#1D74B8', borderRadius: 8, padding: '4px 10px',
                             fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                           }}
                         >

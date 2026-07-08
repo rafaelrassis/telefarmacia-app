@@ -90,7 +90,7 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
           onClick={handleExport}
           disabled={exportLoading}
           style={{
-            background: '#7c3aed', color: '#fff', border: 'none',
+            background: '#3B9FE0', color: '#fff', border: 'none',
             borderRadius: 8, padding: '6px 16px', fontSize: 13,
             fontWeight: 600, cursor: exportLoading ? 'not-allowed' : 'pointer',
             opacity: exportLoading ? 0.6 : 1,
@@ -162,7 +162,7 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : logs.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">Nenhum log encontrado.</div>
@@ -220,8 +220,8 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
                           <button
                             onClick={() => setViewingConsulta({ id: log.consultaId, tipo: log.tipo })}
                             style={{
-                              background: 'transparent', border: '1.5px solid #ddd6fe',
-                              color: '#7c3aed', borderRadius: 8, padding: '4px 10px',
+                              background: 'transparent', border: '1.5px solid #8ED2F6',
+                              color: '#1D74B8', borderRadius: 8, padding: '4px 10px',
                               fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                             }}
                           >

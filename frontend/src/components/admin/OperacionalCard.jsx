@@ -62,7 +62,7 @@ const OperacionalCard = ({ api }) => {
         <Item value={data.agendadas_aguardando_24h} label="Agendadas (24h)" />
         <Item value={data.em_atendimento_agora} label="Em atendimento" color="text-green-600" />
         <Item value={data.farmaceuticos_online} label="Farmacêuticos online" color="text-blue-600" />
-        <Item value={data.disponiveis_urgencia} label="Disponíveis p/ urgência" color="text-violet-600" />
+        <Item value={data.disponiveis_urgencia} label="Disponíveis p/ urgência" color="text-teal-600" />
         <Item value={data.expiradas_hoje} label="Expiradas hoje" color={data.expiradas_hoje > 0 ? 'text-amber-600' : 'text-gray-900'} />
       </div>
       <div className="flex gap-6 mt-4 pt-4 border-t border-black/5 text-xs text-gray-500">

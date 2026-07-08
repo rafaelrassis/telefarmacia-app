@@ -144,9 +144,9 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                         {prof?.urlDocIdentidade ? (
                           <div className="flex flex-col gap-1">
                             <a href={`${docBase}${prof.urlDocIdentidade}`} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-violet-600 hover:underline">RG/CNH</a>
+                              className="text-xs text-brand-deep hover:underline">RG/CNH</a>
                             <a href={`${docBase}${prof.urlDocCrf}`} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-violet-600 hover:underline">CRF</a>
+                              className="text-xs text-brand-deep hover:underline">CRF</a>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">Não enviado</span>

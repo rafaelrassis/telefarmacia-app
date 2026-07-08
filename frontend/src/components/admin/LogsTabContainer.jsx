@@ -15,7 +15,7 @@ const LogsTabContainer = ({ api, pharmacists, patients }) => {
             key={t.id}
             onClick={() => setSubTab(t.id)}
             className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
-              subTab === t.id ? 'border-violet-700 text-violet-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+              subTab === t.id ? 'border-brand text-brand-deep' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             {t.label}

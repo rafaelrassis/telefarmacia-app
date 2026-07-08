@@ -78,7 +78,7 @@ const AdminPanel = () => {
             onClick={() => setTab(t.id)}
             className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap ${
               tab === t.id
-                ? 'border-violet-700 text-violet-700'
+                ? 'border-brand text-brand-deep'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >

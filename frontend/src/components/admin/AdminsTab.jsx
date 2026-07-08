@@ -65,12 +65,12 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
           <input
             type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
             placeholder="email@exemplo.com"
-            className="flex-1 min-w-[240px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+            className="flex-1 min-w-[240px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
           />
           <button
             onClick={handleAdd}
             disabled={adding || !newEmail.trim()}
-            className="text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg disabled:opacity-40 transition"
+            className="text-sm font-semibold bg-brand hover:bg-brand-deep text-white px-4 py-2 rounded-lg disabled:opacity-40 transition"
           >
             {adding ? 'Adicionando...' : 'Adicionar'}
           </button>
@@ -83,7 +83,7 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : admins.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">Nenhum administrador configurado.</div>
@@ -101,11 +101,11 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
                 <tr key={a.email} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-3 font-medium text-gray-800">
                     {a.email}
-                    {a.email === currentUserEmail && <span className="ml-2 text-[10px] text-violet-500 font-semibold">(você)</span>}
+                    {a.email === currentUserEmail && <span className="ml-2 text-[10px] text-brand font-semibold">(você)</span>}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      a.origem === 'env' ? 'bg-gray-100 text-gray-500' : 'bg-violet-50 text-violet-700'
+                      a.origem === 'env' ? 'bg-gray-100 text-gray-500' : 'bg-brand-wash text-brand-deep'
                     }`}>
                       {a.origem === 'env' ? 'Variável de ambiente' : 'Painel'}
                     </span>

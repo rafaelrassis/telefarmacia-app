@@ -89,7 +89,7 @@ const AuditPanel = ({ api }) => {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-7 h-7 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">Nenhuma ação registrada.</div>

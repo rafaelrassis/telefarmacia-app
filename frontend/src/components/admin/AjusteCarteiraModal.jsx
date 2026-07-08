@@ -49,14 +49,14 @@ const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) =
           type="number" step="0.01" value={valor}
           onChange={(e) => setValor(e.target.value)}
           placeholder="Ex.: 20 ou -20"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-violet-400 outline-none"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-brand outline-none"
         />
 
         <label className="text-xs text-gray-500 font-medium">Motivo</label>
         <textarea
           value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3}
           placeholder="Ex.: Compensação por erro no atendimento"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-violet-400 outline-none resize-none"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-brand outline-none resize-none"
         />
 
         {err && <p className="text-xs text-red-600 mb-3">{err}</p>}
@@ -69,7 +69,7 @@ const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) =
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 text-sm font-bold bg-violet-600 text-white rounded-xl hover:bg-violet-700 disabled:opacity-60 transition">
+            className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-white rounded-xl hover:bg-brand-deep disabled:opacity-60 transition">
             {saving ? 'Salvando...' : 'Confirmar'}
           </button>
         </div>

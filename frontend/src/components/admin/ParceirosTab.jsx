@@ -51,7 +51,7 @@ const ParceirosTab = ({ api, showToast }) => {
                   {m.nome}
                   {!m.ativo && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(inativo)</span>}
                 </span>
-                <span style={{ fontWeight: 700, color: m.clicks > 0 ? '#7c3aed' : '#9ca3af' }}>
+                <span style={{ fontWeight: 700, color: m.clicks > 0 ? '#3B9FE0' : '#9ca3af' }}>
                   {m.clicks} clique{m.clicks !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -67,7 +67,7 @@ const ParceirosTab = ({ api, showToast }) => {
         </p>
         <button
           onClick={() => { setParceirosForm({ nome: '', logoUrl: '', baseUrl: '', affiliateCode: '', linkTemplate: '', ativo: true, ordem: parceiros.length }); setParceirosFormErr(''); }}
-          style={{ padding: '7px 14px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '7px 14px', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
           + Novo parceiro
         </button>
@@ -75,8 +75,8 @@ const ParceirosTab = ({ api, showToast }) => {
 
       {/* Formulário de criação / edição */}
       {parceirosForm && (
-        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12, padding: '16px 20px' }}>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#5b21b6', marginBottom: 12 }}>
+        <div style={{ background: '#EAF6FE', border: '1px solid #8ED2F6', borderRadius: 12, padding: '16px 20px' }}>
+          <p style={{ fontWeight: 700, fontSize: 13, color: '#1D74B8', marginBottom: 12 }}>
             {parceirosForm.id ? 'Editar parceiro' : 'Novo parceiro'}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
@@ -94,7 +94,7 @@ const ParceirosTab = ({ api, showToast }) => {
                   value={parceirosForm[key] ?? ''}
                   onChange={(e) => setParceirosForm((p) => ({ ...p, [key]: e.target.value }))}
                   placeholder={placeholder}
-                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #ddd6fe', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #8ED2F6', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             ))}
@@ -104,7 +104,7 @@ const ParceirosTab = ({ api, showToast }) => {
                 type="number"
                 value={parceirosForm.ordem ?? 0}
                 onChange={(e) => setParceirosForm((p) => ({ ...p, ordem: parseInt(e.target.value) || 0 }))}
-                style={{ width: '100%', padding: '7px 10px', border: '1px solid #ddd6fe', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '7px 10px', border: '1px solid #8ED2F6', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 16 }}>
@@ -128,7 +128,7 @@ const ParceirosTab = ({ api, showToast }) => {
             <button
               onClick={handleSaveParceiro}
               disabled={savingParceiro}
-              style={{ padding: '7px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingParceiro ? 'wait' : 'pointer', opacity: savingParceiro ? 0.6 : 1 }}
+              style={{ padding: '7px 16px', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingParceiro ? 'wait' : 'pointer', opacity: savingParceiro ? 0.6 : 1 }}
             >
               {savingParceiro ? 'Salvando...' : 'Salvar'}
             </button>
@@ -149,7 +149,7 @@ const ParceirosTab = ({ api, showToast }) => {
                 {p.logoUrl ? (
                   <img src={p.logoUrl} alt={p.nome} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 ) : (
-                  <div style={{ width: 28, height: 28, borderRadius: 4, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#7c3aed', flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 4, background: '#EAF6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#3B9FE0', flexShrink: 0 }}>
                     {p.nome.charAt(0)}
                   </div>
                 )}
@@ -167,7 +167,7 @@ const ParceirosTab = ({ api, showToast }) => {
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 <button
                   onClick={() => { setParceirosForm({ ...p }); setParceirosFormErr(''); }}
-                  style={{ padding: '5px 12px', background: 'white', border: '1px solid #ddd6fe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}
+                  style={{ padding: '5px 12px', background: 'white', border: '1px solid #8ED2F6', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#3B9FE0', cursor: 'pointer' }}
                 >
                   Editar
                 </button>

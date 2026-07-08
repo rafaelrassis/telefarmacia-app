@@ -36,7 +36,7 @@ const PatientsTab = ({ api, showToast, patients, setPatients }) => {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setAjustandoCarteira(p)}
-                        className="text-xs font-semibold border border-violet-200 text-violet-700 hover:bg-violet-50 px-3 py-1.5 rounded-lg transition whitespace-nowrap"
+                        className="text-xs font-semibold border border-brand/30 text-brand-deep hover:bg-brand-wash px-3 py-1.5 rounded-lg transition whitespace-nowrap"
                       >
                         Ajustar saldo
                       </button>

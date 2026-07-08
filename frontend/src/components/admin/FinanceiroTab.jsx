@@ -46,17 +46,17 @@ const FinanceiroTab = ({
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 font-medium">De</label>
               <input type="date" value={finPeriodoDe} onChange={(e) => setFinPeriodoDe(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none" />
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 font-medium">Até</label>
               <input type="date" value={finPeriodoAte} onChange={(e) => setFinPeriodoAte(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none" />
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
             </div>
             <button
               onClick={() => loadVisaoFinanceira(finPeriodoDe, finPeriodoAte)}
               disabled={finVisaoLoading}
-              className="text-sm font-medium bg-violet-700 hover:bg-violet-800 text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
+              className="text-sm font-medium bg-brand hover:bg-brand-deep text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
             >
               {finVisaoLoading ? '…' : 'Filtrar'}
             </button>
@@ -86,7 +86,7 @@ const FinanceiroTab = ({
             <StatCard
               value={`R$ ${Number(finVisao.totalPagoFarm).toFixed(2).replace('.', ',')}`}
               label="Pago farmacêuticos"
-              color="text-violet-600"
+              color="text-teal-600"
             />
             <StatCard
               value={`R$ ${Number(finVisao.receitaLiquida).toFixed(2).replace('.', ',')}`}
@@ -102,7 +102,7 @@ const FinanceiroTab = ({
           </div>
         ) : (
           finVisaoLoading
-            ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /></div>
+            ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>
             : null
         )}
       </div>
@@ -114,7 +114,7 @@ const FinanceiroTab = ({
           <p className="text-xs text-gray-500 mt-0.5">Aplicados em todos os novos agendamentos.</p>
         </div>
         {finLoading ? (
-          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>
         ) : (
           <div className="px-5 py-5 space-y-5">
             {/* Preço */}
@@ -139,17 +139,17 @@ const FinanceiroTab = ({
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#4b5563' }}>
                   Comissão padrão dos farmacêuticos
                 </label>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#7c3aed' }}>{finComissao}%</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#3B9FE0' }}>{finComissao}%</span>
               </div>
               <input
                 type="range" min="0" max="100" step="1"
                 value={finComissao || 0}
                 onChange={(e) => setFinComissao(e.target.value)}
-                style={{ width: '100%', accentColor: '#7c3aed' }}
+                style={{ width: '100%', accentColor: '#3B9FE0' }}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
                 <span>0%</span>
-                <span style={{ color: '#7c3aed', fontWeight: 600, textAlign: 'center' }}>
+                <span style={{ color: '#3B9FE0', fontWeight: 600, textAlign: 'center' }}>
                   R$ {(parseFloat(finPreco) || 0).toFixed(2).replace('.', ',')} cobrado → R$ {((parseFloat(finPreco) || 0) * (parseFloat(finComissao) || 0) / 100).toFixed(2).replace('.', ',')} ao farmacêutico ({finComissao}%)
                 </span>
                 <span>100%</span>
@@ -248,7 +248,7 @@ const FinanceiroTab = ({
           </p>
         </div>
         {finLoading || !finConfig ? (
-          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>
         ) : finConfig.farmaceuticos.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">Nenhum farmacêutico cadastrado.</div>
         ) : (
@@ -287,14 +287,14 @@ const FinanceiroTab = ({
                             value={current}
                             placeholder={`padrão (${finConfig.comissaoPadrao}%)`}
                             onChange={(e) => setEditingComissao((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                            className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+                            className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none"
                           />
                           <span className="text-gray-400 text-xs shrink-0">%</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         {recebe != null ? (
-                          <span className={`text-sm font-semibold ${isPadrao ? 'text-gray-400' : 'text-violet-700'}`}>
+                          <span className={`text-sm font-semibold ${isPadrao ? 'text-gray-400' : 'text-brand-deep'}`}>
                             R$ {recebe.toFixed(2).replace('.', ',')}
                             {isPadrao && <span className="text-[10px] font-normal ml-1">(padrão)</span>}
                           </span>
@@ -306,7 +306,7 @@ const FinanceiroTab = ({
                             disabled={isSaving || current.trim() === ''}
                             style={{ opacity: (isSaving || current.trim() === '') ? 0.4 : 1 }}
                             onClick={() => handleSalvarComissao(f.id, f.name, current)}
-                            className="px-3 py-1.5 text-xs font-semibold bg-violet-700 hover:bg-violet-800 text-white rounded-lg transition"
+                            className="px-3 py-1.5 text-xs font-semibold bg-brand hover:bg-brand-deep text-white rounded-lg transition"
                           >
                             {isSaving ? '…' : '💾 Salvar'}
                           </button>
