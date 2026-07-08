@@ -373,7 +373,7 @@ const PerfilModal = ({ onClose }) => {
                         <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, margin: 0 }}>⚠️ Pendente de aceite</p>
                         <button
                           onClick={() => setShowTermoModal(true)}
-                          style={{ padding: '4px 10px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          style={{ padding: '4px 10px', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                         >
                           Ver e aceitar
                         </button>
@@ -683,7 +683,7 @@ const Navbar = () => {
                           ) : notifData.notificacoes.map((n) => (
                             <div key={n.id} style={{
                               padding: '12px 16px', borderBottom: '1px solid #f9fafb',
-                              background: n.lida ? 'white' : '#f5f3ff',
+                              background: n.lida ? 'white' : '#EAF6FE',
                               display: 'flex', gap: 10, alignItems: 'flex-start',
                             }}>
                               <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.3 }}>{NOTIF_ICON[n.tipo] ?? '🔔'}</span>
@@ -693,7 +693,7 @@ const Navbar = () => {
                                 <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>{fmtRelativo(n.criadoEm)}</p>
                               </div>
                               {!n.lida && (
-                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0, marginTop: 5 }} />
+                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3B9FE0', flexShrink: 0, marginTop: 5 }} />
                               )}
                             </div>
                           ))}

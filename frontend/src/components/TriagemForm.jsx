@@ -75,7 +75,7 @@ const Toggle = ({ value, onChange, label }) => (
       onClick={() => onChange(!value)}
       style={{
         width: 44, height: 24, borderRadius: 12,
-        background: value ? '#2563eb' : '#d1d5db',
+        background: value ? '#3B9FE0' : '#d1d5db',
         border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0,
       }}
     >
@@ -92,12 +92,12 @@ const Slider = ({ value, onChange, label }) => (
   <div style={{ marginBottom: 12 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
       <span style={lbl}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 700, color: '#2563eb' }}>{value}/10</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: '#3B9FE0' }}>{value}/10</span>
     </div>
     <input
       type="range" min={0} max={10} value={value}
       onChange={(e) => onChange(parseInt(e.target.value))}
-      style={{ width: '100%', accentColor: '#2563eb' }}
+      style={{ width: '100%', accentColor: '#3B9FE0' }}
     />
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
       <span>Sem desconforto</span>
@@ -395,7 +395,7 @@ const TriagemForm = ({
       onClick={() => setTipoConsulta(val)}
       style={{
         flex: 1, padding: '12px 8px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-        border: `2px solid ${tipoConsulta === val ? '#2563eb' : '#e5e7eb'}`,
+        border: `2px solid ${tipoConsulta === val ? '#3B9FE0' : '#e5e7eb'}`,
         background: tipoConsulta === val ? '#eff6ff' : 'white',
         color: tipoConsulta === val ? '#1d4ed8' : '#374151',
         cursor: 'pointer',
@@ -420,22 +420,22 @@ const TriagemForm = ({
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
               padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: selectedPerson === null ? 700 : 500,
-              border: selectedPerson === null ? '2px solid #7c3aed' : '1.5px solid #e5e7eb',
-              background: selectedPerson === null ? '#f5f3ff' : 'white',
-              color: selectedPerson === null ? '#5b21b6' : '#374151',
+              border: selectedPerson === null ? '2px solid #3B9FE0' : '1.5px solid #e5e7eb',
+              background: selectedPerson === null ? '#EAF6FE' : 'white',
+              color: selectedPerson === null ? '#1D74B8' : '#374151',
               cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             <span style={{
               width: 18, height: 18, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              background: 'linear-gradient(135deg, #3B9FE0, #1D74B8)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 7, fontWeight: 700, color: 'white', flexShrink: 0,
             }}>
               {initials(pacienteNome)}
             </span>
             {pacienteNome?.split(' ')[0] || 'Eu'}
-            <span style={{ fontSize: 10, color: selectedPerson === null ? '#7c3aed' : '#9ca3af' }}>(eu)</span>
+            <span style={{ fontSize: 10, color: selectedPerson === null ? '#3B9FE0' : '#9ca3af' }}>(eu)</span>
           </button>
 
           {/* Dependentes */}
@@ -449,9 +449,9 @@ const TriagemForm = ({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: isSelected ? 700 : 500,
-                  border: isSelected ? '2px solid #7c3aed' : '1.5px solid #e5e7eb',
-                  background: isSelected ? '#f5f3ff' : 'white',
-                  color: isSelected ? '#5b21b6' : '#374151',
+                  border: isSelected ? '2px solid #3B9FE0' : '1.5px solid #e5e7eb',
+                  background: isSelected ? '#EAF6FE' : 'white',
+                  color: isSelected ? '#1D74B8' : '#374151',
                   cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
                 }}
               >
@@ -465,7 +465,7 @@ const TriagemForm = ({
                 </span>
                 {dep.nome.split(' ')[0]}
                 {(dep.parentesco || dep.dataNascimento) && (
-                  <span style={{ fontSize: 10, color: isSelected ? '#7c3aed' : '#9ca3af' }}>
+                  <span style={{ fontSize: 10, color: isSelected ? '#3B9FE0' : '#9ca3af' }}>
                     {[dep.parentesco ? (PARENTESCO_LABEL[dep.parentesco] ?? dep.parentesco) : null, formatIdade(dep.dataNascimento)].filter(Boolean).join(' · ')}
                   </span>
                 )}
@@ -500,7 +500,7 @@ const TriagemForm = ({
       <div style={{ overflowY: 'auto', flex: 1, maxHeight: 300, padding: '0 24px 8px' }}>
         {loadingSlots ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-            <div style={{ width: 20, height: 20, border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%' }} />
+            <div style={{ width: 20, height: 20, border: '2px solid #3B9FE0', borderTopColor: 'transparent', borderRadius: '50%' }} />
           </div>
         ) : slots.length === 0 ? (
           <div style={{ background: '#f9fafb', borderRadius: 12, padding: '20px 0', textAlign: 'center' }}>
@@ -511,7 +511,7 @@ const TriagemForm = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             {slots.map(hora => (
               <button key={hora} onClick={() => setSelectedSlot(hora)} style={selectedSlot === hora ? {
-                background: '#2563eb', color: '#fff', border: 'none', borderRadius: 12,
+                background: '#3B9FE0', color: '#fff', border: 'none', borderRadius: 12,
                 padding: '10px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer',
               } : {
                 background: '#fff', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 12,
@@ -538,7 +538,7 @@ const TriagemForm = ({
         )}
         {selectedSlot && (
           <button onClick={() => setAgStep('triagem')} disabled={!saldoOk} style={{
-            background: saldoOk ? '#2563eb' : '#9ca3af', color: 'white', padding: 12, width: '100%',
+            background: saldoOk ? '#3B9FE0' : '#9ca3af', color: 'white', padding: 12, width: '100%',
             borderRadius: 8, border: 'none', fontSize: 15, fontWeight: 'bold',
             cursor: saldoOk ? 'pointer' : 'not-allowed', marginBottom: 8, display: 'block',
           }}>
@@ -555,7 +555,7 @@ const TriagemForm = ({
 
   if (isAgendado && agStep === 'loading') return (
     <div style={{ textAlign: 'center', padding: '40px 24px' }}>
-      <div style={{ width: 40, height: 40, border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 16px' }} />
+      <div style={{ width: 40, height: 40, border: '2px solid #3B9FE0', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 16px' }} />
       <p style={{ fontSize: 14, fontWeight: 500, color: '#374151', margin: 0 }}>Realizando agendamento...</p>
     </div>
   );
@@ -585,7 +585,7 @@ const TriagemForm = ({
           )}
         </div>
       )}
-      <button onClick={onBack} style={{ width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 700, background: '#7c3aed', color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer' }}>
+      <button onClick={onBack} style={{ width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 700, background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer' }}>
         Fechar
       </button>
     </div>
@@ -602,7 +602,7 @@ const TriagemForm = ({
       <p style={{ fontSize: 14, color: '#4b5563', margin: '0 0 20px' }}>{agErrorMsg}</p>
       <div style={{ display: 'flex', gap: 12 }}>
         {agInsuficiente && (
-          <button onClick={onAddCredits} style={{ flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 700, background: '#7c3aed', color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer' }}>
+          <button onClick={onAddCredits} style={{ flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 700, background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer' }}>
             Adicionar créditos
           </button>
         )}
@@ -617,7 +617,7 @@ const TriagemForm = ({
     <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden', position: 'relative' }}>
       {/* Progress bar */}
       <div style={{ height: 4, background: '#e5e7eb', flexShrink: 0, borderRadius: '16px 16px 0 0', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: '100%', background: '#2563eb' }} />
+        <div style={{ height: '100%', width: '100%', background: '#3B9FE0' }} />
       </div>
 
       {/* Header */}
@@ -703,9 +703,9 @@ const TriagemForm = ({
                 onClick={() => setModalidadeAtend(val)}
                 style={{
                   flex: 1, padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  border: `2px solid ${modalidadeAtend === val ? '#7c3aed' : '#e5e7eb'}`,
-                  background: modalidadeAtend === val ? '#f5f3ff' : 'white',
-                  color: modalidadeAtend === val ? '#7c3aed' : '#6b7280',
+                  border: `2px solid ${modalidadeAtend === val ? '#3B9FE0' : '#e5e7eb'}`,
+                  background: modalidadeAtend === val ? '#EAF6FE' : 'white',
+                  color: modalidadeAtend === val ? '#3B9FE0' : '#6b7280',
                   cursor: 'pointer',
                 }}
               >{label}</button>
@@ -775,7 +775,7 @@ const TriagemForm = ({
                     onClick={() => setEvolucaoSintomas(op.toLowerCase())}
                     style={{
                       flex: 1, padding: '8px 4px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-                      border: `1px solid ${evolucaoSintomas === op.toLowerCase() ? '#2563eb' : '#e5e7eb'}`,
+                      border: `1px solid ${evolucaoSintomas === op.toLowerCase() ? '#3B9FE0' : '#e5e7eb'}`,
                       background: evolucaoSintomas === op.toLowerCase() ? '#eff6ff' : 'white',
                       color: evolucaoSintomas === op.toLowerCase() ? '#1d4ed8' : '#6b7280',
                       cursor: 'pointer',
@@ -956,7 +956,7 @@ const TriagemForm = ({
             disabled={!tipoConsulta || loading}
             style={{
               flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-              background: (!tipoConsulta || loading) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#2563eb'),
+              background: (!tipoConsulta || loading) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#3B9FE0'),
               color: 'white', fontSize: 15, fontWeight: 700,
               cursor: (!tipoConsulta || loading) ? 'not-allowed' : 'pointer',
             }}

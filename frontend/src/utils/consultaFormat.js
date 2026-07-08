@@ -2,7 +2,7 @@ export const STATUS_LABELS = {
   aguardando:     { label: 'Aguardando farmacêutico', cls: 'text-gray-600 bg-gray-100' },
   aceito:         { label: 'Confirmado',              cls: 'text-blue-700 bg-blue-100' },
   em_atendimento: { label: 'Em atendimento',          cls: 'text-green-700 bg-green-100' },
-  concluido:      { label: 'Concluído',               cls: 'text-violet-700 bg-violet-100' },
+  concluido:      { label: 'Concluído',               cls: 'text-teal-700 bg-teal-100' },
   cancelado:      { label: 'Cancelado',               cls: 'text-red-700 bg-red-100' },
 };
 

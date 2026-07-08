@@ -20,7 +20,7 @@ const MotivoObservacoesForm = ({
         title={!podeEditar && !isEncerrada && !isVisualizacao ? 'Inicie o atendimento para editar' : undefined}
         placeholder="Descreva o motivo da consulta ou queixa do paciente..."
         rows={3}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 focus:ring-violet-400 outline-none"
+        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 focus:ring-brand outline-none"
         style={{ background: (!podeEditar && !isEncerrada && !isVisualizacao) ? '#f3f4f6' : undefined }}
       />
     </div>
@@ -34,7 +34,7 @@ const MotivoObservacoesForm = ({
             <button
               type="button"
               onClick={() => setShowTemplatePicker((v) => !v)}
-              className="text-xs text-violet-600 hover:text-violet-800 font-semibold border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+              className="text-xs text-brand-deep hover:text-brand font-semibold border border-brand/30 rounded-lg px-2 py-1 hover:bg-brand-wash transition"
             >
               📋 Usar template
             </button>
@@ -63,7 +63,7 @@ const MotivoObservacoesForm = ({
         className={`w-full border rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 outline-none transition ${
           obsError
             ? 'border-red-400 focus:ring-red-300 bg-red-50'
-            : 'border-gray-200 focus:ring-violet-400'
+            : 'border-gray-200 focus:ring-brand'
         }`}
         style={{ background: (!podeEditar && !isEncerrada && !isVisualizacao && !obsError) ? '#f3f4f6' : undefined }}
       />

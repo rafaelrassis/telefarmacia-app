@@ -135,7 +135,7 @@ const ConsultaFooterActions = ({
               onClick={handleIniciar}
               disabled={!!actionLoading}
               style={{
-                background: '#7c3aed',
+                background: '#3B9FE0',
                 color: 'white',
                 border: 'none',
                 padding: '9px 20px',

@@ -43,7 +43,7 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
                 {tipoBadge}
               </span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                isConcluido ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                isConcluido ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'
               }`}>
                 {isConcluido ? 'Concluído' : 'Cancelado'}
               </span>
@@ -117,7 +117,7 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
                     try { await abrirDocumentoAutenticado(`${API_URL}${item.receitaPdfUrl}`, token); }
                     catch { /* falha silenciosa — usuário pode tentar novamente */ }
                   }}
-                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold text-violet-700 border border-violet-200 rounded-xl hover:bg-violet-50 transition"
+                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold text-brand-deep border border-brand/30 rounded-xl hover:bg-brand-wash transition"
                 >
                   📄 Baixar receita em PDF
                 </button>

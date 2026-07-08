@@ -17,7 +17,7 @@ const EncaminhamentoSection = ({
           {encaminhamentoPdfUrl && (
             <button
               onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
-              className="text-xs text-violet-700 border border-violet-200 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition"
+              className="text-xs text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-50 transition"
             >
               📋 Ver encaminhamento
             </button>

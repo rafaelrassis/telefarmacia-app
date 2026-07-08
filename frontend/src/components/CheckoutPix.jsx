@@ -97,12 +97,12 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
         <p className="text-4xl mb-3">✅</p>
         <p className="font-bold text-gray-900 text-lg mb-1">Créditos adicionados!</p>
         <p className="text-sm text-gray-500 mb-1">Seu novo saldo é:</p>
-        <p className="text-3xl font-bold text-violet-700 mb-5">
+        <p className="text-3xl font-bold text-brand-deep mb-5">
           R$ {novoSaldo?.toFixed(2).replace('.', ',')}
         </p>
         <button
           onClick={onSuccess}
-          className="w-full bg-violet-700 hover:bg-violet-800 text-white font-bold py-2.5 rounded-xl transition text-sm"
+          className="w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition text-sm"
         >
           Continuar
         </button>
@@ -113,10 +113,10 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
   if (step === 'qr') {
     return (
       <div className="bg-white border border-gray-200 rounded-xl max-w-sm mx-auto overflow-hidden">
-        <div className="bg-violet-700 px-6 py-5 text-white text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-violet-200 mb-1">Recarga via PIX</p>
+        <div className="bg-brand px-6 py-5 text-white text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-wash mb-1">Recarga via PIX</p>
           <p className="text-2xl font-bold">R$ {valor.toFixed(2).replace('.', ',')}</p>
-          <p className="text-xs text-violet-200 mt-1">Créditos para consultas</p>
+          <p className="text-xs text-brand-wash mt-1">Créditos para consultas</p>
         </div>
         <div className="p-6">
           <div className="flex justify-center mb-4">
@@ -162,9 +162,9 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
   // step === 'select'
   return (
     <div className="bg-white border border-gray-200 rounded-xl max-w-sm mx-auto overflow-hidden">
-      <div className="bg-violet-700 px-6 py-5 text-white text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-violet-200 mb-1">Adicionar créditos</p>
-        <p className="text-sm text-violet-200">Escolha o valor para recarregar sua carteira</p>
+      <div className="bg-brand px-6 py-5 text-white text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-wash mb-1">Adicionar créditos</p>
+        <p className="text-sm text-brand-wash">Escolha o valor para recarregar sua carteira</p>
       </div>
       <div className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-3">
@@ -174,8 +174,8 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
               onClick={() => setValor(v)}
               className={`py-3 rounded-xl border-2 font-bold text-sm transition ${
                 valor === v
-                  ? 'border-violet-600 bg-violet-50 text-violet-700'
-                  : 'border-gray-200 text-gray-600 hover:border-violet-300'
+                  ? 'border-brand bg-brand-wash text-brand-deep'
+                  : 'border-gray-200 text-gray-600 hover:border-brand/60'
               }`}
             >
               R$ {v},00
@@ -190,7 +190,7 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
             step="10"
             value={valor}
             onChange={(e) => setValor(parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand outline-none"
           />
         </div>
 
@@ -199,7 +199,7 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
         <button
           onClick={gerarCobranca}
           disabled={loading || valor < 10}
-          className="w-full bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
+          className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
         >
           {loading ? 'Gerando...' : `Gerar PIX de R$ ${valor.toFixed(2).replace('.', ',')}`}
         </button>

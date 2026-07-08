@@ -32,7 +32,7 @@ const Paginacao = ({ page, totalPages, onPageChange }) => {
               padding: '5px 10px', fontSize: 12, fontWeight: 600,
               border: n === page ? 'none' : '1px solid #e5e7eb',
               borderRadius: 8, cursor: 'pointer',
-              background: n === page ? '#7c3aed' : '#fff',
+              background: n === page ? '#3B9FE0' : '#fff',
               color: n === page ? '#fff' : '#374151',
             }}
           >{n}</button>

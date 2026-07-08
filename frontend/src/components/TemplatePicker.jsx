@@ -119,7 +119,7 @@ const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
                 border: 'none', borderBottom: '1px solid #f3f4f6',
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f3ff')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#EAF6FE')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: 0, lineHeight: 1.3 }}>

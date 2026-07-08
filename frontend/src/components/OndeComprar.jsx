@@ -91,7 +91,7 @@ const OndeComprar = ({ parceiros = [], consultaId, itens = [], token }) => {
                   onClick={() => handleClique({ pharmacyId: p.id, tipo: 'home' })}
                   disabled={loadingClique[p.id]}
                   style={{
-                    padding: '6px 12px', background: '#7c3aed', color: 'white',
+                    padding: '6px 12px', background: '#3B9FE0', color: 'white',
                     border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700,
                     cursor: loadingClique[p.id] ? 'wait' : 'pointer',
                     opacity: loadingClique[p.id] ? 0.7 : 1,
@@ -114,8 +114,8 @@ const OndeComprar = ({ parceiros = [], consultaId, itens = [], token }) => {
                         disabled={loadingClique[key]}
                         style={{
                           padding: '4px 10px', background: 'white',
-                          border: '1px solid #ddd6fe', borderRadius: 20,
-                          fontSize: 11, fontWeight: 600, color: '#7c3aed',
+                          border: '1px solid #8ED2F6', borderRadius: 20,
+                          fontSize: 11, fontWeight: 600, color: '#3B9FE0',
                           cursor: loadingClique[key] ? 'wait' : 'pointer',
                           opacity: loadingClique[key] ? 0.7 : 1,
                         }}

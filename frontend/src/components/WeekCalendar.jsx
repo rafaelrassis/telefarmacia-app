@@ -120,7 +120,7 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick }) => {
             onClick={() => handleViewChange(key)}
             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
               viewMode === key
-                ? 'bg-violet-700 text-white'
+                ? 'bg-brand text-white'
                 : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
@@ -155,9 +155,9 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick }) => {
             {days.map((d, i) => {
               const isToday = d.toDateString() === today.toDateString();
               return (
-                <div key={i} className={`py-2 text-center border-l border-gray-100 ${isToday ? 'bg-violet-50' : ''}`}>
+                <div key={i} className={`py-2 text-center border-l border-gray-100 ${isToday ? 'bg-brand-wash' : ''}`}>
                   <p className="text-xs text-gray-400">{DAYS_PT[d.getDay()]}</p>
-                  <p className={`text-base font-bold mt-0.5 ${isToday ? 'text-violet-700' : 'text-gray-700'}`}>
+                  <p className={`text-base font-bold mt-0.5 ${isToday ? 'text-brand-deep' : 'text-gray-700'}`}>
                     {d.getDate()}
                   </p>
                 </div>
@@ -182,7 +182,7 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick }) => {
                 return (
                   <div
                     key={dayIdx}
-                    className={`border-l border-gray-100 p-1 relative ${isToday ? 'bg-violet-50/40' : ''}`}
+                    className={`border-l border-gray-100 p-1 relative ${isToday ? 'bg-brand-wash/40' : ''}`}
                   >
                     {motivo && (
                       <div

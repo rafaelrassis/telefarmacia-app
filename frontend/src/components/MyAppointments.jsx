@@ -13,14 +13,14 @@ const STATUS_CONFIG = {
   aguardando:           { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
   aceito:               { label: 'Confirmado',              cls: 'text-blue-600',    dot: 'bg-blue-500' },
   em_atendimento:       { label: 'Em atendimento',          cls: 'text-green-600',   dot: 'bg-green-500' },
-  concluido:            { label: 'Concluído',               cls: 'text-violet-600',  dot: 'bg-violet-500' },
+  concluido:            { label: 'Concluído',               cls: 'text-teal-600',  dot: 'bg-teal-500' },
   cancelado:            { label: 'Cancelado',               cls: 'text-red-500',     dot: 'bg-red-400' },
   expirado:             { label: 'Expirado',                cls: 'text-gray-400',    dot: 'bg-gray-300' },
   remarcacao_pendente:  { label: 'Remarcação pendente',     cls: 'text-amber-600',   dot: 'bg-amber-400' },
 };
 
 const TIPO_BADGE = {
-  agendada:    { label: 'Agendada',   cls: 'bg-violet-100 text-violet-700' },
+  agendada:    { label: 'Agendada',   cls: 'bg-brand-wash text-brand-deep' },
   urgente:     { label: 'Urgente',    cls: 'bg-red-100 text-red-700' },
 };
 
@@ -410,7 +410,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               type="date"
               value={filterDe}
               onChange={(e) => setFilterDe(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -419,7 +419,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               type="date"
               value={filterAte}
               onChange={(e) => setFilterAte(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -427,7 +427,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none bg-white"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none bg-white"
             >
               <option value="">Todos</option>
               <option value="em_atendimento">Em atendimento</option>
@@ -461,7 +461,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               type="date"
               value={filterDe}
               onChange={(e) => setFilterDe(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -470,7 +470,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               type="date"
               value={filterAte}
               onChange={(e) => setFilterAte(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -478,7 +478,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-400 outline-none bg-white"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none bg-white"
             >
               <option value="">Todos</option>
               <option value="aguardando">Aguardando</option>
@@ -601,8 +601,8 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                         style={{
                           padding: '8px 14px',
                           background: 'white',
-                          color: '#7c3aed',
-                          border: '1.5px solid #ddd6fe',
+                          color: '#3B9FE0',
+                          border: '1.5px solid #8ED2F6',
                           borderRadius: '8px',
                           fontSize: '13px',
                           fontWeight: '600',
@@ -655,7 +655,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                       <button
                         onClick={() => setViewingReceita({ id: app.id, tipo, data: app })}
                         style={{
-                          padding: '8px 14px', background: '#7c3aed', color: 'white',
+                          padding: '8px 14px', background: '#3B9FE0', color: 'white',
                           border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
                           cursor: 'pointer', whiteSpace: 'nowrap',
                         }}

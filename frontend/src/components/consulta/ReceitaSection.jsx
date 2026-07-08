@@ -20,7 +20,7 @@ const ReceitaSection = ({
             <button
               type="button"
               onClick={() => setShowTemplatePicker((v) => !v)}
-              className="text-xs text-violet-600 hover:text-violet-800 font-semibold border border-violet-200 rounded-lg px-2 py-1 hover:bg-violet-50 transition"
+              className="text-xs text-brand-deep hover:text-brand font-semibold border border-brand/30 rounded-lg px-2 py-1 hover:bg-brand-wash transition"
             >
               📋 Usar template
             </button>
@@ -57,7 +57,7 @@ const ReceitaSection = ({
                 placeholder="Nome do medicamento"
                 value={med.medicamento}
                 onChange={(e) => updateMed(i, 'medicamento', e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none"
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -65,14 +65,14 @@ const ReceitaSection = ({
                   placeholder="Dosagem (ex: 500mg)"
                   value={med.dosagem}
                   onChange={(e) => updateMed(i, 'dosagem', e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none"
                 />
                 <input
                   type="text"
                   placeholder="Duração (ex: 7 dias)"
                   value={med.duracao}
                   onChange={(e) => updateMed(i, 'duracao', e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none"
                 />
               </div>
               <input
@@ -80,7 +80,7 @@ const ReceitaSection = ({
                 placeholder="Posologia (ex: 1 comprimido de 8 em 8 horas)"
                 value={med.posologia}
                 onChange={(e) => updateMed(i, 'posologia', e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-violet-400 outline-none"
+                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none"
               />
             </div>
           ))}
@@ -93,8 +93,8 @@ const ReceitaSection = ({
               padding: '10px 0',
               fontSize: '14px',
               fontWeight: '600',
-              color: podeEditar ? '#7c3aed' : '#9ca3af',
-              border: `2px dashed ${podeEditar ? '#ddd6fe' : '#e5e7eb'}`,
+              color: podeEditar ? '#3B9FE0' : '#9ca3af',
+              border: `2px dashed ${podeEditar ? '#8ED2F6' : '#e5e7eb'}`,
               borderRadius: '12px',
               background: 'white',
               cursor: podeEditar ? 'pointer' : 'not-allowed',
@@ -126,7 +126,7 @@ const ReceitaSection = ({
               {receitaPdfUrl && (
                 <button
                   onClick={() => handleAbrirDocumento(receitaPdfUrl)}
-                  className="flex-1 px-4 py-2.5 text-center text-sm font-bold text-violet-700 border border-violet-200 rounded-xl hover:bg-violet-50 transition"
+                  className="flex-1 px-4 py-2.5 text-center text-sm font-bold text-brand-deep border border-brand/30 rounded-xl hover:bg-brand-wash transition"
                 >
                   📄 Ver PDF
                 </button>
@@ -135,7 +135,7 @@ const ReceitaSection = ({
                 <button
                   onClick={handleGerarPdf}
                   disabled={actionLoading === 'pdf'}
-                  className="flex-1 px-4 py-2.5 text-sm font-bold bg-violet-700 text-white rounded-xl hover:bg-violet-800 disabled:opacity-50 transition"
+                  className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-white rounded-xl hover:bg-brand-deep disabled:opacity-50 transition"
                 >
                   {actionLoading === 'pdf'
                     ? '⏳ Gerando...'

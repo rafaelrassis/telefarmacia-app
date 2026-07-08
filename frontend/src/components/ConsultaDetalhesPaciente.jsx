@@ -16,8 +16,8 @@ const STATUS_LABEL = {
 };
 
 const STATUS_DOT = {
-  aguardando: '#9ca3af', aceito: '#2563eb', em_atendimento: '#16a34a',
-  concluido: '#7c3aed', cancelado: '#dc2626', expirado: '#9ca3af',
+  aguardando: '#9ca3af', aceito: '#3B9FE0', em_atendimento: '#16a34a',
+  concluido: '#0d9488', cancelado: '#dc2626', expirado: '#9ca3af',
   remarcacao_pendente: '#d97706',
 };
 
@@ -374,15 +374,15 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                       {data.status === 'aceito' && tipo === 'agendada' && (data.remarcacoes ?? 0) < 2 && !showRemarcarForm && (
                         <button
                           onClick={() => setShowRemarcarForm(true)}
-                          style={{ padding: '11px 0', background: 'white', border: '1.5px solid #7c3aed', borderRadius: 10, color: '#7c3aed', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                          style={{ padding: '11px 0', background: 'white', border: '1.5px solid #3B9FE0', borderRadius: 10, color: '#3B9FE0', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                         >
                           📅 Remarcar consulta
                         </button>
                       )}
                       {showRemarcarForm && (
-                        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '14px' }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: '#5b21b6', margin: '0 0 10px' }}>Remarcar consulta</p>
-                          <p style={{ fontSize: 12, color: '#7c3aed', margin: '0 0 10px' }}>
+                        <div style={{ background: '#EAF6FE', border: '1px solid #8ED2F6', borderRadius: 10, padding: '14px' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#1D74B8', margin: '0 0 10px' }}>Remarcar consulta</p>
+                          <p style={{ fontSize: 12, color: '#3B9FE0', margin: '0 0 10px' }}>
                             Restam {2 - (data.remarcacoes ?? 0)} remarcação(ões). Selecione a nova data com pelo menos 2h de antecedência.
                           </p>
                           <input
@@ -390,7 +390,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                             value={novaDataHora}
                             min={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                             onChange={(e) => setNovaDataHora(e.target.value)}
-                            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #ddd6fe', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: 10 }}
+                            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #8ED2F6', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: 10 }}
                           />
                           {remarcandoError && <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 8px' }}>{remarcandoError}</p>}
                           <div style={{ display: 'flex', gap: 8 }}>
@@ -401,7 +401,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                             <button
                               onClick={handleRemarcar}
                               disabled={remarcandoLoading || !novaDataHora}
-                              style={{ flex: 2, padding: '9px 0', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: (remarcandoLoading || !novaDataHora) ? 'not-allowed' : 'pointer', opacity: (remarcandoLoading || !novaDataHora) ? 0.6 : 1 }}>
+                              style={{ flex: 2, padding: '9px 0', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: (remarcandoLoading || !novaDataHora) ? 'not-allowed' : 'pointer', opacity: (remarcandoLoading || !novaDataHora) ? 0.6 : 1 }}>
                               {remarcandoLoading ? 'Salvando...' : 'Confirmar remarcação'}
                             </button>
                           </div>
@@ -498,7 +498,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                     <button
                       onClick={() => setShowReceita(true)}
                       style={{
-                        padding: '11px 0', background: '#7c3aed', color: 'white',
+                        padding: '11px 0', background: '#3B9FE0', color: 'white',
                         border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
                         cursor: 'pointer',
                       }}
@@ -513,8 +513,8 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                       onClick={handleDownloadPdf}
                       disabled={downloading}
                       style={{
-                        padding: '11px 0', background: 'white', color: '#7c3aed',
-                        border: '1.5px solid #ddd6fe', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                        padding: '11px 0', background: 'white', color: '#3B9FE0',
+                        border: '1.5px solid #8ED2F6', borderRadius: 10, fontSize: 14, fontWeight: 700,
                         cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1,
                       }}
                     >
@@ -537,8 +537,8 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                       onClick={() => { onClose(); onAgendar(); }}
                       style={{
                         padding: '11px 0', background: 'white',
-                        border: '1.5px solid #7c3aed', borderRadius: 10,
-                        color: '#7c3aed', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                        border: '1.5px solid #3B9FE0', borderRadius: 10,
+                        color: '#3B9FE0', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                       }}
                     >
                       📅 Agendar nova consulta

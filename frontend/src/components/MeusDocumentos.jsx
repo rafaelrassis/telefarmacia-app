@@ -162,7 +162,7 @@ const MeusDocumentos = ({ onClose }) => {
                   const dateStr = fmtData(doc.dataHora);
                   const tipoLabel = doc.tipo === 'urgente' ? 'Urgente' : 'Agendada';
                   const tipoBg    = doc.tipo === 'urgente' ? '#fef2f2' : '#eff6ff';
-                  const tipoColor = doc.tipo === 'urgente' ? '#dc2626' : '#2563eb';
+                  const tipoColor = doc.tipo === 'urgente' ? '#dc2626' : '#3B9FE0';
 
                   return (
                     <button
@@ -174,7 +174,7 @@ const MeusDocumentos = ({ onClose }) => {
                         padding: '12px 14px', cursor: 'pointer', textAlign: 'left',
                         transition: 'border-color 0.15s',
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#3B9FE0'}
                       onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
                     >
                       {/* Row 1: date + tipo badge + arrow */}
@@ -221,7 +221,7 @@ const MeusDocumentos = ({ onClose }) => {
                         {doc.hasReceita && (
                           <span style={{
                             fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                            background: '#fdf4ff', color: '#7c3aed', fontWeight: 600,
+                            background: '#fdf2f8', color: '#be185d', fontWeight: 600,
                           }}>
                             💊 Receita
                           </span>

@@ -91,9 +91,9 @@ const ReceitaHtml = ({ receita, farmaceuticoNome, dataHora }) => {
   return (
     <div style={{ padding: '0 4px' }}>
       {/* Cabeçalho estilizado (imita o PDF) */}
-      <div style={{ background: '#7c3aed', borderRadius: 10, padding: '14px 18px', marginBottom: 16, textAlign: 'center' }}>
+      <div style={{ background: '#3B9FE0', borderRadius: 10, padding: '14px 18px', marginBottom: 16, textAlign: 'center' }}>
         <p style={{ color: 'white', fontWeight: 800, fontSize: 18, margin: 0 }}>FarmaConsulta</p>
-        <p style={{ color: '#ede9fe', fontSize: 12, margin: '3px 0 0' }}>Receita Farmacêutica</p>
+        <p style={{ color: '#EAF6FE', fontSize: 12, margin: '3px 0 0' }}>Receita Farmacêutica</p>
       </div>
 
       {/* Dados */}
@@ -322,7 +322,7 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
                     style={{
                       padding: '4px 10px', border: 'none', borderRadius: 20, fontSize: 12,
                       fontWeight: 600, cursor: 'pointer',
-                      background: activeTab === key ? '#7c3aed' : '#f3f4f6',
+                      background: activeTab === key ? '#3B9FE0' : '#f3f4f6',
                       color:      activeTab === key ? 'white'    : '#6b7280',
                     }}
                   >
@@ -340,8 +340,8 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
                   onClick={handleShare}
                   disabled={sharing}
                   style={{
-                    padding: '6px 12px', background: 'white', color: '#7c3aed',
-                    border: '1.5px solid #7c3aed', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    padding: '6px 12px', background: 'white', color: '#3B9FE0',
+                    border: '1.5px solid #3B9FE0', borderRadius: 8, fontSize: 12, fontWeight: 700,
                     cursor: sharing ? 'wait' : 'pointer', opacity: sharing ? 0.7 : 1,
                     whiteSpace: 'nowrap',
                   }}
@@ -352,7 +352,7 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
                   onClick={handleDownload}
                   disabled={downloading}
                   style={{
-                    padding: '6px 12px', background: '#7c3aed', color: 'white',
+                    padding: '6px 12px', background: '#3B9FE0', color: 'white',
                     border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700,
                     cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1,
                     whiteSpace: 'nowrap',

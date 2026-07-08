@@ -96,7 +96,7 @@ const TermoConsentimento = ({ onAceito, onFechar }) => {
               type="checkbox"
               checked={aceito}
               onChange={(e) => { setAceito(e.target.checked); setErro(''); }}
-              style={{ marginTop: 2, width: 16, height: 16, accentColor: '#7c3aed', flexShrink: 0 }}
+              style={{ marginTop: 2, width: 16, height: 16, accentColor: '#3B9FE0', flexShrink: 0 }}
             />
             <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
               Li e compreendi o Termo de Consentimento e aceito as condições descritas.
@@ -125,7 +125,7 @@ const TermoConsentimento = ({ onAceito, onFechar }) => {
               style={{
                 flex: 2, padding: '10px 0', border: 'none', borderRadius: 10,
                 fontSize: 13, fontWeight: 700, color: 'white',
-                background: aceito ? '#7c3aed' : '#d1d5db',
+                background: aceito ? '#3B9FE0' : '#d1d5db',
                 cursor: aceito && !loading ? 'pointer' : 'not-allowed',
                 opacity: loading ? 0.7 : 1,
               }}

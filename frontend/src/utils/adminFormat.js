@@ -18,7 +18,7 @@ export const ACAO_CFG = {
   concluido: { label: 'Concluído', style: { background: '#f0fdf4', color: '#15803d' } },
   cancelado: { label: 'Cancelado', style: { background: '#fef2f2', color: '#dc2626' } },
   devolvido: { label: 'Devolvido', style: { background: '#fffbeb', color: '#b45309' } },
-  reembolso: { label: 'Reembolso', style: { background: '#faf5ff', color: '#7c3aed' } },
+  reembolso: { label: 'Reembolso', style: { background: '#fdf2f8', color: '#be185d' } },
 };
 
 export const fmtConsultaDt = (dt) => {

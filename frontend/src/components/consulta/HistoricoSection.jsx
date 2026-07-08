@@ -31,7 +31,7 @@ const HistoricoSection = ({ id, tipo }) => {
           setShowHistory(next);
           if (next && historico.length === 0) loadHistory();
         }}
-        className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-violet-700 transition w-full text-left"
+        className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-brand-deep transition w-full text-left"
       >
         <span className="text-xs">{showHistory ? '▲' : '▼'}</span>
         Histórico do paciente
@@ -44,7 +44,7 @@ const HistoricoSection = ({ id, tipo }) => {
         <div className="mt-3 space-y-2 max-h-80 overflow-y-auto pr-1">
           {loadingHistory ? (
             <div className="flex justify-center py-4">
-              <div className="w-5 h-5 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : historico.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-2">Nenhum histórico encontrado.</p>
@@ -57,7 +57,7 @@ const HistoricoSection = ({ id, tipo }) => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`px-1.5 py-0.5 rounded font-semibold ${
                       h.tipo === 'urgente'  ? 'bg-red-100 text-red-700' :
-                      h.tipo === 'agendada' ? 'bg-violet-100 text-violet-700' :
+                      h.tipo === 'agendada' ? 'bg-brand-wash text-brand-deep' :
                                               'bg-gray-200 text-gray-600'
                     }`}>
                       {h.tipo === 'urgente' ? 'Urgente' : h.tipo === 'agendada' ? 'Agendada' : 'Consulta'}
@@ -93,8 +93,8 @@ const HistoricoSection = ({ id, tipo }) => {
                     style={{
                       width: '100%',
                       background: 'white',
-                      color: '#7c3aed',
-                      border: '1px solid #ddd6fe',
+                      color: '#3B9FE0',
+                      border: '1px solid #8ED2F6',
                       borderRadius: '8px',
                       padding: '6px 0',
                       fontSize: '12px',

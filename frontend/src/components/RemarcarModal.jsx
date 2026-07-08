@@ -87,7 +87,7 @@ const RemarcarModal = ({ consulta, onClose, onRemarcado }) => {
         <div style={{ overflowY: 'auto', flex: 1, maxHeight: 260, padding: '0 24px 8px' }}>
           {loadingSlots ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-              <div style={{ width: 20, height: 20, border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: 20, height: 20, border: '2px solid #3B9FE0', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : slots.length === 0 ? (
             <div style={{ background: '#f9fafb', borderRadius: 12, padding: '20px 0', textAlign: 'center' }}>

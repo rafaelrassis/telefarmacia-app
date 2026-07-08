@@ -136,7 +136,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div
                 onClick={() => setDiaInteiro((v) => !v)}
-                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full border-2 border-transparent transition-colors ${diaInteiro ? 'bg-violet-600' : 'bg-gray-300'}`}
+                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full border-2 border-transparent transition-colors ${diaInteiro ? 'bg-brand' : 'bg-gray-300'}`}
               >
                 <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${diaInteiro ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
@@ -152,7 +152,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
                   value={dataInicio}
                   min={todayStr()}
                   onChange={(e) => setDataInicio(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
                 />
               </div>
               {!diaInteiro && (
@@ -161,7 +161,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
                   <select
                     value={horaInicio}
                     onChange={(e) => setHoraInicio(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none bg-white"
                   >
                     {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -178,7 +178,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
                   value={dataFim}
                   min={dataInicio}
                   onChange={(e) => setDataFim(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
                 />
               </div>
               {!diaInteiro && (
@@ -187,7 +187,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
                   <select
                     value={horaFim}
                     onChange={(e) => setHoraFim(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none bg-white"
                   >
                     {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -203,7 +203,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 placeholder="Ex: Férias, consulta médica, almoço..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
               />
             </div>
 
@@ -221,7 +221,7 @@ const BloqueioModal = ({ onClose, onSaved }) => {
               <button
                 onClick={() => handleSubmit(false)}
                 disabled={saving}
-                className="flex-1 bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white text-sm font-bold py-2.5 rounded-xl transition"
+                className="flex-1 bg-brand hover:bg-brand-deep disabled:opacity-50 text-white text-sm font-bold py-2.5 rounded-xl transition"
               >
                 {saving ? 'Salvando...' : 'Criar bloqueio'}
               </button>
