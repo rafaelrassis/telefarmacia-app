@@ -1,5 +1,152 @@
 @import "tailwindcss";
 
+/* ── Fontes (auto-hospedadas, sem chamada a terceiros) ──────────────────────
+   Ver especificacoes/spec-design-system.md — Fase 1. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/inter-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/inter-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/manrope-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/manrope-800.woff2') format('woff2');
+}
+
+/* ── Design tokens (Fase 1 do sistema de design) ─────────────────────────────
+   Paleta azul-claro + branco, aprovada em especificacoes/spec-design-system.md.
+   Nomes novos e distintos da paleta padrão do Tailwind (brand/ink/muted/line/
+   canvas/surface) para não colidir com nenhuma classe já usada no app hoje —
+   esta fase não aplica os tokens a nenhuma tela existente, só os disponibiliza.
+
+   @theme só é avaliado em build-time pelo Tailwind, então os valores em si
+   não podem mudar em runtime — por isso cada --color-* do @theme aponta para
+   uma variável "solta" (--ds-brand etc.), e é essa variável solta que é
+   redefinida dentro do media query / [data-theme], permitindo que bg-brand,
+   text-ink etc. troquem de valor conforme o tema sem exigir nenhum plugin. */
+:root {
+  --ds-brand:          #3B9FE0;
+  --ds-brand-deep:     #1D74B8;
+  --ds-brand-wash:     #EAF6FE;
+  --ds-ink:            #1C2B3A;
+  --ds-muted:          #5B6B7C;
+  --ds-line:           #D8E6F2;
+  --ds-canvas:         #FFFFFF;
+  --ds-surface:        #F7FBFE;
+  --ds-success:        #1E9E6C;
+  --ds-success-wash:   #E4F7EF;
+  --ds-error:          #D6455A;
+  --ds-error-wash:     #FCEAED;
+  --ds-alert:          #B9791E;
+  --ds-alert-wash:     #FBF1DF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ds-brand:          #5CB6EC;
+    --ds-brand-deep:     #8ED2F6;
+    --ds-brand-wash:     #14293A;
+    --ds-ink:            #E9F2FA;
+    --ds-muted:          #96AEC2;
+    --ds-line:           #24384A;
+    --ds-canvas:         #0D1A25;
+    --ds-surface:        #142433;
+    --ds-success:        #38C793;
+    --ds-success-wash:   #103326;
+    --ds-error:          #EA7E8E;
+    --ds-error-wash:     #3A1A20;
+    --ds-alert:          #E3AA55;
+    --ds-alert-wash:     #3A2C14;
+  }
+}
+
+/* Troca manual de tema (nenhum toggle usa isto ainda — pronto para quando
+   um for adicionado), sempre vencendo a preferência do sistema operacional. */
+:root[data-theme="dark"] {
+  --ds-brand:          #5CB6EC;
+  --ds-brand-deep:     #8ED2F6;
+  --ds-brand-wash:     #14293A;
+  --ds-ink:            #E9F2FA;
+  --ds-muted:          #96AEC2;
+  --ds-line:           #24384A;
+  --ds-canvas:         #0D1A25;
+  --ds-surface:        #142433;
+  --ds-success:        #38C793;
+  --ds-success-wash:   #103326;
+  --ds-error:          #EA7E8E;
+  --ds-error-wash:     #3A1A20;
+  --ds-alert:          #E3AA55;
+  --ds-alert-wash:     #3A2C14;
+}
+:root[data-theme="light"] {
+  --ds-brand:          #3B9FE0;
+  --ds-brand-deep:     #1D74B8;
+  --ds-brand-wash:     #EAF6FE;
+  --ds-ink:            #1C2B3A;
+  --ds-muted:          #5B6B7C;
+  --ds-line:           #D8E6F2;
+  --ds-canvas:         #FFFFFF;
+  --ds-surface:        #F7FBFE;
+  --ds-success:        #1E9E6C;
+  --ds-success-wash:   #E4F7EF;
+  --ds-error:          #D6455A;
+  --ds-error-wash:     #FCEAED;
+  --ds-alert:          #B9791E;
+  --ds-alert-wash:     #FBF1DF;
+}
+
+@theme {
+  --color-brand:          var(--ds-brand);
+  --color-brand-deep:     var(--ds-brand-deep);
+  --color-brand-wash:     var(--ds-brand-wash);
+  --color-ink:            var(--ds-ink);
+  --color-muted:          var(--ds-muted);
+  --color-line:           var(--ds-line);
+  --color-canvas:         var(--ds-canvas);
+  --color-surface:        var(--ds-surface);
+  --color-success:        var(--ds-success);
+  --color-success-wash:   var(--ds-success-wash);
+  --color-error:          var(--ds-error);
+  --color-error-wash:     var(--ds-error-wash);
+  --color-alert:          var(--ds-alert);
+  --color-alert-wash:     var(--ds-alert-wash);
+
+  --font-heading: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
 :root {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -23,11 +170,17 @@ a {
   color: inherit;
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
+/* Em @layer base para que as utilities do Tailwind (bg-*, etc.) continuem
+   vencendo — regras fora de qualquer @layer sempre venceriam as utilities
+   independente de especificidade, deixando qualquer <button> com bg-* sólido
+   com o fundo invisível. Ver especificacoes/spec-design-system.md. */
+@layer base {
+  button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+  }
 }
 
 /* Carousel */
