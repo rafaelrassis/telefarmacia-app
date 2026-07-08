@@ -53,11 +53,11 @@ Validação de CRF/UF é inconsistente entre os 3 caminhos. Depois do CRF vem up
 
 ## Critérios de aceite
 
-- [ ] Farmacêutico: um único wizard de 4 etapas, sem duplicação de UI entre login e "Seja um farmacêutico"
-- [ ] Validação por etapa, voltar sem perder dados, rascunho preservado se sair no meio
-- [ ] Tela de status pós-envio, sem necessidade de "Verificar status" manual
-- [ ] Validação de CRF/UF idêntica nos pontos de entrada (wizard + convite)
-- [ ] Um único endpoint de aprovação de farmacêutico no admin
-- [ ] Paciente: registro mínimo desacoplado do onboarding de saúde (opcional, adiável, nunca bloqueia agendamento)
-- [ ] Testes de integração novos, `npm test` verde e `npm run build` sem erros ao final de cada fase
-- [ ] Um commit por fase
+- [x] Farmacêutico: um único wizard de 4 etapas, sem duplicação de UI entre login e "Seja um farmacêutico"
+- [x] Validação por etapa, voltar sem perder dados, rascunho preservado se sair no meio
+- [x] Tela de status pós-envio, sem necessidade de "Verificar status" manual
+- [x] Validação de CRF/UF idêntica nos pontos de entrada (wizard + convite)
+- [x] Um único endpoint de aprovação de farmacêutico no admin
+- [x] Paciente: registro mínimo desacoplado do onboarding de saúde (opcional, adiável, nunca bloqueia agendamento)
+- [x] Testes de integração novos, `npm test` verde e `npm run build` sem erros ao final de cada fase
+- [x] Um commit por fase

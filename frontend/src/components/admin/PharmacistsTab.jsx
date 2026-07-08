@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import OcorrenciasModal from './OcorrenciasModal';
 import { fmt } from '../../utils/adminFormat';
+import { getPharmacistStatus } from '../../utils/pharmacistFormat';
+
+const STATUS_BADGE_CLS = {
+  suspenso: 'bg-red-50 text-red-700',
+  ativo:    'bg-green-50 text-green-700',
+  pendente: 'bg-amber-50 text-amber-700',
+};
+const STATUS_BADGE_LABEL = { suspenso: '🔴 Suspenso', ativo: 'Ativo', pendente: 'Pendente' };
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -128,8 +136,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
               <tbody className="divide-y divide-gray-100">
                 {pharmacists.map((p) => {
                   const prof       = p.pharmacistProfile;
-                  const approved   = prof?.isApproved;
-                  const suspended  = prof?.isSuspended;
+                  const status     = getPharmacistStatus(prof);
                   const docBase    = API_URL;
                   return (
                     <tr key={p.id} className="hover:bg-gray-50 transition">
@@ -174,12 +181,8 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                       </td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmt(p.createdAt)}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          suspended  ? 'bg-red-50 text-red-700'
-                          : approved ? 'bg-green-50 text-green-700'
-                                     : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {suspended ? '🔴 Suspenso' : approved ? 'Ativo' : 'Pendente'}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_CLS[status.key]}`}>
+                          {STATUS_BADGE_LABEL[status.key]}
                         </span>
                         {prof?.chavePix && (
                           <p className="text-[10px] text-gray-400 mt-1">PIX: {prof.chavePix}</p>
@@ -187,7 +190,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          {suspended ? (
+                          {status.key === 'suspenso' ? (
                             <button
                               onClick={() => handleReativar(p.id)}
                               disabled={actionLoading[p.id + '_reat']}
@@ -195,7 +198,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                             >
                               {actionLoading[p.id + '_reat'] ? '...' : 'Reativar'}
                             </button>
-                          ) : approved ? (
+                          ) : status.key === 'ativo' ? (
                             <>
                               <button
                                 onClick={() => setConfirmSuspend(p)}

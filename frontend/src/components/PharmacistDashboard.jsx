@@ -15,6 +15,7 @@ import CalendarioTab from './pharmacist/CalendarioTab';
 import AgendaTab from './pharmacist/AgendaTab';
 import TemplatesTab from './pharmacist/TemplatesTab';
 import ResumoDoDia from './pharmacist/ResumoDoDia';
+import { getPharmacistStatus } from '../utils/pharmacistFormat';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -39,8 +40,10 @@ const PharmacistDashboard = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [togglingPush, setTogglingPush] = useState(false);
 
-  const isApproved         = user?.pharmacistProfile?.isApproved;
-  const docEnviado         = Boolean(user?.pharmacistProfile?.urlDocCrf);
+  const status              = getPharmacistStatus(user?.pharmacistProfile);
+  const isApproved          = status.key === 'ativo';
+  const isSuspenso          = status.key === 'suspenso';
+  const docEnviado          = status.docEnviado;
   const disponivelUrgencias = user?.pharmacistProfile?.disponivelUrgencias ?? true;
 
   // Solicita permissão de notificação do navegador ao aprovar o farmacêutico
@@ -158,8 +161,22 @@ const PharmacistDashboard = () => {
   return (
     <div className="w-full">
 
+      {/* Banner de conta suspensa */}
+      {isSuspenso && (
+        <div className="mb-5 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <span className="text-red-500 mt-0.5">⛔</span>
+          <div>
+            <p className="font-semibold text-red-800 text-sm">Conta suspensa</p>
+            <p className="text-xs text-red-700 mt-0.5">
+              Sua conta foi suspensa por um administrador e não recebe novas consultas no momento.
+              Entre em contato com o suporte se acredita que isso é um engano.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Banner de aprovação pendente */}
-      {!isApproved && (
+      {!isApproved && !isSuspenso && (
         <div className="mb-5 space-y-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
             <span className="text-amber-500 mt-0.5">⏳</span>

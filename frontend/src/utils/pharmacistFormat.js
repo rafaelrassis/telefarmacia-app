@@ -56,6 +56,17 @@ export const fmtEmMinOuHora = (dataIso) => {
 
 export const PLACEHOLDER_HINT = '{{paciente_nome}}, {{data}}, {{farmaceutico_nome}}';
 
+// Deriva um status único e explícito do farmacêutico a partir dos booleans
+// crus do perfil (isApproved/isSuspended/urlDocCrf) — evita que cada tela
+// (dashboard do farmacêutico, listagem do admin) reimplemente essa lógica
+// separadamente e possa divergir.
+export const getPharmacistStatus = (profile) => {
+  const docEnviado = Boolean(profile?.urlDocCrf);
+  if (profile?.isSuspended) return { key: 'suspenso', label: 'Suspenso', docEnviado };
+  if (profile?.isApproved)  return { key: 'ativo',    label: 'Ativo',    docEnviado };
+  return { key: 'pendente', label: 'Pendente', docEnviado };
+};
+
 export function playBeep() {
   try {
     const ctx  = new (window.AudioContext || window.webkitAudioContext)();
