@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
@@ -22,6 +23,15 @@ import { getDocumentoIdentidade, DOC_IDENTIDADE_REGEX } from './controllers/Phar
 import { authMiddleware } from './middlewares/authMiddleware.js';
 
 const app = express();
+
+// API pura (nunca serve HTML) e uploads consumidos como <img>/<a> a partir do
+// domínio do frontend (origem diferente) — CSP não se aplica a JSON e a
+// política padrão de mesmo-origin do CORP bloquearia a exibição das imagens
+// enviadas (RG/CRF, receitas) no frontend.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5174')
   .split(',')
