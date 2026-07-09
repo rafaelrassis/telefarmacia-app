@@ -5,8 +5,10 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from './utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import authRoutes from './routes/authRoutes.js';
@@ -34,6 +36,29 @@ app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
+
+// Request id curto por requisição, propagado no header de resposta e usado
+// em todo log estruturado da requisição — facilita correlacionar um erro
+// reportado pelo usuário com as linhas de log correspondentes. Log de
+// acesso (nível info) desligado em teste para não poluir a saída do vitest;
+// erros continuam logados normalmente em qualquer ambiente.
+app.use((req, res, next) => {
+  req.id = crypto.randomBytes(4).toString('hex');
+  res.setHeader('X-Request-Id', req.id);
+  if (process.env.NODE_ENV !== 'test') {
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      logger.info('request', {
+        requestId: req.id,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs: Date.now() - startedAt,
+      });
+    });
+  }
+  next();
+});
 
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5174')
   .split(',')
@@ -104,7 +129,12 @@ Sentry.setupExpressErrorHandler(app);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error('Erro não tratado:', err.message);
+  logger.error('Erro não tratado', {
+    requestId: req.id,
+    method: req.method,
+    path: req.originalUrl,
+    message: err.message,
+  });
   res.status(500).json({ error: 'Erro interno do servidor.' });
 });
 
