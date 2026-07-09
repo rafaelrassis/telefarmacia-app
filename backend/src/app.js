@@ -1,10 +1,12 @@
+import 'dotenv/config';
+import './monitoring/instrument.js';
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import 'dotenv/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import authRoutes from './routes/authRoutes.js';
@@ -93,6 +95,17 @@ app.use('/api', pushRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado.' });
+});
+
+// Precisa vir depois de todas as rotas — captura no Sentry qualquer erro
+// encaminhado via next(err) (inclusive rejeições de promises assíncronas,
+// que o Express 5 já encaminha automaticamente).
+Sentry.setupExpressErrorHandler(app);
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Erro não tratado:', err.message);
+  res.status(500).json({ error: 'Erro interno do servidor.' });
 });
 
 export default app;
