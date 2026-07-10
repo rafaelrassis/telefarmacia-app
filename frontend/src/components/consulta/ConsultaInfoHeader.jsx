@@ -13,7 +13,8 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
       {new Date(consulta.dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
     </p>
 
-    {/* Linha de contato do paciente */}
+    {/* Linha de contato do paciente — só informativa, sem botão de ação (o
+        botão de WhatsApp único fica no bloco "Contato preferido" abaixo). */}
     {consulta.paciente && (consulta.paciente.telefone || consulta.paciente.email) && (
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#6b7280', paddingTop: '2px' }}>
         {consulta.paciente.email && (
@@ -23,31 +24,14 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
           <span style={{ color: '#d1d5db' }}>|</span>
         )}
         {consulta.paciente.telefone && (
-          <>
-            <span>📞 {consulta.paciente.telefone}</span>
-            <a
-              href={`https://wa.me/55${consulta.paciente.telefone.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                background: '#25D366',
-                color: 'white',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              💬 WhatsApp
-            </a>
-          </>
+          <span>📞 {consulta.paciente.telefone}</span>
         )}
       </div>
     )}
 
-    {/* Contato preferido para esta consulta */}
+    {/* Contato preferido para esta consulta — um único botão de WhatsApp:
+        usa o número indicado na triagem (whatsappContato) quando existir,
+        senão cai para o telefone de cadastro do paciente. */}
     {isActive && !isVisualizacao && (
       consulta.modalidadeAtend === 'meet' ? (
         <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '7px 12px' }}>
@@ -58,9 +42,9 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
             Envie o link de Meet por e-mail ao paciente.
           </p>
         </div>
-      ) : consulta.whatsappContato ? (
+      ) : (consulta.whatsappContato || consulta.paciente?.telefone) ? (
         <a
-          href={`https://wa.me/55${consulta.whatsappContato.replace(/\D/g, '')}`}
+          href={`https://wa.me/55${(consulta.whatsappContato || consulta.paciente.telefone).replace(/\D/g, '')}`}
           target="_blank" rel="noreferrer"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -69,7 +53,7 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
             fontSize: 13, fontWeight: 700, textDecoration: 'none',
           }}
         >
-          📱 Chamar no WhatsApp ({consulta.whatsappContato})
+          📱 Chamar no WhatsApp ({consulta.whatsappContato || consulta.paciente.telefone})
         </a>
       ) : null
     )}
