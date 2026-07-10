@@ -56,11 +56,11 @@ Fechar as lacunas de robustez operacional que ainda restam: cabeçalhos de segur
 
 ## Critérios de aceite
 
-- [ ] `helmet` ativo sem quebrar uploads nem o frontend
-- [ ] Sentry (ou equivalente) integrado nos dois lados, no-op sem DSN configurado
-- [ ] Logger estruturado com request id, com trava de redação para dados sensíveis
-- [ ] `docs/OPERACOES.md` cobrindo backup/restore, rotação de segredos e checklist de deploy
-- [ ] `.env.example` (backend e frontend) documentando todas as variáveis usadas
-- [ ] `npm audit` rodado nos dois projetos; altas/críticas corrigidas ou reportadas
-- [ ] `npm test` verde e `npm run build` sem erros ao final
-- [ ] Um commit por item
+- [x] `helmet` ativo sem quebrar uploads nem o frontend
+- [x] Sentry (ou equivalente) integrado nos dois lados, no-op sem DSN configurado
+- [x] Logger estruturado com request id, com trava de redação para dados sensíveis
+- [x] `docs/OPERACOES.md` cobrindo backup/restore, rotação de segredos e checklist de deploy
+- [x] `.env.example` (backend e frontend) documentando todas as variáveis usadas
+- [x] `npm audit` rodado nos dois projetos; altas/críticas corrigidas ou reportadas (frontend: 2 reportadas em `docs/OPERACOES.md` §4, requerem major bump do Vite, não aplicadas)
+- [x] `npm test` verde e `npm run build` sem erros ao final
+- [x] Um commit por item
