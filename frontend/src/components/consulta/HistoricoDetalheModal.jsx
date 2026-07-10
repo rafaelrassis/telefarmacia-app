@@ -62,6 +62,17 @@ const HistoricoDetalheModal = ({ item, onClose }) => {
               <p className="text-xs font-semibold text-gray-500 mb-1.5">Triagem / Sinais e sintomas</p>
               <div className="bg-gray-50 rounded-xl px-4 py-3">
                 <TriagemDisplay triagem={item.triagem} solicitanteNome={null} />
+                {item.anexoReceitaUrl && (
+                  <button
+                    onClick={async () => {
+                      try { await abrirDocumentoAutenticado(`${API_URL}${item.anexoReceitaUrl}`, token); }
+                      catch { /* falha silenciosa — usuário pode tentar novamente */ }
+                    }}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-brand-deep border border-brand/30 rounded-lg px-3 py-1.5 hover:bg-brand-wash transition"
+                  >
+                    📎 Ver anexo da receita
+                  </button>
+                )}
               </div>
             </div>
           )}

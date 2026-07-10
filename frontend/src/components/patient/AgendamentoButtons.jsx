@@ -4,6 +4,7 @@ import { PRECO_CONSULTA } from '../../utils/patientDashboardFormat';
 import TermoConsentimento from '../TermoConsentimento';
 import TriagemForm from '../TriagemForm';
 import PassarAgoraResultPanel from './PassarAgoraResultPanel';
+import { uploadReceitaAnexo } from '../../utils/uploadReceitaAnexo.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -49,7 +50,7 @@ const AgendamentoButtons = ({
     check();
   }, [token]);
 
-  const handlePassarAgora = async (triagem = null) => {
+  const handlePassarAgora = async (triagem = null, receitaAnexoFile = null) => {
     setPassarAgoraLoading(true);
     setPassarAgoraMsg(null);
     try {
@@ -74,6 +75,9 @@ const AgendamentoButtons = ({
         urgentIdRef.current = data.id;
         setPassarAgoraMsg({ type: 'waiting' });
         maybeRequestPush();
+        if (receitaAnexoFile) {
+          uploadReceitaAnexo(token, data.id, 'urgente', receitaAnexoFile).catch(() => {});
+        }
       }
     } catch {
       setPassarAgoraMsg({ type: 'error', mensagem: 'Falha de conexão. Tente novamente.' });
@@ -271,9 +275,9 @@ const AgendamentoButtons = ({
             <TriagemForm
               modoUrgente
               onBack={() => setShowTriagemUrgente(false)}
-              onConfirm={(triagem) => {
+              onConfirm={(triagem, receitaAnexoFile) => {
                 setShowTriagemUrgente(false);
-                handlePassarAgora(triagem);
+                handlePassarAgora(triagem, receitaAnexoFile);
               }}
               pacienteNome={user?.name || ''}
               preSelectedPerson={selectedPerson}

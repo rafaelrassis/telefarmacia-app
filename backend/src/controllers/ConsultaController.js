@@ -57,10 +57,11 @@ export const getConsulta = async (req, res) => {
     }
 
     let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
-        encaminhamentoPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
+        encaminhamentoPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null,
+        anexoReceitaUrl = null;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "motivo_cancelamento", "triagem", "finalizacao", "anexo_receita_url" FROM "${tableName(tipo)}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
         observacoes          = rows[0].observacoes              ?? null;
@@ -71,6 +72,7 @@ export const getConsulta = async (req, res) => {
         motivoCancelamento   = rows[0].motivo_cancelamento      ?? null;
         triagem              = rows[0].triagem                  ?? null;
         finalizacao          = rows[0].finalizacao              ?? null;
+        anexoReceitaUrl      = rows[0].anexo_receita_url        ?? null;
       }
     } catch {}
 
@@ -110,6 +112,7 @@ export const getConsulta = async (req, res) => {
       receita,
       receitaPdfUrl,
       encaminhamentoPdfUrl,
+      anexoReceitaUrl,
       motivoCancelamento,
       triagem,
       finalizacao,
@@ -885,10 +888,11 @@ export const getDetalhesConsulta = async (req, res) => {
     }
 
     let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
-        encaminhamentoPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null;
+        encaminhamentoPdfUrl = null, motivoCancelamento = null, triagem = null, finalizacao = null,
+        anexoReceitaUrl = null;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "motivo_cancelamento", "triagem", "finalizacao" FROM "${tableName(tipo)}" WHERE id = $1`, id
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "motivo_cancelamento", "triagem", "finalizacao", "anexo_receita_url" FROM "${tableName(tipo)}" WHERE id = $1`, id
       );
       if (rows.length > 0) {
         observacoes          = rows[0].observacoes              ?? null;
@@ -899,6 +903,7 @@ export const getDetalhesConsulta = async (req, res) => {
         motivoCancelamento   = rows[0].motivo_cancelamento      ?? null;
         triagem              = rows[0].triagem                  ?? null;
         finalizacao          = rows[0].finalizacao              ?? null;
+        anexoReceitaUrl      = rows[0].anexo_receita_url        ?? null;
       }
     } catch {}
 
@@ -922,6 +927,7 @@ export const getDetalhesConsulta = async (req, res) => {
       receita,
       receitaPdfUrl,
       encaminhamentoPdfUrl,
+      anexoReceitaUrl,
       motivoCancelamento,
       triagem,
       finalizacao,
@@ -990,6 +996,7 @@ export const getHistoricoCompleto = async (req, res) => {
                 fa."triagem",
                 fa."receita",
                 fa."receita_pdf_url",
+                fa."anexo_receita_url",
                 fa."finalizacao",
                 u.name         AS farmaceutico_nome
          FROM "FilaAgendada" fa
@@ -1008,7 +1015,7 @@ export const getHistoricoCompleto = async (req, res) => {
         select:  { id: true, dataHora: true, status: true, criadoEm: true },
         orderBy: { criadoEm: 'desc' }, take: 10,
       });
-      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+      agendadas = rows.map((r) => ({ id: r.id, data_hora: r.dataHora, tipo: 'agendada', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, anexo_receita_url: null, farmaceutico_nome: null }));
     }
 
     try {
@@ -1022,6 +1029,7 @@ export const getHistoricoCompleto = async (req, res) => {
                 fu."triagem",
                 fu."receita",
                 fu."receita_pdf_url",
+                fu."anexo_receita_url",
                 fu."finalizacao",
                 u.name         AS farmaceutico_nome
          FROM "FilaUrgente" fu
@@ -1040,7 +1048,7 @@ export const getHistoricoCompleto = async (req, res) => {
         select:  { id: true, criadoEm: true, status: true },
         orderBy: { criadoEm: 'desc' }, take: 10,
       });
-      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, farmaceutico_nome: null }));
+      urgentes = rows.map((r) => ({ id: r.id, data_hora: r.criadoEm, tipo: 'urgente', status: r.status, observacoes: null, motivo: null, triagem: null, receita: null, receita_pdf_url: null, anexo_receita_url: null, farmaceutico_nome: null }));
     }
 
     const normalized = [...agendadas, ...urgentes]
@@ -1057,6 +1065,7 @@ export const getHistoricoCompleto = async (req, res) => {
         triagem:          r.triagem            ?? null,
         receita:          Array.isArray(r.receita) ? r.receita : [],
         receitaPdfUrl:    r.receita_pdf_url    ?? null,
+        anexoReceitaUrl:  r.anexo_receita_url  ?? null,
         finalizacao:      r.finalizacao        ?? null,
       }));
 
@@ -1488,5 +1497,79 @@ export const getDocumentoUpload = async (req, res) => {
   } catch (err) {
     console.error('getDocumentoUpload error:', err);
     return res.status(500).json({ error: 'Erro ao buscar documento.' });
+  }
+};
+
+// ── POST /api/consulta/:id/anexo-receita?tipo=agendada|urgente ─────────────
+// Upload (pelo paciente) da foto/PDF da receita a interpretar — usado no
+// objetivo "interpretação de receita" da triagem. Ocorre logo após a criação
+// da consulta (não há id de consulta antes disso), por isso é uma chamada
+// separada do POST de agendamento/urgência, não parte do mesmo payload.
+
+export const uploadAnexoReceita = async (req, res) => {
+  const { id }   = req.params;
+  const { tipo } = req.query;
+  if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
+  if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório.' });
+
+  try {
+    const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+    const fila  = await model.findUnique({
+      where:   { id },
+      include: { dependent: { select: { ownerId: true } } },
+    });
+    if (!fila) return res.status(404).json({ error: 'Consulta não encontrada.' });
+
+    const isDono = fila.pacienteId === req.user.id || fila.dependent?.ownerId === req.user.id;
+    if (!isDono) return res.status(403).json({ error: 'Acesso negado.' });
+
+    const anexoReceitaUrl = `/uploads/anexos/${req.file.filename}`;
+    await prisma.$executeRawUnsafe(
+      `UPDATE "${tableName(tipo)}" SET "anexo_receita_url" = $1 WHERE id = $2`, anexoReceitaUrl, id
+    );
+    return res.status(200).json({ anexoReceitaUrl });
+  } catch (err) {
+    console.error('uploadAnexoReceita error:', err);
+    return res.status(500).json({ error: 'Erro ao enviar anexo.' });
+  }
+};
+
+// ── GET /uploads/anexos/:filename (autenticado) ─────────────────────────────
+// Mesma política de acesso do getDocumentoUpload: só o paciente dono (ou
+// titular do dependente) e o farmacêutico responsável pela consulta.
+
+const ANEXO_RECEITA_REGEX = /^anexo-receita-([0-9a-f-]{36})\.(jpe?g|png|pdf)$/i;
+const ANEXO_CONTENT_TYPE  = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', pdf: 'application/pdf' };
+
+export const getAnexoReceita = async (req, res) => {
+  const { filename } = req.params;
+  const match = ANEXO_RECEITA_REGEX.exec(filename);
+  if (!match) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const [, consultaId, ext] = match;
+
+  try {
+    const [agendada, urgente] = await Promise.all([
+      prisma.filaAgendada.findUnique({ where: { id: consultaId }, include: { dependent: { select: { ownerId: true } } } }),
+      prisma.filaUrgente.findUnique({ where: { id: consultaId }, include: { dependent: { select: { ownerId: true } } } }),
+    ]);
+    const fila = agendada ?? urgente;
+    if (!fila) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    const userId = req.user.id;
+    const isPacienteDono = fila.pacienteId === userId || fila.dependent?.ownerId === userId;
+    const temAcessoFarmaceutico = fila.farmaceuticoId === userId;
+    if (!isPacienteDono && !temAcessoFarmaceutico) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const UPLOAD_DIR = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+    const filepath    = join(UPLOAD_DIR, 'anexos', filename);
+    if (!existsSync(filepath)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+    res.setHeader('Content-Type', ANEXO_CONTENT_TYPE[ext.toLowerCase()] || 'application/octet-stream');
+    createReadStream(filepath).pipe(res);
+  } catch (err) {
+    console.error('getAnexoReceita error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar anexo.' });
   }
 };

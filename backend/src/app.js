@@ -22,7 +22,7 @@ import filaRoutes from './routes/filaRoutes.js';
 import consultaRoutes from './routes/consultaRoutes.js';
 import dependentRoutes from './routes/dependentRoutes.js';
 import pushRoutes from './routes/pushRoutes.js';
-import { getDocumentoUpload } from './controllers/ConsultaController.js';
+import { getDocumentoUpload, getAnexoReceita } from './controllers/ConsultaController.js';
 import { getDocumentoIdentidade, DOC_IDENTIDADE_REGEX } from './controllers/PharmacistController.js';
 import { authMiddleware } from './middlewares/authMiddleware.js';
 
@@ -92,6 +92,10 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads
 // Receitas/encaminhamentos contêm dados de saúde — exigem checagem de dono,
 // por isso são interceptados ANTES do static.
 app.get('/uploads/receitas/:filename', authMiddleware, getDocumentoUpload);
+
+// Anexo de receita enviado pelo paciente (interpretação de receita) — mesma
+// checagem de dono/farmacêutico responsável, mesmo motivo.
+app.get('/uploads/anexos/:filename', authMiddleware, getAnexoReceita);
 
 // Documentos de identidade (RG/CRF) do onboarding de farmacêutico também são
 // PII sensível — mesma estratégia. Fotos de perfil (padrão diferente de nome

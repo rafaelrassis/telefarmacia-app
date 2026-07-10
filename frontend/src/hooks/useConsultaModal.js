@@ -17,6 +17,7 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
   const [receita, setReceita]             = useState([]);
   const [receitaPdfUrl, setReceitaPdfUrl] = useState(null);
   const [encaminhamentoPdfUrl, setEncaminhamentoPdfUrl] = useState(null);
+  const [anexoReceitaUrl, setAnexoReceitaUrl] = useState(null);
   const [showEncaminhForm, setShowEncaminhForm]         = useState(false);
   const [encaminhEspecialidade, setEncaminhEspecialidade] = useState('');
   const [encaminhResumo, setEncaminhResumo]               = useState('');
@@ -62,6 +63,7 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
           setReceita(Array.isArray(data.receita) && data.receita.length > 0 ? data.receita : []);
           setReceitaPdfUrl(data.receitaPdfUrl ?? null);
           setEncaminhamentoPdfUrl(data.encaminhamentoPdfUrl ?? null);
+          setAnexoReceitaUrl(data.anexoReceitaUrl ?? null);
           if (data.finalizacao?.encaminhamento_detalhe) setEncaminhResumo(data.finalizacao.encaminhamento_detalhe);
           setTriagem(data.triagem ?? null);
           if (data.finalizacao) {
@@ -294,7 +296,7 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
     isVisualizacao,
     consulta, loading, error,
     motivo, setMotivo, observacoes, setObservacoes, obsError, setObsError,
-    receita, receitaPdfUrl, encaminhamentoPdfUrl,
+    receita, receitaPdfUrl, encaminhamentoPdfUrl, anexoReceitaUrl,
     showEncaminhForm, setShowEncaminhForm,
     encaminhEspecialidade, setEncaminhEspecialidade,
     encaminhResumo, setEncaminhResumo,

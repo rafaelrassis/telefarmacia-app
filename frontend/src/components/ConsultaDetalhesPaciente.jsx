@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ReceitaViewer from './ReceitaViewer';
 import OndeComprar from './OndeComprar';
+import { abrirDocumentoAutenticado } from '../utils/abrirDocumentoAutenticado';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -519,6 +520,23 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
                       }}
                     >
                       {downloading ? 'Baixando...' : '⬇ Baixar PDF'}
+                    </button>
+                  )}
+
+                  {/* Anexo da receita enviado na triagem (interpretação de receita) */}
+                  {data.anexoReceitaUrl && (
+                    <button
+                      onClick={async () => {
+                        try { await abrirDocumentoAutenticado(`${API_URL}${data.anexoReceitaUrl}`, token); }
+                        catch { /* falha silenciosa — usuário pode tentar novamente */ }
+                      }}
+                      style={{
+                        padding: '11px 0', background: 'white', color: '#3B9FE0',
+                        border: '1.5px solid #8ED2F6', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📎 Ver anexo enviado
                     </button>
                   )}
 

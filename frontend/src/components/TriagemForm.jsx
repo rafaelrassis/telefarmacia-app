@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatIdade } from '../utils/formatIdade.js';
+import { uploadReceitaAnexo, ANEXO_RECEITA_MAX_BYTES, ANEXO_RECEITA_TIPOS_ACEITOS } from '../utils/uploadReceitaAnexo.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -243,6 +244,29 @@ const TriagemForm = ({
   const [duvidaError, setDuvidaError]     = useState(false);
   const [temReceita, setTemReceita] = useState(false);
 
+  // ── Anexo da receita (interpretação de receita) ────────────────────────────
+  const [receitaAnexoFile, setReceitaAnexoFile] = useState(null);
+  const [anexoError, setAnexoError] = useState('');
+
+  const handleAnexoChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) { setReceitaAnexoFile(null); setAnexoError(''); return; }
+    if (!ANEXO_RECEITA_TIPOS_ACEITOS.includes(file.type)) {
+      setAnexoError('Formato não suportado. Use JPG, PNG ou PDF.');
+      setReceitaAnexoFile(null);
+      e.target.value = '';
+      return;
+    }
+    if (file.size > ANEXO_RECEITA_MAX_BYTES) {
+      setAnexoError('Arquivo muito grande (máx. 5MB).');
+      setReceitaAnexoFile(null);
+      e.target.value = '';
+      return;
+    }
+    setAnexoError('');
+    setReceitaAnexoFile(file);
+  };
+
   // Quando muda a pessoa selecionada, atualiza sexo e peso
   useEffect(() => {
     if (selectedPerson === null) {
@@ -286,7 +310,12 @@ const TriagemForm = ({
         }),
       });
       const data = await res.json();
-      if (res.ok) { setAgResult(data); setAgStep('success'); onBooked?.(); }
+      if (res.ok) {
+        if (receitaAnexoFile) {
+          try { await uploadReceitaAnexo(token, data.id, 'agendada', receitaAnexoFile); } catch {}
+        }
+        setAgResult(data); setAgStep('success'); onBooked?.();
+      }
       else if (res.status === 402) { setAgInsuficiente(true); setAgErrorMsg(data.error || 'Saldo insuficiente.'); setAgStep('error'); }
       else { setAgErrorMsg(data.error || 'Erro ao realizar agendamento.'); setAgStep('error'); }
     } catch { setAgErrorMsg('Falha de conexão. Tente novamente.'); setAgStep('error'); }
@@ -354,7 +383,7 @@ const TriagemForm = ({
       whatsapp_contato: whatsappContato ? whatsappContato.replace(/\D/g,'') : null,
       modalidade_atend: modalidadeAtend,
     };
-    if (isAgendado) { handleAgendadoConfirm(triagem); } else { onConfirm(triagem); }
+    if (isAgendado) { handleAgendadoConfirm(triagem); } else { onConfirm(triagem, receitaAnexoFile); }
   };
 
   const handleSalvarNasc = async () => {
@@ -939,6 +968,19 @@ const TriagemForm = ({
                     <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>
                       Descreva sua dúvida (mínimo 10 caracteres).
                     </p>
+                  )}
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={lbl}>Anexar foto ou PDF da receita <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,application/pdf"
+                    onChange={handleAnexoChange}
+                    style={{ ...inp, padding: '7px 12px' }}
+                  />
+                  {anexoError && <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>{anexoError}</p>}
+                  {receitaAnexoFile && !anexoError && (
+                    <p style={{ fontSize: 11, color: '#059669', margin: '3px 0 0' }}>✓ {receitaAnexoFile.name}</p>
                   )}
                 </div>
                 <div style={{ padding: '10px 12px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>

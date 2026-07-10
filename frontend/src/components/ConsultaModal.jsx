@@ -17,7 +17,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
     isVisualizacao,
     consulta, loading, error,
     motivo, setMotivo, observacoes, setObservacoes, obsError, setObsError,
-    receita, receitaPdfUrl, encaminhamentoPdfUrl,
+    receita, receitaPdfUrl, encaminhamentoPdfUrl, anexoReceitaUrl,
     showEncaminhForm, setShowEncaminhForm,
     encaminhEspecialidade, setEncaminhEspecialidade,
     encaminhResumo, setEncaminhResumo,
@@ -101,6 +101,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
               <TriagemCollapsible
                 triagem={triagem} pacienteNome={consulta?.pacienteNome}
                 showTriagem={showTriagem} setShowTriagem={setShowTriagem}
+                anexoReceitaUrl={anexoReceitaUrl} onAbrirAnexo={handleAbrirDocumento}
               />
 
               <MotivoObservacoesForm

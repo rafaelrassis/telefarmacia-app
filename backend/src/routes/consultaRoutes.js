@@ -17,8 +17,10 @@ import {
   proporRemarcacao,
   responderRemarcacao,
   dispensarRetorno,
+  uploadAnexoReceita,
 } from '../controllers/ConsultaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { uploadAnexoReceita as uploadAnexoReceitaMiddleware } from '../utils/multerConfig.js';
 
 const router = Router();
 
@@ -32,6 +34,7 @@ router.post('/consulta/:id/receita/pdf',          authMiddleware, gerarReceitaPd
 router.post('/consulta/:id/encaminhamento/pdf',   authMiddleware, gerarEncaminhamentoPdf);
 router.post('/consulta/:id/recibo/pdf',           authMiddleware, gerarReciboPdf);
 router.get('/consulta/:id/detalhes',              authMiddleware, getDetalhesConsulta);
+router.post('/consulta/:id/anexo-receita',        authMiddleware, uploadAnexoReceitaMiddleware, uploadAnexoReceita);
 router.get('/consulta/:id/historico-completo',    authMiddleware, getHistoricoCompleto);
 // 3 segmentos — não conflita com /paciente/historico (2 segmentos)
 router.get('/paciente/:id/historico',             authMiddleware, getHistoricoPaciente);

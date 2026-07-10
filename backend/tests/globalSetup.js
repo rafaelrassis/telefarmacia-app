@@ -26,6 +26,7 @@ const RAW_MIGRATIONS = [
   'migrate-retorno-sugerido.mjs',
   'migrate-paciente-dados-saude.mjs',
   'migrate-log-acoes.mjs',
+  'migrate-anexo-receita-paciente.mjs',
 ];
 
 export async function setup() {

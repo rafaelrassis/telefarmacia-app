@@ -43,3 +43,26 @@ export const uploadPhoto = multer({
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single('photo');
+
+// Anexo da receita a interpretar, enviado pelo paciente — nome do arquivo
+// fixo por consulta (sobrescreve em reenvio), separado em subpasta própria
+// porque é servido por uma rota autenticada dedicada (ver
+// ConsultaController.getAnexoReceita), nunca pelo static público.
+const anexoReceitaDir = path.join(UPLOAD_DIR, 'anexos');
+if (!fs.existsSync(anexoReceitaDir)) {
+  fs.mkdirSync(anexoReceitaDir, { recursive: true });
+}
+
+const anexoReceitaStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, anexoReceitaDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `anexo-receita-${req.params.id}${ext}`);
+  },
+});
+
+export const uploadAnexoReceita = multer({
+  storage: anexoReceitaStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single('anexo');

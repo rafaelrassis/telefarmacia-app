@@ -435,13 +435,13 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
     }
 
     let observacoes = null, motivo = null, receita = [], receitaPdfUrl = null,
-        encaminhamentoPdfUrl = null,
+        encaminhamentoPdfUrl = null, anexoReceitaUrl = null,
         motivoCancelamento = null, finalizacao = null, pessoaNome = null,
         whatsappContato = null, modalidadeAtend = 'whatsapp',
         remarcacoes = 0, remarcacaoPendente = null, retornoSugerido = null, retornoDispensado = false;
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url",
+        `SELECT "observacoes", "motivo", "receita", "receita_pdf_url", "encaminhamento_pdf_url", "anexo_receita_url",
                 "motivo_cancelamento", "finalizacao",
                 triagem->>'paciente_nome' AS pessoa_nome,
                 "whatsapp_contato", "modalidade_atend",
@@ -455,6 +455,7 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
         receita              = rows[0].receita                  ?? [];
         receitaPdfUrl        = rows[0].receita_pdf_url          ?? null;
         encaminhamentoPdfUrl = rows[0].encaminhamento_pdf_url   ?? null;
+        anexoReceitaUrl      = rows[0].anexo_receita_url        ?? null;
         motivoCancelamento   = rows[0].motivo_cancelamento      ?? null;
         finalizacao          = rows[0].finalizacao              ?? null;
         pessoaNome           = rows[0].pessoa_nome              ?? null;
@@ -479,6 +480,7 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
       receita:              Array.isArray(receita) ? receita : [],
       receitaPdfUrl,
       encaminhamentoPdfUrl,
+      anexoReceitaUrl,
       motivoCancelamento,
       finalizacao,
       farmaceutico:      fila.farmaceutico ? { nome: fila.farmaceutico.name } : null,

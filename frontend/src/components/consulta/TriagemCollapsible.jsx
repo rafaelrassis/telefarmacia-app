@@ -1,7 +1,7 @@
 import React from 'react';
 import TriagemDisplay from './TriagemDisplay';
 
-const TriagemCollapsible = ({ triagem, pacienteNome, showTriagem, setShowTriagem }) => {
+const TriagemCollapsible = ({ triagem, pacienteNome, showTriagem, setShowTriagem, anexoReceitaUrl, onAbrirAnexo }) => {
   if (!triagem) return null;
 
   return (
@@ -21,6 +21,19 @@ const TriagemCollapsible = ({ triagem, pacienteNome, showTriagem, setShowTriagem
       {showTriagem && (
         <div style={{ padding: '12px 14px', background: 'white', fontSize: 13, color: '#374151' }}>
           <TriagemDisplay triagem={triagem} solicitanteNome={pacienteNome} />
+          {anexoReceitaUrl && (
+            <button
+              type="button"
+              onClick={() => onAbrirAnexo?.(anexoReceitaUrl)}
+              style={{
+                marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 8, border: '1px solid #bfdbfe',
+                background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              📎 Ver anexo da receita
+            </button>
+          )}
         </div>
       )}
     </div>
