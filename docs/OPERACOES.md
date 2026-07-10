@@ -75,3 +75,12 @@ Nenhum segredo deve ser commitado — todos vêm de variáveis de ambiente (ver 
    - [ ] Login (paciente e farmacêutico) funcional
    - [ ] Um fluxo de ponta a ponta (agendar consulta) funcional
    - [ ] Sem novo erro inesperado no Sentry (se configurado) ou nos logs (`X-Request-Id` facilita correlacionar um erro relatado por um usuário com a linha de log correspondente — ver `docs/TECHNICAL.md`)
+
+## 4. Auditoria de dependências (`npm audit`)
+
+Rodar `npm audit` em `backend/` e `frontend/` antes de cada release e corrigir o que `npm audit fix` (sem `--force`) resolver sem mudança de major.
+
+**Status em 2026-07-10:**
+
+- `backend/`: 0 vulnerabilidades.
+- `frontend/`: 2 vulnerabilidades (1 moderate, 1 high) — `esbuild <=0.24.2` (usado pelo dev server do Vite) e uma decorrente em `vite <=6.4.2`. **Não corrigido nesta rodada** — a única correção disponível é `npm audit fix --force`, que sobe o Vite direto para a major 8 (atualmente na `^5.1.0`, pulando a 6 e a 7). É uma mudança de build tooling arriscada o bastante (plugins do projeto — `@tailwindcss/vite`, `@vitejs/plugin-react`, `vite-plugin-pwa` — precisariam ser revalidados contra a nova major) para não ser aplicada sem teste dedicado. Mitigação: as duas vulnerabilidades afetam **só o servidor de desenvolvimento do Vite** (uma delas permite que um site arbitrário acesse o dev server; a outra é bypass de path em `server.fs.deny`) — nenhuma das duas atinge o bundle de produção gerado por `npm run build`, que não roda o dev server. Ação recomendada: agendar o upgrade do Vite (mínimo viável: major 6, que já usa `esbuild ^0.25.0` corrigido) como uma tarefa própria, com teste completo do build e do dev server antes de mesclar.
