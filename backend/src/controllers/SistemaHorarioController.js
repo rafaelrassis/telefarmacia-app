@@ -79,6 +79,18 @@ async function getProximaAbertura(currentDow) {
 export const isSistemaAberto = async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache');
   try {
+    // Toggle manual do admin (SystemConfig.sistema_aberto) — sobrepõe a
+    // grade de horários: se o admin fechou manualmente, isso vale mesmo
+    // dentro do horário de funcionamento configurado.
+    const configManual = await prisma.systemConfig.findUnique({ where: { key: 'sistema_aberto' } });
+    if (configManual && configManual.value === 'false') {
+      return res.status(200).json({
+        aberto: false,
+        motivo: 'Sistema temporariamente fechado pelo administrador.',
+        proximaAbertura: null,
+      });
+    }
+
     const br  = nowInBR();
     const dow = br.getDay();
     const agora = timeStr(br);

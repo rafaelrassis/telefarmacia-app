@@ -17,6 +17,14 @@ async function getMaxUrgSimult() {
   return parseInt(row?.value ?? '1', 10);
 }
 
+// Toggle manual do admin (Overview → "Aberto"/"Fechado") — independente da
+// grade semanal de horários (SistemaHorario), checada separadamente logo em
+// seguida em cada endpoint de agendamento.
+async function isSistemaAbertoManualmente() {
+  const row = await prisma.systemConfig.findUnique({ where: { key: 'sistema_aberto' } });
+  return !(row && row.value === 'false');
+}
+
 // Conta farmacêuticos disponíveis excluindo os que já atingiram o limite de urgências simultâneas
 async function countFarmDisponiveis(maxSimult) {
   const rows = await prisma.$queryRawUnsafe(`
@@ -93,6 +101,10 @@ export const agendarConsulta = async (req, res) => {
   const dow = refDate.getDay();
 
   try {
+    if (!(await isSistemaAbertoManualmente())) {
+      return res.status(400).json({ error: 'Sistema temporariamente fechado pelo administrador.' });
+    }
+
     const PRECO = await getPreco();
 
     const horario = await prisma.sistemaHorario.findUnique({ where: { diaSemana: dow } });
@@ -187,6 +199,10 @@ export const agendarUrgente = async (req, res) => {
   const patientId = req.user.id;
 
   try {
+    if (!(await isSistemaAbertoManualmente())) {
+      return res.status(400).json({ error: 'Sistema temporariamente fechado pelo administrador.' });
+    }
+
     const PRECO = await getPreco();
 
     const br = nowInBR();
