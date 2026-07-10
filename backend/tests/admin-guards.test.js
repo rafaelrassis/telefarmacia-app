@@ -137,3 +137,22 @@ describe('IDOR — paciente não acessa recursos de outro paciente', () => {
     expect(ids).not.toContain(bookOutro.body.id);
   });
 });
+
+describe('sistema — horários (semana completa, usado pela grade do calendário)', () => {
+  it('sem token → 401', async () => {
+    const res = await request(app).get('/api/sistema/horarios');
+    expect(res.status).toBe(401);
+  });
+
+  it('qualquer usuário autenticado (não precisa ser admin) → 200 com a semana completa', async () => {
+    const farm = await criarFarmaceuticoAprovado(app);
+    const res = await request(app)
+      .get('/api/sistema/horarios')
+      .set('Authorization', `Bearer ${farm.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(7);
+    expect(res.body[0]).toHaveProperty('horaInicio');
+    expect(res.body[0]).toHaveProperty('horaFim');
+  });
+});

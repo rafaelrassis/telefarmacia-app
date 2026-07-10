@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 07h – 20h
-
 const STATUS = {
   FILA_AGENDADA:       { label: 'Agendada (aceita)',  cls: 'bg-green-100 border-green-500 text-green-900' },
   FILA_URGENTE:        { label: 'Urgente (aceita)',   cls: 'bg-orange-100 border-orange-400 text-orange-900' },
@@ -37,9 +35,11 @@ const fmtTime = (iso) =>
 // delta de navegação por modo
 const NAV_DELTA = { today: 1, '2days': 2, '5days': 7, '7days': 7 };
 
-const WeekCalendar = ({ appointments = [], blocks = [], onEventClick }) => {
+const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 7, maxHour = 20 }) => {
   const [viewMode, setViewMode] = useState('7days');
   const [anchor,   setAnchor]   = useState(() => getMonday(new Date()));
+
+  const HOURS = Array.from({ length: Math.max(1, maxHour - minHour + 1) }, (_, i) => i + minHour);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

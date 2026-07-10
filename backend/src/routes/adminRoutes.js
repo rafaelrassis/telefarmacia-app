@@ -65,6 +65,12 @@ router.get('/admin/horarios',                        ...guard, getHorarios);
 router.put('/admin/horarios',                        ...guard, saveHorarios);
 router.get('/sistema/aberto',                        isSistemaAberto);
 router.get('/disponibilidade',                       getDisponibilidade);
+// Semana completa de horários configurados — mesmo dado de /admin/horarios,
+// sem exigir admin: usado pelo farmacêutico para dimensionar a grade do
+// calendário (ver CalendarioTab/WeekCalendar), nada sensível aqui (só o
+// horário de funcionamento, já parcialmente público via /sistema/aberto e
+// /disponibilidade).
+router.get('/sistema/horarios',                       authMiddleware, getHorarios);
 
 // Ping de presença do farmacêutico
 router.post('/farmaceutico/ping',                    authMiddleware, ping);

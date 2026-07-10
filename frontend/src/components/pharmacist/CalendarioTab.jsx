@@ -6,12 +6,20 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ── Aba Calendário ────────────────────────────────────────────────────────────
 
+// Limites de segurança para a grade — evita uma grade absurda se algum dado
+// vier corrompido (ex.: bloqueio com data errada).
+const HOUR_FLOOR = 0;
+const HOUR_CEIL  = 23;
+const DEFAULT_MIN_HOUR = 7;
+const DEFAULT_MAX_HOUR = 20;
+
 const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
   const { token } = useAuth();
   const [filaEvents, setFilaEvents]   = useState([]);
   const [bloqueios, setBloqueios]     = useState([]);
   const [stats, setStats]             = useState(null);
   const [loading, setLoading]         = useState(true);
+  const [horaRange, setHoraRange]     = useState({ min: DEFAULT_MIN_HOUR, max: DEFAULT_MAX_HOUR });
 
   useEffect(() => {
     setLoading(true);
@@ -20,7 +28,9 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
         .then((r) => (r.ok ? r.json() : [])),
       fetch(`${API_URL}/api/farmaceutico/bloqueios`, { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => (r.ok ? r.json() : [])),
-    ]).then(([calendario, bls]) => {
+      fetch(`${API_URL}/api/sistema/horarios`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : [])),
+    ]).then(([calendario, bls, horarios]) => {
       setBloqueios(bls);
       setStats({
         total:         calendario.length,
@@ -38,6 +48,32 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
           _tipo:         f.tipo,
         }))
       );
+
+      // A grade não pode ficar presa a um intervalo fixo (ex.: 07h–20h) —
+      // deriva do horário de funcionamento configurado pelo admin e, por
+      // segurança, também do que já está de fato agendado/bloqueado (caso
+      // exista consulta ou bloqueio fora do horário configurado hoje).
+      let min = DEFAULT_MIN_HOUR, max = DEFAULT_MAX_HOUR;
+      const horariosAtivos = Array.isArray(horarios) ? horarios.filter((h) => h.ativo) : [];
+      if (horariosAtivos.length > 0) {
+        min = Math.min(...horariosAtivos.map((h) => parseInt(h.horaInicio, 10)));
+        max = Math.max(...horariosAtivos.map((h) => {
+          const [hh, mm] = h.horaFim.split(':').map(Number);
+          return mm > 0 ? hh + 1 : hh; // arredonda pra cima se termina em hora quebrada
+        }));
+      }
+      calendario.forEach((f) => {
+        const h = new Date(f.data_hora).getHours();
+        min = Math.min(min, h);
+        max = Math.max(max, h + 1);
+      });
+      bls.forEach((b) => {
+        min = Math.min(min, new Date(b.dataInicio).getHours());
+        max = Math.max(max, new Date(b.dataFim).getHours() + 1);
+      });
+      min = Math.max(HOUR_FLOOR, Math.min(min, max - 1));
+      max = Math.min(HOUR_CEIL, max);
+      setHoraRange({ min, max });
     }).finally(() => setLoading(false));
   }, [token, refreshTrigger]);
 
@@ -81,6 +117,8 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
         appointments={filaEvents}
         blocks={bloqueios}
         onEventClick={onEventClick}
+        minHour={horaRange.min}
+        maxHour={horaRange.max}
       />
     </div>
   );
