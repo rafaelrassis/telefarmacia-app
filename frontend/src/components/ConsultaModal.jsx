@@ -142,8 +142,6 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                 podeEditar={podeEditar} isAssigned={isAssigned} isVisualizacao={isVisualizacao}
                 receitaPdfUrl={receitaPdfUrl} handleAbrirDocumento={handleAbrirDocumento}
                 handleGerarPdf={handleGerarPdf} actionLoading={actionLoading}
-                showTemplatePicker={showTemplatePicker} setShowTemplatePicker={setShowTemplatePicker}
-                consulta={consulta} triagem={triagem} setObservacoes={setObservacoes}
               />
 
               <EncaminhamentoSection

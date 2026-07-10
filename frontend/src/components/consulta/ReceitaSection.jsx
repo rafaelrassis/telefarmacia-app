@@ -1,13 +1,10 @@
 import React from 'react';
-import TemplatePicker from '../TemplatePicker';
 
 const ReceitaSection = ({
   receitaEditable, receitaReadonly,
   receita, addMed, removeMed, updateMed,
   podeEditar, isAssigned, isVisualizacao,
   receitaPdfUrl, handleAbrirDocumento, handleGerarPdf, actionLoading,
-  showTemplatePicker, setShowTemplatePicker,
-  consulta, triagem, setObservacoes,
 }) => {
   if (!receitaEditable && !receitaReadonly) return null;
 
@@ -15,28 +12,6 @@ const ReceitaSection = ({
     <div className="border-t border-gray-100 pt-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700">💊 Receita Farmacêutica</h3>
-        {receitaEditable && (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowTemplatePicker((v) => !v)}
-              className="text-xs text-brand-deep hover:text-brand font-semibold border border-brand/30 rounded-lg px-2 py-1 hover:bg-brand-wash transition"
-            >
-              📋 Usar template
-            </button>
-            {showTemplatePicker && (
-              <TemplatePicker
-                pacienteNome={consulta?.pacienteNome}
-                triagem={triagem}
-                onInsert={(text) => {
-                  setObservacoes((prev) => prev ? `${prev}\n\n${text}` : text);
-                  setShowTemplatePicker(false);
-                }}
-                onClose={() => setShowTemplatePicker(false)}
-              />
-            )}
-          </div>
-        )}
       </div>
 
       {receitaEditable ? (
