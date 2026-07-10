@@ -215,6 +215,8 @@ const TriagemForm = ({
   const [intensidade, setIntensidade] = useState(0);
   const [febre, setFebre] = useState(false);
   const [temperatura, setTemperatura] = useState('');
+  const [diasFebre, setDiasFebre] = useState('');
+  const [diasFebreError, setDiasFebreError] = useState(false);
 
   const [outrosSintomas, setOutrosSintomas] = useState('');
 
@@ -304,6 +306,10 @@ const TriagemForm = ({
       setDuvidaError(true);
       return;
     }
+    if (tipoConsulta === 'tratamento' && febre && !diasFebre.trim()) {
+      setDiasFebreError(true);
+      return;
+    }
     if (whatsappContato && !validarWhatsapp(whatsappContato)) {
       setWhatsappError('WhatsApp inválido. Informe DDD + número (10 ou 11 dígitos).');
       return;
@@ -326,6 +332,7 @@ const TriagemForm = ({
       intensidade:       isTrat ? intensidade : null,
       febre:             isTrat ? febre : null,
       temperatura:       (isTrat && febre) ? temperatura || null : null,
+      dias_febre:        (isTrat && febre && diasFebre) ? parseInt(diasFebre, 10) : null,
       outros_sintomas:   isTrat ? outrosSintomas || null : null,
       doenca_cronica:    isTrat ? doencaCronica : null,
       qual_doenca:       (isTrat && doencaCronica) ? qualDoenca || null : null,
@@ -796,8 +803,26 @@ const TriagemForm = ({
             <Toggle value={febre} onChange={setFebre} label="Possui febre?" />
             {febre && (
               <div style={{ paddingLeft: 16, borderLeft: '2px solid #e5e7eb', marginBottom: 8, marginTop: 4 }}>
-                <label style={lbl}>Temperatura (°C)</label>
-                <input type="text" value={temperatura} onChange={(e) => setTemperatura(e.target.value)} placeholder="Ex: 38,5" style={inp} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={lbl}>Temperatura (°C)</label>
+                    <input type="text" value={temperatura} onChange={(e) => setTemperatura(e.target.value)} placeholder="Ex: 38,5" style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Há quantos dias? <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input
+                      type="number" min={1} max={99} value={diasFebre}
+                      onChange={(e) => { setDiasFebre(e.target.value.slice(0, 2)); setDiasFebreError(false); }}
+                      placeholder="Ex: 3"
+                      style={{ ...inp, borderColor: diasFebreError ? '#ef4444' : '#e5e7eb' }}
+                    />
+                  </div>
+                </div>
+                {diasFebreError && (
+                  <p style={{ fontSize: 11, color: '#ef4444', margin: '4px 0 0' }}>
+                    Informe há quantos dias a febre está presente.
+                  </p>
+                )}
               </div>
             )}
             <div style={{ marginTop: 12 }}>

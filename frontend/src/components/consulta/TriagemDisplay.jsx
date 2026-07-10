@@ -39,16 +39,23 @@ const TriagemDisplay = ({ triagem, solicitanteNome }) => {
   if (triagem.identificacao?.sexo) rows.push({ label: 'Sexo', value: triagem.identificacao.sexo });
   if (triagem.identificacao?.peso) rows.push({ label: 'Peso', value: `${triagem.identificacao.peso} kg` });
 
-  const textFields = ['queixa_principal','tempo_sintomas','evolucao_sintomas','localizacao','outros_sintomas','quais_medicamentos','qual_doenca','temperatura','quais_alergias','quais_outras_alergias'];
+  const textFields = ['queixa_principal','tempo_sintomas','evolucao_sintomas','localizacao','outros_sintomas','quais_medicamentos','qual_doenca','quais_alergias','quais_outras_alergias'];
   textFields.forEach((k) => {
     if (triagem[k]) rows.push({ label: SINAIS_LABEL[k] || k, value: triagem[k] });
   });
+
+  if (triagem.febre) {
+    const partes = [
+      triagem.dias_febre ? `há ${triagem.dias_febre} dia${triagem.dias_febre > 1 ? 's' : ''}` : null,
+      triagem.temperatura ? `${triagem.temperatura}°C` : null,
+    ].filter(Boolean);
+    rows.push({ label: 'Febre', value: partes.length > 0 ? partes.join(' · ') : 'Sim' });
+  }
 
   if (typeof triagem.intensidade === 'number' && triagem.intensidade > 0) rows.push({ label: 'Intensidade geral', value: `${triagem.intensidade}/10` });
   if (typeof triagem.intensidade_dor === 'number' && triagem.intensidade_dor > 0) rows.push({ label: 'Intensidade da dor', value: `${triagem.intensidade_dor}/10` });
 
   const boolFields = [
-    ['febre', 'Febre'],
     ['dor', 'Dor'],
     ['doenca_cronica', 'Doença crônica'],
     ['gravida_amamentando', 'Grávida/amamentando'],
