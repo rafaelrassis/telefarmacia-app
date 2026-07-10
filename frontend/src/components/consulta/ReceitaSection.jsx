@@ -96,6 +96,11 @@ const ReceitaSection = ({
               ))}
             </div>
           )}
+          {receita.length > 0 && !receitaPdfUrl && isAssigned && !isVisualizacao && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              ⚠️ PDF da receita pendente — a geração automática não funcionou. Gere manualmente abaixo.
+            </p>
+          )}
           {(isAssigned || (isVisualizacao && receitaPdfUrl)) && (
             <div className="flex gap-2 pt-1">
               {receitaPdfUrl && (

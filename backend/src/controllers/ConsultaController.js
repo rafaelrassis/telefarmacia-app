@@ -6,6 +6,7 @@ import { notifyConsultaAceita, notifyReceitaPronta, notifyEstorno, sendPushToUse
 import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from '../utils/logger.js';
 
 const prisma    = new PrismaClient();
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -222,6 +223,21 @@ export const concluirConsulta = async (req, res) => {
     } catch {}
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'concluido', detalhes: { tipo, duracao_min: duracaoMin } });
 
+    // Gera o PDF da receita automaticamente quando há medicamentos
+    // prescritos — mesma lógica do botão "Gerar PDF" (gerarReceitaPdfInterno).
+    // Nunca pode derrubar a conclusão: se falhar, a consulta segue concluída
+    // normalmente e o farmacêutico ainda pode gerar o PDF manualmente depois
+    // (botão "Gerar PDF" continua disponível na consulta já concluída).
+    if (receitaStr) {
+      try {
+        await gerarReceitaPdfInterno({ id, tipo, pharmacistId });
+      } catch (pdfErr) {
+        logger.error('Falha ao gerar PDF de receita automaticamente na conclusão', {
+          requestId: req.id, consultaId: id, tipo, message: pdfErr.message,
+        });
+      }
+    }
+
     // Notificação de documento + retorno sugerido
     try {
       const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
@@ -354,6 +370,62 @@ export const salvarRascunho = async (req, res) => {
   }
 };
 
+// Lógica de geração do PDF de receita, compartilhada entre o endpoint manual
+// (gerarReceitaPdf) e a geração automática ao concluir a consulta
+// (concluirConsulta) — mesmo comportamento nos dois casos. Lança em caso de
+// erro; quem chama decide se isso deve virar uma resposta HTTP de erro
+// (endpoint manual) ou só deixar o PDF pendente (conclusão automática).
+async function gerarReceitaPdfInterno({ id, tipo, pharmacistId }) {
+  const table = tableName(tipo);
+
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT c.status, c."observacoes", c."receita",
+            ${tipo === 'agendada' ? 'c."dataHora" as data_hora' : 'COALESCE(c."aceitoEm", c."criadoEm") as data_hora'},
+            u.name as "pacienteNome"
+     FROM "${table}" c
+     JOIN "User" u ON u.id = c."pacienteId"
+     WHERE c.id = $1 AND c."farmaceuticoId" = $2`,
+    id, pharmacistId
+  );
+  if (!rows.length) throw new Error('Consulta não encontrada.');
+  const row = rows[0];
+  if (row.status !== 'concluido') throw new Error('Conclua a consulta antes de gerar a receita.');
+
+  const [pharmProfile, pharmUser] = await Promise.all([
+    prisma.pharmacistProfile.findUnique({
+      where:  { userId: pharmacistId },
+      select: { crfNumber: true, crfUF: true },
+    }),
+    prisma.user.findUnique({ where: { id: pharmacistId }, select: { name: true } }),
+  ]);
+
+  const itens = Array.isArray(row.receita) ? row.receita : [];
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+  const receitasDir = join(UPLOAD_DIR, 'receitas');
+  mkdirSync(receitasDir, { recursive: true });
+
+  const filename = `receita-${id}.pdf`;
+  const filepath = join(receitasDir, filename);
+  const pdfUrl   = `/uploads/receitas/${filename}`;
+
+  await buildPdf({
+    filepath,
+    pacienteNome: row.pacienteNome,
+    dataHora:     row.data_hora,
+    farmNome:     pharmUser?.name ?? '—',
+    farmCrf:      pharmProfile ? `${pharmProfile.crfUF}-${pharmProfile.crfNumber}` : '—',
+    itens,
+    observacoes:  row.observacoes ?? '',
+  });
+
+  await prisma.$executeRawUnsafe(
+    `UPDATE "${table}" SET "receita_pdf_url" = $1 WHERE id = $2`, pdfUrl, id
+  );
+
+  return pdfUrl;
+}
+
 // ── POST /api/consulta/:id/receita/pdf ──────────────────────────────────────
 
 export const gerarReceitaPdf = async (req, res) => {
@@ -364,61 +436,14 @@ export const gerarReceitaPdf = async (req, res) => {
   if (!['agendada', 'urgente'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido.' });
 
   try {
-    const table = tableName(tipo);
-
-    const rows = await prisma.$queryRawUnsafe(
-      `SELECT c.status, c."observacoes", c."receita",
-              ${tipo === 'agendada' ? 'c."dataHora" as data_hora' : 'COALESCE(c."aceitoEm", c."criadoEm") as data_hora'},
-              u.name as "pacienteNome"
-       FROM "${table}" c
-       JOIN "User" u ON u.id = c."pacienteId"
-       WHERE c.id = $1 AND c."farmaceuticoId" = $2`,
-      id, pharmacistId
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Consulta não encontrada.' });
-    const row = rows[0];
-    if (row.status !== 'concluido') {
-      return res.status(400).json({ error: 'Conclua a consulta antes de gerar a receita.' });
-    }
-
-    const [pharmProfile, pharmUser] = await Promise.all([
-      prisma.pharmacistProfile.findUnique({
-        where:  { userId: pharmacistId },
-        select: { crfNumber: true, crfUF: true },
-      }),
-      prisma.user.findUnique({ where: { id: pharmacistId }, select: { name: true } }),
-    ]);
-
-    const itens = Array.isArray(row.receita) ? row.receita : [];
-
-    const UPLOAD_DIR = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
-    const receitasDir = join(UPLOAD_DIR, 'receitas');
-    mkdirSync(receitasDir, { recursive: true });
-
-    const filename = `receita-${id}.pdf`;
-    const filepath = join(receitasDir, filename);
-    const pdfUrl   = `/uploads/receitas/${filename}`;
-
-    await buildPdf({
-      filepath,
-      pacienteNome: row.pacienteNome,
-      dataHora:     row.data_hora,
-      farmNome:     pharmUser?.name ?? '—',
-      farmCrf:      pharmProfile ? `${pharmProfile.crfUF}-${pharmProfile.crfNumber}` : '—',
-      itens,
-      observacoes:  row.observacoes ?? '',
-    });
-
-    try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE "${table}" SET "receita_pdf_url" = $1 WHERE id = $2`, pdfUrl, id
-      );
-    } catch {}
-
+    const pdfUrl = await gerarReceitaPdfInterno({ id, tipo, pharmacistId });
     return res.status(200).json({ url: pdfUrl });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Erro ao gerar PDF.' });
+    const status = err.message === 'Consulta não encontrada.' ? 404
+      : err.message === 'Conclua a consulta antes de gerar a receita.' ? 400
+      : 500;
+    return res.status(status).json({ error: status === 500 ? 'Erro ao gerar PDF.' : err.message });
   }
 };
 
