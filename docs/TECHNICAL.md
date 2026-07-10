@@ -30,6 +30,7 @@
    - 6.1 [Isolamento de dados entre usuários](#61-isolamento-de-dados-entre-usuários)
    - 6.2 [Rate limiting](#62-rate-limiting)
    - 6.3 [LGPD](#63-lgpd)
+   - 6.4 [Hardening (cabeçalhos, erros, logs)](#64-hardening-cabeçalhos-erros-logs)
 7. [Variáveis de ambiente](#7-variáveis-de-ambiente)
 8. [Scripts de manutenção](#8-scripts-de-manutenção)
 9. [Testes](#9-testes)
@@ -808,7 +809,17 @@ A exclusão de conta:
 
 ---
 
+### 6.4 Hardening (cabeçalhos, erros, logs)
+
+- **Cabeçalhos HTTP**: `helmet` ativo em `src/app.js`. CSP desligada (a API só responde JSON, nunca HTML) e `Cross-Origin-Resource-Policy: cross-origin` — necessário porque `/uploads` é consumido via `<img>`/`<a>` a partir do domínio do frontend, uma origem diferente da do backend.
+- **Monitoramento de erros**: `@sentry/node` (backend, `src/monitoring/instrument.js`) e `@sentry/react` (frontend, `src/monitoring/sentry.js`), ambos só inicializados se `SENTRY_DSN`/`VITE_SENTRY_DSN` estiverem configurados — sem a variável, é um no-op completo. O backend captura qualquer erro encaminhado via `next(err)` (`Sentry.setupExpressErrorHandler`); o frontend usa `AppErrorBoundary` (`Sentry.ErrorBoundary`) envolvendo toda a árvore de componentes, com uma tela de fallback em vez de página em branco.
+- **Logs estruturados**: `backend/src/utils/logger.js` — JSON por linha, níveis `info`/`warn`/`error`, com uma trava de redação recursiva (`redact()`) que nunca deixa passar `senha`/`password`/`token`/`dados_saude`/`dadosSaude`/`Authorization` em nenhum nível de aninhamento. Um middleware em `src/app.js` gera um `X-Request-Id` curto por requisição (propagado no header de resposta) e loga método/path/status/duração ao final de cada requisição (desligado em `NODE_ENV=test`); o handler de erro final do Express usa o mesmo logger, incluindo o request id, o que permite correlacionar um erro relatado por um usuário com a linha de log correspondente. Esse padrão (logger + redação) é o recomendado para novos pontos de log — não houve migração retroativa de todo `console.*` já existente no repo.
+
+---
+
 ## 7. Variáveis de ambiente
+
+Ver também `backend/.env.example` e `frontend/.env.example` (arquivos versionados, sem valores reais, prontos para copiar como `.env`).
 
 ### Backend (`backend/.env`)
 
@@ -816,19 +827,25 @@ A exclusão de conta:
 |----------|-------------|-----------|
 | `DATABASE_URL` | Sim | String de conexão PostgreSQL |
 | `JWT_SECRET` | Sim | Segredo mínimo 32 chars |
+| `NODE_ENV` | Não (`development`) | `development`, `production` ou `test` |
 | `PORT` | Não (3000) | Porta do servidor |
 | `FRONTEND_URL` | Não | Origens CORS permitidas (separadas por vírgula) |
+| `BACKEND_URL` | Não | Usado em links de e-mail/templates que apontam para a própria API |
+| `ADMIN_EMAILS` | Para admin | E-mails com acesso ao painel administrativo (separados por vírgula) |
 | `GOOGLE_CLIENT_ID` | Para OAuth | ID do app no Google Cloud |
-| `GOOGLE_CLIENT_SECRET` | Para OAuth | Segredo do app |
 | `SMTP_HOST` | Para e-mail | Host SMTP |
 | `SMTP_PORT` | Para e-mail | Porta (padrão 587) |
 | `SMTP_USER` | Para e-mail | Usuário SMTP |
 | `SMTP_PASS` | Para e-mail | Senha SMTP |
-| `ADMIN_NOTIFICATION_EMAIL` | Para e-mail | Destinatário de alertas |
-| `UPLOAD_DIR` | Não (`./uploads`) | Diretório de arquivos enviados |
+| `ADMIN_NOTIFICATION_EMAIL` | Para e-mail | Destinatário de alertas (novo cadastro de farmacêutico) |
+| `UPLOAD_DIR` | Não (calculado) | Diretório de arquivos enviados |
 | `VAPID_PUBLIC_KEY` | Para Web Push | Chave pública VAPID (gerar com `npx web-push generate-vapid-keys`) |
 | `VAPID_PRIVATE_KEY` | Para Web Push | Chave privada VAPID |
 | `VAPID_SUBJECT` | Para Web Push | `mailto:` ou URL de contato exigido pelo protocolo VAPID |
+| `PRECO_CONSULTA_PADRAO` | Não | Preço padrão da consulta (reais) |
+| `TERMOS_VERSAO` | Não | Versão vigente dos termos de uso/consentimento LGPD |
+| `TERMOS_TELEFARMACIA_VERSAO` | Não | Versão vigente dos termos específicos de telefarmácia |
+| `SENTRY_DSN` | Não | Monitoramento de erros — sem essa variável, o Sentry não é inicializado (ver §6.4) |
 
 ### Frontend (`frontend/.env`)
 
@@ -836,6 +853,8 @@ A exclusão de conta:
 |----------|-------------|-----------|
 | `VITE_API_URL` | Não (`http://localhost:3000`) | URL base da API |
 | `VITE_GOOGLE_CLIENT_ID` | Para OAuth | Mesmo `GOOGLE_CLIENT_ID` do backend |
+| `VITE_TERMOS_TELEFARMACIA_VERSAO` | Não | Mesmo valor de `TERMOS_TELEFARMACIA_VERSAO` no backend |
+| `VITE_SENTRY_DSN` | Não | Monitoramento de erros — sem essa variável, o Sentry não é inicializado (ver §6.4) |
 
 ---
 
