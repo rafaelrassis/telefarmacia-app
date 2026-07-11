@@ -68,25 +68,25 @@ const AvaliacaoPendenteCard = () => {
 
   return (
     <div style={{
-      background: '#fdf4ff', border: '1.5px solid #e9d5ff',
+      background: '#EAF6FE', border: '1.5px solid #8ED2F6',
       borderRadius: 12, padding: '14px 16px',
     }}>
       {avaliacaoEnviada ? (
-        <p style={{ fontSize: 14, color: '#7c3aed', fontWeight: 700, margin: 0, textAlign: 'center' }}>
+        <p style={{ fontSize: 14, color: '#3B9FE0', fontWeight: 700, margin: 0, textAlign: 'center' }}>
           ✓ Avaliação enviada! Obrigado.
         </p>
       ) : (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
             <div>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#6b21a8' }}>Como foi sua consulta?</p>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9333ea' }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1D74B8' }}>Como foi sua consulta?</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#3B9FE0' }}>
                 {avaliacaoPendente.farmaceutico ? `Com ${avaliacaoPendente.farmaceutico.split(' ')[0]}` : 'Consulta'} · {fmtData}
               </p>
             </div>
             <button
               onClick={handleDismiss}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c4b5fd', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8ED2F6', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}
               aria-label="Agora não"
             >
               ×
@@ -122,7 +122,7 @@ const AvaliacaoPendenteCard = () => {
                 rows={2}
                 style={{
                   width: '100%', boxSizing: 'border-box', resize: 'none',
-                  border: '1px solid #e9d5ff', borderRadius: 8,
+                  border: '1px solid #8ED2F6', borderRadius: 8,
                   padding: '8px 10px', fontSize: 13, fontFamily: 'inherit',
                   outline: 'none', marginBottom: 10, color: '#374151',
                   background: 'white',
@@ -133,8 +133,8 @@ const AvaliacaoPendenteCard = () => {
                   onClick={handleDismiss}
                   style={{
                     flex: 1, padding: '9px 0', background: 'white',
-                    border: '1px solid #e9d5ff', borderRadius: 8,
-                    fontSize: 13, color: '#9333ea', cursor: 'pointer',
+                    border: '1px solid #8ED2F6', borderRadius: 8,
+                    fontSize: 13, color: '#3B9FE0', cursor: 'pointer',
                   }}
                 >
                   Agora não
@@ -143,7 +143,7 @@ const AvaliacaoPendenteCard = () => {
                   onClick={handleEnviar}
                   disabled={avaliacaoEnviando}
                   style={{
-                    flex: 2, padding: '9px 0', background: '#7c3aed', color: 'white',
+                    flex: 2, padding: '9px 0', background: '#3B9FE0', color: 'white',
                     border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
                     cursor: avaliacaoEnviando ? 'not-allowed' : 'pointer',
                     opacity: avaliacaoEnviando ? 0.6 : 1,
