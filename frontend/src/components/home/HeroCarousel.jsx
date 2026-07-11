@@ -2,10 +2,10 @@ import React from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 
 const STATS = [
-  { value: '500+', label: 'Consultas realizadas' },
-  { value: '4.9★', label: 'Avaliação média' },
-  { value: '< 5 min', label: 'Tempo de espera' },
-  { value: 'PIX', label: 'Pagamento seguro' },
+  { value: 'CRF verificado', label: 'Registro checado manualmente antes de atender' },
+  { value: 'Por escrito', label: 'Orientações registradas e disponíveis para baixar' },
+  { value: 'Pelo WhatsApp', label: 'A consulta acontece no seu número, sem app extra' },
+  { value: 'Dados protegidos', label: 'Conexão criptografada e conformidade com a LGPD' },
 ];
 
 const HeroSection = () => {
@@ -15,15 +15,13 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative flex items-center overflow-hidden bg-slate-950"
-      style={{ minHeight: '88vh' }}
+      className="relative flex items-center overflow-hidden bg-slate-950 min-h-[88vh]"
     >
       {/* Background image */}
       <img
         src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=2000"
         alt="Farmacêutico atendendo paciente online"
-        className="absolute inset-0 w-full h-full object-cover object-center"
-        style={{ opacity: 0.35 }}
+        className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.35]"
       />
 
       {/* Gradient overlay — left dark, right fades */}
@@ -48,8 +46,7 @@ const HeroSection = () => {
           <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-heading font-extrabold text-white leading-[1.1] tracking-tight mb-6">
             Tire suas dúvidas sobre{' '}
             <span
-              className="text-transparent bg-clip-text"
-              style={{ backgroundImage: 'linear-gradient(135deg, #3B9FE0 0%, #8ED2F6 100%)' }}
+              className="text-transparent bg-clip-text bg-[linear-gradient(135deg,#3B9FE0_0%,#8ED2F6_100%)]"
             >
               medicamentos
             </span>{' '}
@@ -65,8 +62,7 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
             <Link
               to="/entrar"
-              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep active:bg-brand-deep text-white font-bold px-8 py-4 rounded-2xl transition-all duration-150 shadow-lg text-base"
-              style={{ boxShadow: '0 8px 24px -4px rgba(59,159,224,0.35)' }}
+              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep active:bg-brand-deep text-white font-bold px-8 py-4 rounded-2xl transition-all duration-150 text-base shadow-[0_8px_24px_-4px_rgba(59,159,224,0.35)]"
             >
               Encontrar Farmacêutico
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,8 +71,7 @@ const HeroSection = () => {
             </Link>
             <button
               onClick={() => scrollTo('como-funciona')}
-              className="inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl transition-all duration-150 text-base border"
-              style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
+              className="inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl transition-all duration-150 text-base border bg-white/[0.07] border-white/[0.18] backdrop-blur-sm"
             >
               <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -110,8 +105,7 @@ const HeroSection = () => {
       {outletCtx.onRegisterPharmacist && (
         <button
           onClick={outletCtx.onRegisterPharmacist}
-          className="hidden sm:flex absolute bottom-8 right-8 items-center gap-2 text-slate-400 hover:text-white text-xs transition border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-xl"
-          style={{ backdropFilter: 'blur(8px)', background: 'rgba(255,255,255,0.04)' }}
+          className="hidden sm:flex absolute bottom-8 right-8 items-center gap-2 text-slate-400 hover:text-white text-xs transition border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-xl bg-white/[0.04] backdrop-blur-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

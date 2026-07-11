@@ -16,15 +16,19 @@ const FAQS = [
   },
   {
     q: 'Como funciona o pagamento?',
-    a: 'O pagamento é feito via PIX. Após escolher o horário, você recebe um QR Code ou código Copia e Cola. A confirmação é instantânea e o link do Google Meet é enviado automaticamente logo depois.',
+    a: 'O pagamento é feito via PIX. Após escolher data e horário, você recebe um QR Code ou código Copia e Cola. Assim que o pagamento é confirmado, sua consulta entra na fila e um farmacêutico entra em contato com você pelo WhatsApp no horário combinado.',
   },
   {
     q: 'Posso cancelar uma consulta agendada?',
-    a: 'Sim. Você pode cancelar diretamente pela plataforma em "Minhas Consultas". O horário é liberado imediatamente para outros pacientes. Para reembolso, entre em contato com o suporte com pelo menos 2 horas de antecedência.',
+    a: 'Sim. Você pode cancelar diretamente pela plataforma em "Minhas Consultas". Para reembolso, entre em contato com o suporte com pelo menos 2 horas de antecedência.',
   },
   {
     q: 'Como sei que os farmacêuticos são confiáveis?',
     a: 'Todos os farmacêuticos passam por verificação manual do CRF (Conselho Regional de Farmácia) antes de serem aprovados na plataforma. Apenas profissionais com registro ativo e verificado aparecem para os pacientes.',
+  },
+  {
+    q: 'Como acontece a consulta?',
+    a: 'Pelo WhatsApp, no número que você informar na triagem. No horário agendado (ou em minutos, no atendimento urgente), um farmacêutico verificado inicia a conversa com você. Ao final, você recebe as orientações por escrito na plataforma.',
   },
 ];
 
@@ -73,8 +77,7 @@ const FAQSection = () => {
                 </button>
 
                 <div
-                  className="overflow-hidden transition-all duration-300"
-                  style={{ maxHeight: isOpen ? '300px' : '0px' }}
+                  className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[300px]' : 'max-h-0'}`}
                 >
                   <div className="px-5 pb-5">
                     <p className="text-sm text-slate-600 leading-relaxed">{faq.a}</p>
