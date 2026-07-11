@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CircleCheck, Ban, Clock, Zap, ZapOff, Bell, BellOff, FileText } from 'lucide-react';
+import {
+  CircleCheck, Ban, Clock, Zap, ZapOff, Bell, BellOff, FileText,
+  CalendarDays, CalendarRange, ClipboardList, Wallet, Star,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MyAppointments from './MyAppointments';
 import PharmacistProfileEditor from './PharmacistProfileEditor';
@@ -51,12 +54,12 @@ const ToggleRow = ({ icon: Icon, label, title, checked, onChange, disabled }) =>
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const TABS = [
-  { id: 'calendario', label: 'Calendário'   },
-  { id: 'agenda',     label: 'Minha agenda' },
-  { id: 'templates',  label: 'Templates'    },
-  { id: 'consultas',  label: 'Consultas'    },
-  { id: 'ganhos',     label: '💰 Ganhos'   },
-  { id: 'avaliacoes', label: '⭐ Avaliações' },
+  { id: 'calendario', label: 'Calendário',   icon: CalendarDays   },
+  { id: 'agenda',     label: 'Minha agenda', icon: CalendarRange  },
+  { id: 'templates',  label: 'Templates',    icon: FileText       },
+  { id: 'consultas',  label: 'Consultas',    icon: ClipboardList  },
+  { id: 'ganhos',     label: 'Ganhos',       icon: Wallet         },
+  { id: 'avaliacoes', label: 'Avaliações',   icon: Star           },
 ];
 
 const PharmacistDashboard = () => {
@@ -330,20 +333,24 @@ const PharmacistDashboard = () => {
       )}
 
       {/* ── Abas ─────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'border-brand text-brand-deep'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div role="tablist" aria-label="Seções da área do farmacêutico" className="flex gap-1 bg-surface border border-line rounded-xl p-1 mb-6 overflow-x-auto">
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
+                active ? 'bg-canvas text-brand-deep shadow-sm' : 'text-muted hover:text-ink'
+              }`}
+            >
+              <tab.icon className="w-3.5 h-3.5" strokeWidth={2.5} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === 'calendario' && (
