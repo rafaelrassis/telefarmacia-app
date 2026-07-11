@@ -77,10 +77,10 @@ const LoginPage = () => {
 
           {/* Cabeçalho */}
           <div className="text-center mb-8">
-            <h1 className="font-heading text-2xl font-extrabold text-gray-900">
+            <h1 className="font-heading text-2xl font-extrabold text-ink">
               {isRegister ? 'Crie sua conta' : 'Bem-vindo de volta'}
             </h1>
-            <p className="text-gray-500 mt-2 text-sm">
+            <p className="text-muted mt-2 text-sm">
               {isRegister
                 ? 'Leva menos de um minuto. Depois é só descrever sua dúvida.'
                 : 'Entre com Google ou e-mail para acessar suas consultas.'}
@@ -93,7 +93,7 @@ const LoginPage = () => {
           </div>
 
           {/* Disclaimer */}
-          <p className="text-center text-xs text-gray-400 mt-6 leading-relaxed">
+          <p className="text-center text-xs text-muted mt-6 leading-relaxed">
             Ao entrar, você concorda com nossos{' '}
             <span className="text-brand-deep cursor-pointer hover:underline">Termos de Uso</span>
             {' '}e{' '}
@@ -103,7 +103,7 @@ const LoginPage = () => {
           </p>
 
           <div className="text-center mt-4">
-            <Link to="/" className="text-sm text-gray-400 hover:text-brand-deep transition">
+            <Link to="/" className="text-sm text-muted hover:text-brand-deep transition">
               ← Voltar para a página inicial
             </Link>
           </div>
