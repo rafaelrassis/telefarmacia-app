@@ -15,7 +15,6 @@ import PerfilSelector from './patient/PerfilSelector';
 import ProximaConsultaCard from './patient/ProximaConsultaCard';
 import AvaliacaoPendenteCard from './patient/AvaliacaoPendenteCard';
 import RetornoSugeridoCard from './patient/RetornoSugeridoCard';
-import SistemaFechadoBanner from './patient/SistemaFechadoBanner';
 import AgendamentoButtons from './patient/AgendamentoButtons';
 import CarteiraCard from './patient/CarteiraCard';
 import AgendarConsultaModal from './patient/AgendarConsultaModal';
@@ -145,13 +144,11 @@ const PatientDashboard = () => {
         }}
       />
 
-      <SistemaFechadoBanner
-        sistemaAberto={sistemaAberto} sistemaMotivo={sistemaMotivo} sistemaProximaAbertura={sistemaProximaAbertura}
-      />
-
       <AgendamentoButtons
         walletBalance={walletBalance}
         sistemaAberto={sistemaAberto}
+        sistemaMotivo={sistemaMotivo}
+        sistemaProximaAbertura={sistemaProximaAbertura}
         selectedPerson={dep.selectedPerson}
         dependentes={dep.dependentes}
         setAppointmentsRefreshKey={setAppointmentsRefreshKey}
