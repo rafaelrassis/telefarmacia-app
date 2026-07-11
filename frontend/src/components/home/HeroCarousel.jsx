@@ -2,10 +2,10 @@ import React from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 
 const STATS = [
-  { value: '500+', label: 'Consultas realizadas' },
-  { value: '4.9★', label: 'Avaliação média' },
-  { value: '< 5 min', label: 'Tempo de espera' },
-  { value: 'PIX', label: 'Pagamento seguro' },
+  { value: 'CRF verificado', label: 'Registro checado manualmente antes de atender' },
+  { value: 'Por escrito', label: 'Orientações registradas e disponíveis para baixar' },
+  { value: 'Pelo WhatsApp', label: 'A consulta acontece no seu número, sem app extra' },
+  { value: 'Dados protegidos', label: 'Conexão criptografada e conformidade com a LGPD' },
 ];
 
 const HeroSection = () => {

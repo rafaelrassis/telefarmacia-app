@@ -213,99 +213,45 @@ const HowItWorksSection = () => (
 );
 
 /* ─────────────────────────────────────────────────────────────
-   DEPOIMENTOS
+   POR QUE CONFIAR
 ───────────────────────────────────────────────────────────── */
-const TESTIMONIALS = [
+const TRUST_FACTS = [
   {
-    avatar: 'MS', color: 'from-pink-500 to-rose-500', name: 'Mariana S.', loc: 'São Paulo, SP',
-    text: 'Minha filha estava com febre e eu não sabia qual antitérmico usar com o peso dela. Em 10 minutos o farmacêutico me explicou tudo com a dose certinha. Serviço excelente!',
+    title: 'CRF verificado manualmente',
+    desc: 'Todo farmacêutico passa por verificação manual do registro no Conselho antes de atender.',
   },
   {
-    avatar: 'CR', color: 'from-blue-500 to-indigo-500', name: 'Carlos R.', loc: 'Belo Horizonte, MG',
-    text: 'Tomava 3 medicamentos diferentes e fiquei preocupado com interações. O profissional me esclareceu tudo de forma clara e ainda me indicou o horário correto para cada um.',
+    title: 'Orientação por escrito',
+    desc: 'Ao final da consulta você recebe um documento com as orientações, disponível para download.',
   },
   {
-    avatar: 'FL', color: 'from-emerald-500 to-teal-500', name: 'Fernanda L.', loc: 'Rio de Janeiro, RJ',
-    text: 'Atendimento rápido e muito profissional. O farmacêutico foi super paciente e me deu orientações por escrito no final. Muito mais prático do que ir a uma farmácia.',
+    title: 'Limites claros',
+    desc: 'Orientação farmacêutica não substitui consulta médica. Quando o caso exige, encaminhamos você ao médico.',
   },
 ];
 
-const Stars = () => (
-  <div className="flex gap-0.5 text-amber-400">
-    {[...Array(5)].map((_, i) => (
-      <svg key={i} className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    ))}
-  </div>
-);
-
-const TestimonialsSection = () => {
-  const [current, setCurrent] = useState(0);
-
-  return (
-    <section className="bg-white py-16 border-t border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Depoimentos</p>
-          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            O que dizem nossos pacientes
-          </h2>
-          <div className="flex items-center justify-center gap-2 mt-3">
-            <Stars />
-            <span className="text-sm font-bold text-slate-700">4.9</span>
-            <span className="text-sm text-slate-400">· +500 avaliações</span>
-          </div>
-        </div>
-
-        {/* Desktop: 3 cols */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map(({ avatar, color, name, loc, text }) => (
-            <div key={name} className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
-              <Stars />
-              <p className="text-sm text-slate-700 leading-relaxed italic mt-4 mb-6 flex-1">"{text}"</p>
-              <div className="flex items-center gap-3 pt-4 border-t border-slate-200">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${color} text-white font-bold text-sm flex items-center justify-center shrink-0`}>
-                  {avatar}
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900 text-sm">{name}</p>
-                  <p className="text-xs text-slate-500">{loc}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile: carousel */}
-        <div className="md:hidden">
-          <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-6">
-            <Stars />
-            <p className="text-sm text-slate-700 leading-relaxed italic mt-4 mb-6">"{TESTIMONIALS[current].text}"</p>
-            <div className="flex items-center gap-3 pt-4 border-t border-slate-200">
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${TESTIMONIALS[current].color} text-white font-bold text-sm flex items-center justify-center shrink-0`}>
-                {TESTIMONIALS[current].avatar}
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900 text-sm">{TESTIMONIALS[current].name}</p>
-                <p className="text-xs text-slate-500">{TESTIMONIALS[current].loc}</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-center gap-2 mt-4">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'bg-brand w-8' : 'bg-slate-300 w-2'}`}
-              />
-            ))}
-          </div>
-        </div>
+const TestimonialsSection = () => (
+  <section className="bg-white py-16 border-t border-slate-100">
+    {/* TODO Fase futura: substituir por avaliações reais da API quando houver volume */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-12">
+        <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Confiança</p>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Por que confiar no FarmaConsulta
+        </h2>
       </div>
-    </section>
-  );
-};
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {TRUST_FACTS.map(({ title, desc }) => (
+          <div key={title} className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
+            <h3 className="font-heading font-bold text-slate-900 text-base mb-2">{title}</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
 
 /* ─────────────────────────────────────────────────────────────
    CTA FINAL
