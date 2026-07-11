@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { ShieldCheck, Lock, Zap, MessageCircle, Globe, Baby, Wind, Thermometer, HeartPulse, Pill, Stethoscope, CalendarClock, QrCode, FileText } from 'lucide-react';
 import HeroSection from '../components/home/HeroCarousel.jsx';
 import FAQSection from '../components/home/FAQSection.jsx';
 import Footer from '../components/home/Footer.jsx';
@@ -8,21 +9,21 @@ import Footer from '../components/home/Footer.jsx';
    TRUST BAR
 ───────────────────────────────────────────────────────────── */
 const TRUST = [
-  { icon: '🛡️', color: 'bg-blue-50 text-blue-600',     label: 'CRF Validado',       sub: 'Registro ativo no Conselho' },
-  { icon: '🔐', color: 'bg-emerald-50 text-emerald-600', label: 'Dados Seguros',      sub: 'Conexão criptografada e LGPD' },
-  { icon: '⚡', color: 'bg-amber-50 text-amber-600',    label: 'Pagamento via PIX',  sub: 'Simples e sem taxas surpresa' },
-  { icon: '💬', color: 'bg-purple-50 text-purple-600',  label: 'Contato Direto',     sub: 'Farmacêutico fala com você' },
-  { icon: '🌐', color: 'bg-teal-50 text-teal-600',      label: '100% Online',        sub: 'De qualquer lugar' },
+  { icon: ShieldCheck,   color: 'bg-blue-50 text-blue-600',     label: 'CRF Validado',       sub: 'Registro ativo no Conselho' },
+  { icon: Lock,          color: 'bg-emerald-50 text-emerald-600', label: 'Dados Seguros',      sub: 'Conexão criptografada e LGPD' },
+  { icon: Zap,           color: 'bg-amber-50 text-amber-600',    label: 'Pagamento via PIX',  sub: 'Simples e sem taxas surpresa' },
+  { icon: MessageCircle, color: 'bg-purple-50 text-purple-600',  label: 'Contato Direto',     sub: 'Farmacêutico fala com você' },
+  { icon: Globe,         color: 'bg-teal-50 text-teal-600',      label: '100% Online',        sub: 'De qualquer lugar' },
 ];
 
 const TrustBar = () => (
   <section className="bg-white border-y border-slate-200">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
-        {TRUST.map(({ icon, color, label, sub }) => (
+        {TRUST.map(({ icon: Icon, color, label, sub }) => (
           <div key={label} className="group flex items-center gap-3">
-            <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform duration-200`}>
-              {icon}
+            <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200`}>
+              <Icon className="w-6 h-6" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-800 leading-tight">{label}</p>
@@ -48,11 +49,11 @@ const PLACEHOLDERS = [
 ];
 
 const QUICK_TAGS = [
-  { label: '👶 Dosagem infantil', },
-  { label: '🤒 Febre', },
-  { label: '💊 Interação', },
-  { label: '🤕 Dor', },
-  { label: '🤧 Gripe', },
+  { label: 'Dosagem infantil', },
+  { label: 'Febre', },
+  { label: 'Interação', },
+  { label: 'Dor', },
+  { label: 'Gripe', },
 ];
 
 const SearchSection = () => {
@@ -78,7 +79,7 @@ const SearchSection = () => {
 
   const handleSubmit = () => goToTriagem(value);
   const handleKeyDown = (e) => { if (e.key === 'Enter') handleSubmit(); };
-  const handleTagClick = (label) => goToTriagem(label.split(' ').slice(1).join(' '));
+  const handleTagClick = (label) => goToTriagem(label);
 
   return (
     <section className="py-14 bg-[#F8FAFC]">
@@ -143,12 +144,12 @@ const SearchSection = () => {
    ESPECIALIDADES
 ───────────────────────────────────────────────────────────── */
 const SPECS = [
-  { icon: '👶', label: 'Dosagem Infantil',   desc: 'Dose segura por peso e idade para bebês e crianças.',              grad: 'from-amber-50 to-orange-50',   iconCls: 'bg-amber-100 text-amber-700',   border: 'hover:border-amber-200 hover:shadow-amber-100/60' },
-  { icon: '🤧', label: 'Gripe e Resfriado',  desc: 'Medicamentos e cuidados para sintomas gripais sem prescrição.',    grad: 'from-sky-50 to-blue-50',        iconCls: 'bg-sky-100 text-sky-700',       border: 'hover:border-sky-200 hover:shadow-sky-100/60' },
-  { icon: '🤒', label: 'Febre',              desc: 'Quando medicar, qual antitérmico usar e qual dose é segura.',       grad: 'from-red-50 to-rose-50',        iconCls: 'bg-red-100 text-red-700',       border: 'hover:border-red-200 hover:shadow-red-100/60' },
-  { icon: '🤕', label: 'Dor',               desc: 'Analgésicos, anti-inflamatórios e cuidados para cada tipo de dor.', grad: 'from-rose-50 to-pink-50',       iconCls: 'bg-rose-100 text-rose-700',     border: 'hover:border-rose-200 hover:shadow-rose-100/60' },
-  { icon: '💊', label: 'Medicamentos',       desc: 'Interações, horários, efeitos colaterais e substituições.',         grad: 'from-blue-50 to-indigo-50',     iconCls: 'bg-blue-100 text-blue-700',     border: 'hover:border-blue-200 hover:shadow-blue-100/60' },
-  { icon: '🩺', label: 'Sintomas Leves',     desc: 'Avaliação de sintomas comuns e orientação sobre MIPs disponíveis.', grad: 'from-teal-50 to-emerald-50',    iconCls: 'bg-teal-100 text-teal-700',     border: 'hover:border-teal-200 hover:shadow-teal-100/60' },
+  { icon: Baby,        label: 'Dosagem Infantil',   desc: 'Dose segura por peso e idade para bebês e crianças.',              grad: 'from-amber-50 to-orange-50',   iconCls: 'bg-amber-100 text-amber-700',   border: 'hover:border-amber-200 hover:shadow-amber-100/60' },
+  { icon: Wind,        label: 'Gripe e Resfriado',  desc: 'Medicamentos e cuidados para sintomas gripais sem prescrição.',    grad: 'from-sky-50 to-blue-50',        iconCls: 'bg-sky-100 text-sky-700',       border: 'hover:border-sky-200 hover:shadow-sky-100/60' },
+  { icon: Thermometer, label: 'Febre',              desc: 'Quando medicar, qual antitérmico usar e qual dose é segura.',       grad: 'from-red-50 to-rose-50',        iconCls: 'bg-red-100 text-red-700',       border: 'hover:border-red-200 hover:shadow-red-100/60' },
+  { icon: HeartPulse,  label: 'Dor',               desc: 'Analgésicos, anti-inflamatórios e cuidados para cada tipo de dor.', grad: 'from-rose-50 to-pink-50',       iconCls: 'bg-rose-100 text-rose-700',     border: 'hover:border-rose-200 hover:shadow-rose-100/60' },
+  { icon: Pill,        label: 'Medicamentos',       desc: 'Interações, horários, efeitos colaterais e substituições.',         grad: 'from-blue-50 to-indigo-50',     iconCls: 'bg-blue-100 text-blue-700',     border: 'hover:border-blue-200 hover:shadow-blue-100/60' },
+  { icon: Stethoscope, label: 'Sintomas Leves',     desc: 'Avaliação de sintomas comuns e orientação sobre MIPs disponíveis.', grad: 'from-teal-50 to-emerald-50',    iconCls: 'bg-teal-100 text-teal-700',     border: 'hover:border-teal-200 hover:shadow-teal-100/60' },
 ];
 
 const SpecialtiesSection = () => (
@@ -162,15 +163,15 @@ const SpecialtiesSection = () => (
     </div>
 
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-      {SPECS.map(({ icon, label, desc, grad, iconCls, border }) => (
+      {SPECS.map(({ icon: Icon, label, desc, grad, iconCls, border }) => (
         <Link
           key={label}
           to="/entrar"
           className={`group bg-gradient-to-br ${grad} border border-slate-200 ${border} rounded-2xl p-5 sm:p-6 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg`}
           style={{ minHeight: '180px' }}
         >
-          <div className={`w-14 h-14 ${iconCls} rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-200 shrink-0`}>
-            {icon}
+          <div className={`w-14 h-14 ${iconCls} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0`}>
+            <Icon className="w-7 h-7" strokeWidth={1.75} />
           </div>
           <div>
             <h3 className="font-heading font-bold text-slate-900 text-base mb-1.5">{label}</h3>
@@ -186,10 +187,10 @@ const SpecialtiesSection = () => (
    COMO FUNCIONA — 4 passos
 ───────────────────────────────────────────────────────────── */
 const STEPS = [
-  { n: 1, icon: '🔍', color: 'bg-blue-600', shadow: 'shadow-blue-200',   title: 'Escolha data e horário', desc: 'Selecione o dia e horário disponíveis dentro do funcionamento da plataforma.' },
-  { n: 2, icon: '💳', color: 'bg-teal-600', shadow: 'shadow-teal-200',   title: 'Agende e pague via PIX', desc: 'Pagamento 100% seguro via PIX. Confirmação instantânea, sem taxas surpresa.' },
-  { n: 3, icon: '💬', color: 'bg-indigo-600', shadow: 'shadow-indigo-200', title: 'Farmacêutico entra em contato', desc: 'Um farmacêutico disponível aceita sua consulta e fala com você no horário combinado.' },
-  { n: 4, icon: '📝', color: 'bg-emerald-600', shadow: 'shadow-emerald-200', title: 'Receba sua orientação', desc: 'Consulte-se e receba orientações personalizadas registradas por escrito.' },
+  { n: 1, icon: CalendarClock,  color: 'bg-blue-600', shadow: 'shadow-blue-200',   title: 'Escolha data e horário', desc: 'Selecione o dia e horário disponíveis dentro do funcionamento da plataforma.' },
+  { n: 2, icon: QrCode,         color: 'bg-teal-600', shadow: 'shadow-teal-200',   title: 'Agende e pague via PIX', desc: 'Pagamento 100% seguro via PIX. Confirmação instantânea, sem taxas surpresa.' },
+  { n: 3, icon: MessageCircle,  color: 'bg-indigo-600', shadow: 'shadow-indigo-200', title: 'Farmacêutico entra em contato', desc: 'Um farmacêutico disponível aceita sua consulta e fala com você no horário combinado.' },
+  { n: 4, icon: FileText,       color: 'bg-emerald-600', shadow: 'shadow-emerald-200', title: 'Receba sua orientação', desc: 'Consulte-se e receba orientações personalizadas registradas por escrito.' },
 ];
 
 const HowItWorksSection = () => (
@@ -209,13 +210,13 @@ const HowItWorksSection = () => (
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10">
-          {STEPS.map(({ n, icon, color, shadow, title, desc }) => (
+          {STEPS.map(({ n, icon: Icon, color, shadow, title, desc }) => (
             <div key={n} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/70 hover:shadow-md transition-shadow duration-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-14 h-14 ${color} text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg ${shadow} shrink-0`}>
                   {n}
                 </div>
-                <span className="text-2xl">{icon}</span>
+                <Icon className="w-6 h-6 text-slate-700" strokeWidth={1.75} />
               </div>
               <h4 className="font-heading font-bold text-slate-900 mb-2 leading-tight">{title}</h4>
               <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
