@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import HeroSection from '../components/home/HeroCarousel.jsx';
 import FAQSection from '../components/home/FAQSection.jsx';
 import Footer from '../components/home/Footer.jsx';
@@ -59,6 +59,7 @@ const SearchSection = () => {
   const [phIdx, setPhIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [value, setValue] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -67,6 +68,17 @@ const SearchSection = () => {
     }, 3200);
     return () => clearInterval(id);
   }, []);
+
+  const goToTriagem = (queixa) => {
+    if (queixa && queixa.trim()) {
+      sessionStorage.setItem('fc_queixa_inicial', queixa.trim());
+    }
+    navigate('/entrar');
+  };
+
+  const handleSubmit = () => goToTriagem(value);
+  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSubmit(); };
+  const handleTagClick = (label) => goToTriagem(label.split(' ').slice(1).join(' '));
 
   return (
     <section className="py-14 bg-[#F8FAFC]">
@@ -86,9 +98,10 @@ const SearchSection = () => {
               type="text"
               value={value}
               onChange={(e) => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base text-slate-800 bg-transparent outline-none"
               placeholder=""
-              aria-label="Agendar consulta"
+              aria-label="Descreva sua dúvida de saúde"
             />
             {!value && (
               <span
@@ -99,24 +112,26 @@ const SearchSection = () => {
               </span>
             )}
           </div>
-          <Link
-            to="/entrar"
+          <button
+            type="button"
+            onClick={handleSubmit}
             className="shrink-0 bg-brand hover:bg-brand-deep text-white font-bold px-5 py-3 rounded-xl transition text-sm"
           >
             Agendar Consulta
-          </Link>
+          </button>
         </div>
 
         {/* Quick tags */}
         <div className="flex flex-wrap gap-2 justify-center mt-5">
           {QUICK_TAGS.map(({ label }) => (
-            <Link
+            <button
               key={label}
-              to="/entrar"
+              type="button"
+              onClick={() => handleTagClick(label)}
               className="text-xs text-slate-600 bg-white border border-slate-200 hover:border-brand/50 hover:text-brand-deep hover:bg-brand-wash px-3.5 py-1.5 rounded-full transition-colors duration-150"
             >
               {label}
-            </Link>
+            </button>
           ))}
         </div>
       </div>

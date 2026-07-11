@@ -209,6 +209,15 @@ const TriagemForm = ({
   const [tipoConsulta, setTipoConsulta] = useState(null);
 
   const [queixaPrincipal, setQueixaPrincipal] = useState('');
+  useEffect(() => {
+    if (queixaPrincipal) return;
+    const queixaInicial = sessionStorage.getItem('fc_queixa_inicial');
+    if (queixaInicial) {
+      setQueixaPrincipal(queixaInicial);
+      sessionStorage.removeItem('fc_queixa_inicial');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [tempoSintomas, setTempoSintomas] = useState('');
   const [evolucaoSintomas, setEvolucaoSintomas] = useState('');
 
