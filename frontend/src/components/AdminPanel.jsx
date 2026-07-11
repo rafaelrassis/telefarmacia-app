@@ -1,9 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import {
+  LayoutDashboard, Clock, Stethoscope, Users, CalendarClock, Star,
+  ScrollText, Wallet, Banknote, Mail, Handshake, ShieldCheck,
+  CheckCircle2, XCircle,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAuthedFetch } from '../hooks/useAuthedFetch';
 import { useToast } from '../hooks/useToast';
 import { useDownloadCsv } from '../hooks/useDownloadCsv';
 import { useFinanceiroAdmin } from '../hooks/useFinanceiroAdmin';
+import Toast from './ui/Toast';
 import OverviewTab from './admin/OverviewTab';
 import HorariosTab from './admin/HorariosTab';
 import PharmacistsTab from './admin/PharmacistsTab';
@@ -45,70 +51,116 @@ const AdminPanel = () => {
   useEffect(() => { loadDirectory(); }, [loadDirectory]);
 
   const TABS = [
-    { id: 'overview',     label: 'Visão geral' },
-    { id: 'horarios',     label: 'Horários' },
-    { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})` },
-    { id: 'patients',     label: `Pacientes (${patients.length})` },
-    { id: 'consultas',    label: 'Consultas' },
-    { id: 'avaliacoes',   label: '⭐ Avaliações' },
-    { id: 'logs',         label: 'Logs' },
-    { id: 'financeiro',   label: '💰 Financeiro' },
-    { id: 'repasses',     label: '💳 Repasses' },
-    { id: 'convites',     label: '✉️ Convites' },
-    { id: 'parceiros',    label: '🤝 Parceiros' },
-    { id: 'admins',       label: '🔐 Admins' },
+    { id: 'overview',     label: 'Visão geral', icon: LayoutDashboard },
+    { id: 'horarios',     label: 'Horários', icon: Clock },
+    { id: 'consultas',    label: 'Consultas', icon: CalendarClock },
+    { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})`, icon: Stethoscope },
+    { id: 'patients',     label: `Pacientes (${patients.length})`, icon: Users },
+    { id: 'avaliacoes',   label: 'Avaliações', icon: Star },
+    { id: 'financeiro',   label: 'Financeiro', icon: Wallet },
+    { id: 'repasses',     label: 'Repasses', icon: Banknote },
+    { id: 'convites',     label: 'Convites', icon: Mail },
+    { id: 'parceiros',    label: 'Parceiros', icon: Handshake },
+    { id: 'admins',       label: 'Admins', icon: ShieldCheck },
+    { id: 'logs',         label: 'Logs', icon: ScrollText },
   ];
+
+  const TAB_GROUPS = [
+    { label: 'Operação',   ids: ['overview', 'horarios', 'consultas'] },
+    { label: 'Pessoas',    ids: ['pharmacists', 'patients', 'avaliacoes'] },
+    { label: 'Financeiro', ids: ['financeiro', 'repasses'] },
+    { label: 'Sistema',    ids: ['convites', 'parceiros', 'admins', 'logs'] },
+  ];
+
+  const tabById = Object.fromEntries(TABS.map((t) => [t.id, t]));
 
   return (
     <div>
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium ${
-          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-        }`}>
-          {toast.type === 'success' ? '✓ ' : '✗ '}{toast.text}
-        </div>
+        <Toast variant={toast.type === 'success' ? 'success' : 'error'}>
+          <span className="inline-flex items-center gap-2">
+            {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {toast.text}
+          </span>
+        </Toast>
       )}
 
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap ${
-              tab === t.id
-                ? 'border-brand text-brand-deep'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+      <div className="lg:flex lg:gap-8 lg:items-start">
+        {/* Nav — mobile: select agrupado */}
+        <div className="lg:hidden mb-5">
+          <select
+            value={tab}
+            onChange={(e) => setTab(e.target.value)}
+            aria-label="Selecionar seção do painel administrativo"
+            className="w-full border border-line rounded-xl px-3 py-2.5 text-sm font-medium text-ink bg-canvas focus:outline-none focus:ring-2 focus:ring-brand"
           >
-            {t.label}
-          </button>
-        ))}
-      </div>
+            {TAB_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.ids.map((id) => (
+                  <option key={id} value={id}>{tabById[id].label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
 
-      {tab === 'overview'    && <OverviewTab api={api} showToast={showToast} />}
-      {tab === 'horarios'    && <HorariosTab api={api} showToast={showToast} />}
-      {tab === 'pharmacists' && (
-        <PharmacistsTab
-          api={api} showToast={showToast}
-          pharmacists={pharmacists} setPharmacists={setPharmacists}
-          finLimiteOcorrencias={finHook.finLimiteOcorrencias}
-        />
-      )}
-      {tab === 'patients'    && (
-        <PatientsTab api={api} showToast={showToast} patients={patients} setPatients={setPatients} />
-      )}
-      {tab === 'consultas'   && <ConsultasTab api={api} />}
-      {tab === 'avaliacoes'  && <AvaliacoesAdminTab api={api} pharmacists={pharmacists} />}
-      {tab === 'logs'        && <LogsTabContainer api={api} pharmacists={pharmacists} patients={patients} />}
-      {tab === 'financeiro'  && <FinanceiroTab api={api} downloadCsv={downloadCsv} {...finHook} />}
-      {tab === 'repasses'    && (
-        <RepassesTab api={api} showToast={showToast} pharmacists={pharmacists} downloadCsv={downloadCsv} />
-      )}
-      {tab === 'convites'    && <ConvitesTab api={api} showToast={showToast} />}
-      {tab === 'parceiros'   && <ParceirosTab api={api} showToast={showToast} />}
-      {tab === 'admins'      && <AdminsTab api={api} showToast={showToast} currentUserEmail={currentUserEmail} />}
+        {/* Nav — desktop: sidebar agrupada */}
+        <nav className="hidden lg:block lg:w-56 shrink-0 space-y-5 sticky top-4">
+          {TAB_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 mb-1.5 text-[11px] font-bold text-muted uppercase tracking-wide">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.ids.map((id) => {
+                  const t = tabById[id];
+                  const Icon = t.icon;
+                  const active = tab === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setTab(id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition ${
+                        active
+                          ? 'bg-brand-wash text-brand-deep font-semibold'
+                          : 'text-muted hover:bg-surface hover:text-ink font-medium'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+                      <span className="truncate">{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Conteúdo */}
+        <div className="flex-1 min-w-0">
+          {tab === 'overview'    && <OverviewTab api={api} showToast={showToast} />}
+          {tab === 'horarios'    && <HorariosTab api={api} showToast={showToast} />}
+          {tab === 'pharmacists' && (
+            <PharmacistsTab
+              api={api} showToast={showToast}
+              pharmacists={pharmacists} setPharmacists={setPharmacists}
+              finLimiteOcorrencias={finHook.finLimiteOcorrencias}
+            />
+          )}
+          {tab === 'patients'    && (
+            <PatientsTab api={api} showToast={showToast} patients={patients} setPatients={setPatients} />
+          )}
+          {tab === 'consultas'   && <ConsultasTab api={api} />}
+          {tab === 'avaliacoes'  && <AvaliacoesAdminTab api={api} pharmacists={pharmacists} />}
+          {tab === 'logs'        && <LogsTabContainer api={api} pharmacists={pharmacists} patients={patients} />}
+          {tab === 'financeiro'  && <FinanceiroTab api={api} downloadCsv={downloadCsv} {...finHook} />}
+          {tab === 'repasses'    && (
+            <RepassesTab api={api} showToast={showToast} pharmacists={pharmacists} downloadCsv={downloadCsv} />
+          )}
+          {tab === 'convites'    && <ConvitesTab api={api} showToast={showToast} />}
+          {tab === 'parceiros'   && <ParceirosTab api={api} showToast={showToast} />}
+          {tab === 'admins'      && <AdminsTab api={api} showToast={showToast} currentUserEmail={currentUserEmail} />}
+        </div>
+      </div>
     </div>
   );
 };

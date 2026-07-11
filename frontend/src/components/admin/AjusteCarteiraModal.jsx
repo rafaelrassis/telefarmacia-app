@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Modal from '../ui/Modal';
 
 // ── Modal: ajuste manual de saldo (carteira) de um paciente ─────────────────
 
@@ -21,7 +22,7 @@ const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) =
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        showToast?.('success', '✅ Saldo ajustado!');
+        showToast?.('success', 'Saldo ajustado!');
         onSuccess?.(paciente.id, d.saldo);
         onClose();
       } else {
@@ -35,35 +36,14 @@ const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-        <h3 className="font-bold text-gray-900 mb-1">Ajustar saldo</h3>
-        <p className="text-xs text-gray-500 mb-4">{paciente.name} — {paciente.email}</p>
-        <p className="text-xs text-gray-500 mb-4">
-          Saldo atual: <strong className="text-gray-700">R$ {(paciente.saldo ?? 0).toFixed(2)}</strong>
-        </p>
-
-        <label className="text-xs text-gray-500 font-medium">Valor (use negativo para remover)</label>
-        <input
-          type="number" step="0.01" value={valor}
-          onChange={(e) => setValor(e.target.value)}
-          placeholder="Ex.: 20 ou -20"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-brand outline-none"
-        />
-
-        <label className="text-xs text-gray-500 font-medium">Motivo</label>
-        <textarea
-          value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3}
-          placeholder="Ex.: Compensação por erro no atendimento"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3 focus:ring-2 focus:ring-brand outline-none resize-none"
-        />
-
-        {err && <p className="text-xs text-red-600 mb-3">{err}</p>}
-
+    <Modal
+      title="Ajustar saldo"
+      onClose={onClose}
+      maxWidth="max-w-sm"
+      footer={(
         <div className="flex gap-3">
           <button onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+            className="flex-1 px-4 py-2.5 text-sm font-medium border border-line rounded-xl hover:bg-surface transition text-ink">
             Cancelar
           </button>
           <button
@@ -73,8 +53,34 @@ const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) =
             {saving ? 'Salvando...' : 'Confirmar'}
           </button>
         </div>
+      )}
+    >
+      <div className="px-6 pt-4 pb-2">
+        <p className="text-xs text-muted mb-4">{paciente.name} — {paciente.email}</p>
+        <p className="text-xs text-muted mb-4">
+          Saldo atual: <strong className="text-ink">R$ {(paciente.saldo ?? 0).toFixed(2)}</strong>
+        </p>
+
+        <label htmlFor="ajuste-carteira-valor" className="text-xs text-muted font-medium">Valor (use negativo para remover)</label>
+        <input
+          id="ajuste-carteira-valor"
+          type="number" step="0.01" value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          placeholder="Ex.: 20 ou -20"
+          className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink mt-1 mb-3 focus:ring-2 focus:ring-brand outline-none"
+        />
+
+        <label htmlFor="ajuste-carteira-motivo" className="text-xs text-muted font-medium">Motivo</label>
+        <textarea
+          id="ajuste-carteira-motivo"
+          value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3}
+          placeholder="Ex.: Compensação por erro no atendimento"
+          className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink mt-1 mb-3 focus:ring-2 focus:ring-brand outline-none resize-none"
+        />
+
+        {err && <p role="alert" className="text-xs text-error mb-1">{err}</p>}
       </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -17,7 +17,7 @@ self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { /* ignora payload inválido */ }
 
-  const title = data.title || 'Telefarmácia';
+  const title = data.title || 'FarmaConsulta';
   const options = {
     body:  data.body || '',
     icon:  '/icon-192.svg',

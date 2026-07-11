@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Paginacao from '../Paginacao';
-import { fmtDt, SEL_STYLE } from '../../utils/adminFormat';
+import { fmtDt } from '../../utils/adminFormat';
+
+const selectCls = 'text-sm border border-line rounded-lg px-2.5 py-1.5 outline-none bg-canvas text-ink focus:ring-2 focus:ring-brand';
 
 // ── Sub-aba "Ações admin" ─────────────────────────────────────────────────────
 
@@ -74,11 +76,12 @@ const AuditPanel = ({ api }) => {
 
   return (
     <div className="space-y-4">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 12, color: '#9ca3af' }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted">
           {!loading && `${total} ${total === 1 ? 'ação' : 'ações'}`}
         </span>
-        <select value={filterAcao} onChange={(e) => setFilterAcao(e.target.value)} style={SEL_STYLE}>
+        <label htmlFor="audit-filtro-acao" className="sr-only">Filtrar por ação</label>
+        <select id="audit-filtro-acao" value={filterAcao} onChange={(e) => setFilterAcao(e.target.value)} className={selectCls}>
           <option value="">Todas as ações</option>
           {Object.entries(AUDIT_ACAO_LABEL).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
@@ -86,18 +89,18 @@ const AuditPanel = ({ api }) => {
         </select>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-canvas border border-line rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 text-sm">Nenhuma ação registrada.</div>
+          <div className="p-12 text-center text-muted text-sm">Nenhuma ação registrada.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
                   <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
                   <th className="text-left px-4 py-3">Admin</th>
                   <th className="text-left px-4 py-3">Ação</th>
@@ -105,26 +108,21 @@ const AuditPanel = ({ api }) => {
                   <th className="text-left px-4 py-3">Detalhes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {items.map((it) => (
-                  <tr key={it.id} className="hover:bg-gray-50 transition">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{fmtDt(it.createdAt)}</td>
+                  <tr key={it.id} className="hover:bg-surface transition">
+                    <td className="px-4 py-3 text-muted whitespace-nowrap text-xs">{fmtDt(it.createdAt)}</td>
                     <td className="px-4 py-3 text-xs">
-                      <p className="text-gray-800 font-medium">{it.adminNome}</p>
-                      <p className="text-gray-400">{it.adminEmail ?? ''}</p>
+                      <p className="text-ink font-medium">{it.adminNome}</p>
+                      <p className="text-muted">{it.adminEmail ?? ''}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center',
-                        padding: '2px 8px', borderRadius: 9999,
-                        fontSize: 11, fontWeight: 600,
-                        background: '#eff6ff', color: '#1d4ed8',
-                      }}>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-wash text-brand-deep">
                         {AUDIT_ACAO_LABEL[it.acao] ?? it.acao}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{fmtAlvo(it.alvoTipo, it.alvoId)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{fmtDetalhes(it.detalhes)}</td>
+                    <td className="px-4 py-3 text-xs text-muted">{fmtAlvo(it.alvoTipo, it.alvoId)}</td>
+                    <td className="px-4 py-3 text-xs text-muted">{fmtDetalhes(it.detalhes)}</td>
                   </tr>
                 ))}
               </tbody>

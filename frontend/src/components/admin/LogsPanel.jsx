@@ -1,7 +1,22 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Download, Eye, X } from 'lucide-react';
 import ConsultaModal from '../ConsultaModal';
 import Paginacao from '../Paginacao';
-import { ACAO_CFG, fmtDt, fmtDetalhes, SEL_STYLE } from '../../utils/adminFormat';
+import { ACAO_CFG, fmtDt, fmtDetalhes } from '../../utils/adminFormat';
+
+const selectCls = 'text-sm border border-line rounded-lg px-2.5 py-1.5 outline-none bg-canvas text-ink focus:ring-2 focus:ring-brand';
+
+// Mapeamento local para tokens — ACAO_CFG (adminFormat.js) só fornece o
+// label; as cores usadas hoje (por ação) são reproduzidas aqui com classes
+// em vez do style inline por hex, sem tocar no util compartilhado.
+const ACAO_BADGE_CLS = {
+  aceito:    'bg-brand-wash text-brand-deep',
+  iniciado:  'bg-alert-wash text-alert',
+  concluido: 'bg-success-wash text-success',
+  cancelado: 'bg-error-wash text-error',
+  devolvido: 'bg-alert-wash text-alert',
+  reembolso: 'bg-pink-50 text-pink-700',
+};
 
 const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
   const [logs, setLogs]                   = useState([]);
@@ -82,29 +97,25 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
     <div className="space-y-4">
 
       {/* Header: contador + exportar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 12, color: '#9ca3af' }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted">
           {!loading && `${total} ${total === 1 ? 'registro' : 'registros'}`}
         </span>
         <button
           onClick={handleExport}
           disabled={exportLoading}
-          style={{
-            background: '#3B9FE0', color: '#fff', border: 'none',
-            borderRadius: 8, padding: '6px 16px', fontSize: 13,
-            fontWeight: 600, cursor: exportLoading ? 'not-allowed' : 'pointer',
-            opacity: exportLoading ? 0.6 : 1,
-          }}
+          className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-white rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-60 transition"
         >
-          {exportLoading ? 'Exportando…' : '📥 Exportar CSV'}
+          <Download className="w-3.5 h-3.5" />
+          {exportLoading ? 'Exportando…' : 'Exportar CSV'}
         </button>
       </div>
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">Ação</label>
-          <select value={filterAcao} onChange={(e) => setFilterAcao(e.target.value)} style={SEL_STYLE}>
+          <label htmlFor="logs-filtro-acao" className="text-xs text-muted font-medium">Ação</label>
+          <select id="logs-filtro-acao" value={filterAcao} onChange={(e) => setFilterAcao(e.target.value)} className={selectCls}>
             <option value="">Todas</option>
             <option value="aceito">Aceito</option>
             <option value="iniciado">Iniciado</option>
@@ -115,8 +126,8 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">Tipo</label>
-          <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={SEL_STYLE}>
+          <label htmlFor="logs-filtro-tipo" className="text-xs text-muted font-medium">Tipo</label>
+          <select id="logs-filtro-tipo" value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} className={selectCls}>
             <option value="">Todos</option>
             <option value="agendada">Agendada</option>
             <option value="urgente">Urgente</option>
@@ -124,8 +135,8 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
         </div>
         {pharmacists.length > 0 && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Farmacêutico</label>
-            <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} style={SEL_STYLE}>
+            <label htmlFor="logs-filtro-farm" className="text-xs text-muted font-medium">Farmacêutico</label>
+            <select id="logs-filtro-farm" value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className={selectCls}>
               <option value="">Todos</option>
               {pharmacists.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -133,44 +144,45 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
         )}
         {patients.length > 0 && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Paciente</label>
-            <select value={filterPac} onChange={(e) => setFilterPac(e.target.value)} style={SEL_STYLE}>
+            <label htmlFor="logs-filtro-pac" className="text-xs text-muted font-medium">Paciente</label>
+            <select id="logs-filtro-pac" value={filterPac} onChange={(e) => setFilterPac(e.target.value)} className={selectCls}>
               <option value="">Todos</option>
               {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">De</label>
-          <input type="date" value={filterDe} onChange={(e) => setFilterDe(e.target.value)} style={SEL_STYLE} />
+          <label htmlFor="logs-filtro-de" className="text-xs text-muted font-medium">De</label>
+          <input id="logs-filtro-de" type="date" value={filterDe} onChange={(e) => setFilterDe(e.target.value)} className={selectCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">Até</label>
-          <input type="date" value={filterAte} onChange={(e) => setFilterAte(e.target.value)} style={SEL_STYLE} />
+          <label htmlFor="logs-filtro-ate" className="text-xs text-muted font-medium">Até</label>
+          <input id="logs-filtro-ate" type="date" value={filterAte} onChange={(e) => setFilterAte(e.target.value)} className={selectCls} />
         </div>
         {hasAnyFilter && (
           <button
             onClick={() => { setFilterAcao(''); setFilterDe(''); setFilterAte(''); setFilterFarm(''); setFilterPac(''); setFilterTipo(''); }}
-            style={{ ...SEL_STYLE, background: '#fff', color: '#6b7280', cursor: 'pointer' }}
+            className="inline-flex items-center gap-1 text-sm border border-line rounded-lg px-2.5 py-1.5 bg-canvas text-muted hover:bg-surface transition"
           >
+            <X className="w-3.5 h-3.5" />
             Limpar filtros
           </button>
         )}
       </div>
 
       {/* Tabela */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-canvas border border-line rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 text-sm">Nenhum log encontrado.</div>
+          <div className="p-12 text-center text-muted text-sm">Nenhum log encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
                   <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
                   <th className="text-left px-4 py-3">Paciente</th>
                   <th className="text-left px-4 py-3">Usuário</th>
@@ -180,52 +192,45 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {logs.map((log) => {
-                  const acaoCfg = ACAO_CFG[log.acao] || { label: log.acao, style: { background: '#f3f4f6', color: '#6b7280' } };
+                  const acaoLabel = ACAO_CFG[log.acao]?.label ?? log.acao;
+                  const acaoCls   = ACAO_BADGE_CLS[log.acao] ?? 'bg-surface text-muted';
                   const duracao = fmtDuracao(log.duracaoMin);
                   return (
-                    <tr key={log.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                    <tr key={log.id} className="hover:bg-surface transition">
+                      <td className="px-4 py-3 text-muted whitespace-nowrap text-xs">
                         {fmtDt(log.criadoEm)}
                       </td>
                       <td className="px-4 py-3 text-xs">
                         {log.pacienteNome
-                          ? <span className="text-gray-800 font-medium">{log.pacienteNome}</span>
-                          : <span className="text-gray-300">—</span>
+                          ? <span className="text-ink font-medium">{log.pacienteNome}</span>
+                          : <span className="text-muted">—</span>
                         }
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-gray-800 font-medium text-xs">{log.usuarioNome}</p>
-                        <p className="text-gray-400 text-xs">{log.role ?? '—'}</p>
+                        <p className="text-ink font-medium text-xs">{log.usuarioNome}</p>
+                        <p className="text-muted text-xs">{log.role ?? '—'}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center',
-                          padding: '2px 8px', borderRadius: 9999,
-                          fontSize: 11, fontWeight: 600,
-                          ...acaoCfg.style,
-                        }}>
-                          {acaoCfg.label}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${acaoCls}`}>
+                          {acaoLabel}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: duracao ? '#6b7280' : '#d1d5db' }}>
+                      <td className={`px-4 py-3 text-xs whitespace-nowrap ${duracao ? 'text-muted' : 'text-line'}`}>
                         {duracao ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+                      <td className="px-4 py-3 text-muted text-xs">
                         {fmtDetalhes(log.acao, log.detalhes, log.consultaDataHora)}
                       </td>
                       <td className="px-4 py-3">
                         {log.consultaId && log.tipo && (
                           <button
                             onClick={() => setViewingConsulta({ id: log.consultaId, tipo: log.tipo })}
-                            style={{
-                              background: 'transparent', border: '1.5px solid #8ED2F6',
-                              color: '#1D74B8', borderRadius: 8, padding: '4px 10px',
-                              fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-                            }}
+                            className="inline-flex items-center gap-1 border border-brand/40 text-brand-deep rounded-lg px-2.5 py-1 text-xs font-semibold whitespace-nowrap hover:bg-brand-wash transition"
                           >
-                            👁 Ver consulta
+                            <Eye className="w-3.5 h-3.5" />
+                            Ver consulta
                           </button>
                         )}
                       </td>
