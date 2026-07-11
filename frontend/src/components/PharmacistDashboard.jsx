@@ -9,7 +9,6 @@ import GanhosTab from './GanhosTab';
 import AvaliacoesTab from './AvaliacoesTab';
 import Badge from './ui/Badge';
 import { isPushSupported, getCurrentPushSubscription, subscribeToPush, unsubscribeFromPush } from '../utils/push';
-import { useIsLg } from '../hooks/useIsLg';
 import FilaPanel from './pharmacist/FilaPanel';
 import UrgentesPanel from './pharmacist/UrgentesPanel';
 import UrgentesAceitasPanel from './pharmacist/UrgentesAceitasPanel';
@@ -62,12 +61,11 @@ const TABS = [
 
 const PharmacistDashboard = () => {
   const { token, user, refreshUser } = useAuth();
-  const isLg = useIsLg();
   const [activeTab, setActiveTab]         = useState('calendario');
   const [showDocForm, setShowDocForm]     = useState(false);
   const [calendarTrigger, setCalendarTrigger] = useState(0);
   const [consultaAlvo, setConsultaAlvo]       = useState(null);
-  const [hasEmAtendimento, setHasEmAtendimento] = useState(false);
+  const [emAtendimento, setEmAtendimento]     = useState(null); // { id, tipo } | null
   const [togglingDisponivel, setTogglingDisponivel] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [togglingPush, setTogglingPush] = useState(false);
@@ -79,6 +77,7 @@ const PharmacistDashboard = () => {
   const disponivelUrgencias = user?.pharmacistProfile?.disponivelUrgencias ?? true;
   const primeiroNome        = (user?.name || '').split(' ')[0];
   const statusBadge         = STATUS_BADGE[status.key];
+  const hasEmAtendimento    = Boolean(emAtendimento);
 
   // Solicita permissão de notificação do navegador ao aprovar o farmacêutico
   useEffect(() => {
@@ -156,7 +155,8 @@ const PharmacistDashboard = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setHasEmAtendimento((data.total ?? 0) > 0);
+        const atual = data.items?.[0];
+        setEmAtendimento(atual ? { id: atual.id, tipo: atual.tipo } : null);
       }
     } catch {}
   }, [token]);
@@ -292,12 +292,41 @@ const PharmacistDashboard = () => {
 
       {isApproved && <ResumoDoDia token={token} refreshTrigger={calendarTrigger} />}
 
-      {/* ── Duas colunas: Fila + Urgentes (sempre visíveis quando aprovado) ── */}
-      {isApproved && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <FilaPanel     onAccepted={onConsultaAceita} onCardClick={handleCardClick} hasEmAtendimento={hasEmAtendimento} />
-          <UrgentesPanel onAccepted={onConsultaAceita} onCardClick={handleCardClick} hasEmAtendimento={hasEmAtendimento} disponivelUrgencias={disponivelUrgencias} />
+      {/* ── Atendimento em andamento ─────────────────────────────────────── */}
+      {isApproved && hasEmAtendimento && (
+        <div className="flex items-center justify-between gap-3 bg-success-wash border border-success/30 rounded-xl px-4 py-2.5 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse shrink-0" />
+            <p className="text-xs font-semibold text-success">Atendimento em andamento</p>
+          </div>
+          <button
+            onClick={() => handleCardClick(emAtendimento)}
+            className="text-xs font-bold text-success underline underline-offset-2 hover:opacity-80"
+          >
+            Reabrir
+          </button>
         </div>
+      )}
+
+      {/* ── Atendimentos: hierarquia por criticidade ────────────────────── */}
+      {isApproved && (
+        <section className="mb-6">
+          <h2 className="text-xs font-bold text-muted uppercase tracking-wide mb-3">Atendimentos</h2>
+          <div className="flex flex-col gap-4">
+            <UrgentesPanel
+              onAccepted={onConsultaAceita}
+              onCardClick={handleCardClick}
+              hasEmAtendimento={hasEmAtendimento}
+              disponivelUrgencias={disponivelUrgencias}
+            />
+            <UrgentesAceitasPanel onCardClick={handleCardClick} refreshTrigger={calendarTrigger} />
+            <FilaPanel
+              onAccepted={onConsultaAceita}
+              onCardClick={handleCardClick}
+              hasEmAtendimento={hasEmAtendimento}
+            />
+          </div>
+        </section>
       )}
 
       {/* ── Abas ─────────────────────────────────────────────────────────── */}
@@ -318,15 +347,7 @@ const PharmacistDashboard = () => {
       </div>
 
       {activeTab === 'calendario' && (
-        <div style={isLg
-          ? { display: 'grid', gridTemplateColumns: '1fr 300px', gap: '16px', alignItems: 'start' }
-          : { display: 'flex', flexDirection: 'column', gap: '16px' }
-        }>
-          <div style={{ minWidth: 0 }}>
-            <CalendarioTab refreshTrigger={calendarTrigger} onEventClick={handleEventClick} />
-          </div>
-          <UrgentesAceitasPanel onCardClick={handleCardClick} refreshTrigger={calendarTrigger} />
-        </div>
+        <CalendarioTab refreshTrigger={calendarTrigger} onEventClick={handleEventClick} />
       )}
       {activeTab === 'agenda'     && <AgendaTab />}
       {activeTab === 'templates'  && <TemplatesTab />}
