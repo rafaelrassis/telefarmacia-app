@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { RotateCcw, X } from 'lucide-react';
 import { toLocalDateStr } from '../../utils/patientDashboardFormat';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const RetornoSugeridoCard = ({ token, onAgendar }) => {
+const RetornoSugeridoCard = ({ token, onAgendar, onVisibleChange }) => {
   const [retornoSugerido, setRetornoSugerido] = useState(null);
   const [dispensandoRetorno, setDispensandoRetorno] = useState(false);
   const [agendandoRetorno, setAgendandoRetorno] = useState(false);
@@ -19,6 +20,8 @@ const RetornoSugeridoCard = ({ token, onAgendar }) => {
   }, [token]);
 
   useEffect(() => { fetchRetornoSugerido(); }, [fetchRetornoSugerido]);
+
+  useEffect(() => { onVisibleChange?.(Boolean(retornoSugerido)); }, [retornoSugerido, onVisibleChange]);
 
   const handleDispensarRetorno = async () => {
     if (!retornoSugerido) return;
@@ -77,60 +80,35 @@ const RetornoSugeridoCard = ({ token, onAgendar }) => {
     : null;
 
   return (
-    <div style={{
-      background: '#f0fdf4', border: '1.5px solid #86efac',
-      borderRadius: 12, padding: '14px 16px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-        <div>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#15803d' }}>
-            🔄 Retorno sugerido{dataEstimada ? ` para ~${dataEstimada}` : ''}
-          </p>
-          {retornoSugerido.farmaceuticoNome && (
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#16a34a' }}>
-              Por {retornoSugerido.farmaceuticoNome.split(' ')[0]}
-              {diasSugeridos ? ` · em ${diasSugeridos} dias` : ''}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={handleDispensarRetorno}
-          disabled={dispensandoRetorno}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86efac', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}
-          aria-label="Dispensar sugestão"
-        >
-          ×
-        </button>
-      </div>
-      {observacao && (
-        <p style={{ margin: '0 0 10px', fontSize: 13, color: '#166534', fontStyle: 'italic' }}>
-          "{observacao}"
-        </p>
-      )}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          onClick={handleAgendarRetorno}
-          disabled={agendandoRetorno}
-          style={{
-            flex: 2, padding: '8px 0', background: '#16a34a', color: 'white',
-            border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
-            cursor: agendandoRetorno ? 'wait' : 'pointer', opacity: agendandoRetorno ? 0.7 : 1,
-          }}
-        >
-          {agendandoRetorno ? 'Verificando horários...' : 'Agendar retorno'}
-        </button>
-        <button
-          onClick={handleDispensarRetorno}
-          disabled={dispensandoRetorno}
-          style={{
-            flex: 1, padding: '8px 0', background: 'white', color: '#16a34a',
-            border: '1px solid #86efac', borderRadius: 8, fontSize: 13, cursor: 'pointer',
-            opacity: dispensandoRetorno ? 0.6 : 1,
-          }}
-        >
-          {dispensandoRetorno ? '...' : 'Dispensar'}
-        </button>
-      </div>
+    <div className="shrink-0 w-[230px] rounded-2xl border border-line bg-canvas p-4 flex flex-col gap-2 relative">
+      <button
+        onClick={handleDispensarRetorno}
+        disabled={dispensandoRetorno}
+        aria-label="Dispensar sugestão"
+        className="absolute top-3 right-3 text-muted hover:text-ink transition disabled:opacity-50"
+      >
+        <X className="w-4 h-4" />
+      </button>
+      <span className="w-8 h-8 rounded-full bg-success-wash flex items-center justify-center text-success shrink-0">
+        <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
+      </span>
+      <p className="font-heading text-sm font-bold text-ink">
+        Retorno sugerido{dataEstimada ? ` para ~${dataEstimada}` : ''}
+      </p>
+      <p className="text-xs text-muted leading-snug flex-1">
+        {observacao
+          ? `"${observacao}"`
+          : retornoSugerido.farmaceuticoNome
+            ? `Por ${retornoSugerido.farmaceuticoNome.split(' ')[0]}${diasSugeridos ? ` · em ${diasSugeridos} dias` : ''}`
+            : 'Sugerido pelo farmacêutico'}
+      </p>
+      <button
+        onClick={handleAgendarRetorno}
+        disabled={agendandoRetorno}
+        className="bg-success hover:opacity-90 disabled:opacity-60 text-white text-xs font-bold px-3 py-2 rounded-lg transition"
+      >
+        {agendandoRetorno ? 'Verificando...' : 'Agendar retorno'}
+      </button>
     </div>
   );
 };

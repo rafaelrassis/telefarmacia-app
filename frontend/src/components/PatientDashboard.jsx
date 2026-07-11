@@ -36,6 +36,12 @@ const PatientDashboard = () => {
   const dep = useDependentes(token);
   const { pushEnabled, togglingPush, maybeRequestPush, togglePush } = usePushToggle(token);
 
+  // "Para você": some quando nenhum dos três cards tem conteúdo
+  const [avaliacaoVisible, setAvaliacaoVisible] = useState(false);
+  const [retornoVisible, setRetornoVisible] = useState(false);
+  const [dadosSaudeVisible, setDadosSaudeVisible] = useState(false);
+  const paraVoceVisible = avaliacaoVisible || retornoVisible || dadosSaudeVisible;
+
   useEffect(() => {
     const onVisible = () => {
       if (!document.hidden) setAppointmentsRefreshKey((k) => k + 1);
@@ -121,11 +127,7 @@ const PatientDashboard = () => {
         <CarteiraCard walletBalance={walletBalance} setWalletBalance={setWalletBalance} onOpenTopup={() => setShowWalletTopup(true)} />
       </div>
 
-      <PushToggleBanner pushEnabled={pushEnabled} togglingPush={togglingPush} togglePush={togglePush} />
-
       <PerfilSelector {...dep} />
-
-      <DadosSaudeBanner selectedPerson={dep.selectedPerson} nomeTitular={user?.name} />
 
       <ProximaConsultaCard
         token={token}
@@ -133,16 +135,23 @@ const PatientDashboard = () => {
         onAgendar={() => setShowDataModal(true)}
       />
 
-      <AvaliacaoPendenteCard />
-
-      <RetornoSugeridoCard
-        token={token}
-        onAgendar={({ consultaId, tipo, initialDate }) => {
-          setRetornoAgendando({ consultaId, tipo });
-          setRetornoInitialDate(initialDate);
-          setShowDataModal(true);
-        }}
-      />
+      {/* Para você */}
+      <div className={paraVoceVisible ? '' : 'hidden'}>
+        <p className="text-[11px] font-bold tracking-wider uppercase text-muted mb-2">Para você</p>
+        <div className="flex items-stretch gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+          <AvaliacaoPendenteCard onVisibleChange={setAvaliacaoVisible} />
+          <RetornoSugeridoCard
+            token={token}
+            onAgendar={({ consultaId, tipo, initialDate }) => {
+              setRetornoAgendando({ consultaId, tipo });
+              setRetornoInitialDate(initialDate);
+              setShowDataModal(true);
+            }}
+            onVisibleChange={setRetornoVisible}
+          />
+          <DadosSaudeBanner selectedPerson={dep.selectedPerson} nomeTitular={user?.name} onVisibleChange={setDadosSaudeVisible} />
+        </div>
+      </div>
 
       <AgendamentoButtons
         walletBalance={walletBalance}
@@ -202,6 +211,8 @@ const PatientDashboard = () => {
       </div>
 
       {showDocumentos && <MeusDocumentos onClose={() => setShowDocumentos(false)} />}
+
+      <PushToggleBanner pushEnabled={pushEnabled} togglingPush={togglingPush} togglePush={togglePush} />
     </div>
   );
 };
