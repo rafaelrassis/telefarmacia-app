@@ -1,19 +1,22 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Eye, X } from 'lucide-react';
 import ConsultaModal from '../ConsultaModal';
 import Paginacao from '../Paginacao';
-import { fmtDt, SEL_STYLE } from '../../utils/adminFormat';
+import { fmtDt } from '../../utils/adminFormat';
 
 // ── Aba "Consultas" (fila agendada + urgente) ────────────────────────────────
 
 export const CONSULTA_STATUS_CFG = {
-  aguardando:           { label: 'Aguardando',   cls: 'bg-gray-100 text-gray-600' },
-  aceito:               { label: 'Aceito',       cls: 'bg-blue-50 text-blue-700' },
-  em_atendimento:       { label: 'Em atendimento', cls: 'bg-green-50 text-green-700' },
+  aguardando:           { label: 'Aguardando',   cls: 'bg-surface text-muted' },
+  aceito:               { label: 'Aceito',       cls: 'bg-brand-wash text-brand-deep' },
+  em_atendimento:       { label: 'Em atendimento', cls: 'bg-success-wash text-success' },
   concluido:            { label: 'Concluído',    cls: 'bg-teal-50 text-teal-700' },
-  cancelado:            { label: 'Cancelado',    cls: 'bg-red-50 text-red-700' },
-  expirado:             { label: 'Expirado',     cls: 'bg-gray-100 text-gray-500' },
-  remarcacao_pendente:  { label: 'Remarcação pendente', cls: 'bg-amber-50 text-amber-700' },
+  cancelado:            { label: 'Cancelado',    cls: 'bg-error-wash text-error' },
+  expirado:             { label: 'Expirado',     cls: 'bg-surface text-muted' },
+  remarcacao_pendente:  { label: 'Remarcação pendente', cls: 'bg-alert-wash text-alert' },
 };
+
+const selectCls = 'text-sm border border-line rounded-lg px-2.5 py-1.5 outline-none bg-canvas text-ink focus:ring-2 focus:ring-brand';
 
 const ConsultasTab = ({ api }) => {
   const [items, setItems]     = useState([]);
@@ -66,16 +69,16 @@ const ConsultasTab = ({ api }) => {
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">Tipo</label>
-          <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={SEL_STYLE}>
+          <label htmlFor="consultas-filtro-tipo" className="text-xs text-muted font-medium">Tipo</label>
+          <select id="consultas-filtro-tipo" value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} className={selectCls}>
             <option value="todas">Todas</option>
             <option value="agendada">Agendada</option>
             <option value="urgente">Urgente</option>
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">Status</label>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={SEL_STYLE}>
+          <label htmlFor="consultas-filtro-status" className="text-xs text-muted font-medium">Status</label>
+          <select id="consultas-filtro-status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectCls}>
             <option value="">Todos</option>
             {Object.entries(CONSULTA_STATUS_CFG).map(([key, cfg]) => (
               <option key={key} value={key}>{cfg.label}</option>
@@ -83,26 +86,28 @@ const ConsultasTab = ({ api }) => {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">De</label>
-          <input type="date" value={filterDe} onChange={(e) => setFilterDe(e.target.value)} style={SEL_STYLE} />
+          <label htmlFor="consultas-filtro-de" className="text-xs text-muted font-medium">De</label>
+          <input id="consultas-filtro-de" type="date" value={filterDe} onChange={(e) => setFilterDe(e.target.value)} className={selectCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">Até</label>
-          <input type="date" value={filterAte} onChange={(e) => setFilterAte(e.target.value)} style={SEL_STYLE} />
+          <label htmlFor="consultas-filtro-ate" className="text-xs text-muted font-medium">Até</label>
+          <input id="consultas-filtro-ate" type="date" value={filterAte} onChange={(e) => setFilterAte(e.target.value)} className={selectCls} />
         </div>
-        <div className="flex flex-col gap-1" style={{ minWidth: 200 }}>
-          <label className="text-xs text-gray-500 font-medium">Buscar (nome/e-mail)</label>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label htmlFor="consultas-filtro-q" className="text-xs text-muted font-medium">Buscar (nome/e-mail)</label>
           <input
+            id="consultas-filtro-q"
             type="text" value={filterQ} onChange={(e) => setFilterQ(e.target.value)}
-            placeholder="Paciente ou farmacêutico" style={SEL_STYLE}
+            placeholder="Paciente ou farmacêutico" className={selectCls}
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-500 font-medium">&nbsp;</label>
-          <label className="flex items-center gap-2 text-xs text-gray-600 font-medium" style={{ height: 38 }}>
+          <span className="text-xs text-muted font-medium">&nbsp;</span>
+          <label className="flex items-center gap-2 text-xs text-ink font-medium h-[38px]">
             <input
               type="checkbox" checked={filterExpirada}
               onChange={(e) => setFilterExpirada(e.target.checked)}
+              className="accent-brand"
             />
             Só expiradas
           </label>
@@ -110,31 +115,32 @@ const ConsultasTab = ({ api }) => {
         {(hasAnyFilter || filterExpirada) && (
           <button
             onClick={() => { setFilterTipo('todas'); setFilterStatus(''); setFilterDe(''); setFilterAte(''); setFilterQ(''); setFilterExpirada(false); }}
-            style={{ ...SEL_STYLE, background: '#fff', color: '#6b7280', cursor: 'pointer' }}
+            className="inline-flex items-center gap-1 text-sm border border-line rounded-lg px-2.5 py-1.5 bg-canvas text-muted hover:bg-surface transition"
           >
+            <X className="w-3.5 h-3.5" />
             Limpar filtros
           </button>
         )}
         {!loading && (
-          <span className="text-xs text-gray-400 self-end mb-1.5">
+          <span className="text-xs text-muted self-end mb-1.5">
             {total} {total === 1 ? 'resultado' : 'resultados'}
           </span>
         )}
       </div>
 
       {/* Tabela */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-canvas border border-line rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 text-sm">Nenhuma consulta encontrada.</div>
+          <div className="p-12 text-center text-muted text-sm">Nenhuma consulta encontrada.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
                   <th className="text-left px-4 py-3 whitespace-nowrap">Data / Hora</th>
                   <th className="text-left px-4 py-3">Tipo</th>
                   <th className="text-left px-4 py-3">Paciente</th>
@@ -144,41 +150,38 @@ const ConsultasTab = ({ api }) => {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {items.map((c) => {
-                  const cfg = CONSULTA_STATUS_CFG[c.status] ?? { label: c.status, cls: 'bg-gray-100 text-gray-600' };
+                  const cfg = CONSULTA_STATUS_CFG[c.status] ?? { label: c.status, cls: 'bg-surface text-muted' };
                   return (
-                    <tr key={`${c.tipo}-${c.id}`} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{fmtDt(c.dataHora)}</td>
+                    <tr key={`${c.tipo}-${c.id}`} className="hover:bg-surface transition">
+                      <td className="px-4 py-3 text-muted whitespace-nowrap text-xs">{fmtDt(c.dataHora)}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.tipo === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-brand-wash text-brand-deep'}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.tipo === 'urgente' ? 'bg-error-wash text-error' : 'bg-brand-wash text-brand-deep'}`}>
                           {c.tipo === 'urgente' ? 'Urgente' : 'Agendada'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs">
-                        <p className="text-gray-800 font-medium">{c.paciente?.name ?? '—'}</p>
-                        <p className="text-gray-400">{c.paciente?.email ?? ''}</p>
+                        <p className="text-ink font-medium">{c.paciente?.name ?? '—'}</p>
+                        <p className="text-muted">{c.paciente?.email ?? ''}</p>
                       </td>
                       <td className="px-4 py-3 text-xs">
-                        <p className="text-gray-700">{c.farmaceutico?.name ?? '—'}</p>
-                        <p className="text-gray-400">{c.farmaceutico?.email ?? ''}</p>
+                        <p className="text-ink">{c.farmaceutico?.name ?? '—'}</p>
+                        <p className="text-muted">{c.farmaceutico?.email ?? ''}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>
                           {cfg.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{c.motivo || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-muted max-w-[200px] truncate">{c.motivo || '—'}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => setViewingConsulta({ id: c.id, tipo: c.tipo })}
-                          style={{
-                            background: 'transparent', border: '1.5px solid #8ED2F6',
-                            color: '#1D74B8', borderRadius: 8, padding: '4px 10px',
-                            fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-                          }}
+                          className="inline-flex items-center gap-1 border border-brand/40 text-brand-deep rounded-lg px-2.5 py-1 text-xs font-semibold whitespace-nowrap hover:bg-brand-wash transition"
                         >
-                          👁 Ver consulta
+                          <Eye className="w-3.5 h-3.5" />
+                          Ver consulta
                         </button>
                       </td>
                     </tr>
