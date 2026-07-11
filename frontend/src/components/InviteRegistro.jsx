@@ -99,7 +99,7 @@ const InviteRegistro = () => {
             Este convite não existe, já foi utilizado ou expirou (validade de 7 dias).
           </p>
           <p className="text-xs text-gray-400 mt-4">
-            Entre em contato com a equipe da Telefarmácia para receber um novo convite.
+            Entre em contato com a equipe da FarmaConsulta para receber um novo convite.
           </p>
         </div>
       </div>
@@ -128,7 +128,7 @@ const InviteRegistro = () => {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm w-full max-w-md">
 
         <div className="px-8 pt-8 pb-4 border-b border-gray-100">
-          <p className="text-brand-deep font-bold text-sm uppercase tracking-widest mb-1">Telefarmácia</p>
+          <p className="text-brand-deep font-bold text-sm uppercase tracking-widest mb-1">FarmaConsulta</p>
           <h1 className="font-heading text-xl font-bold text-gray-900">Criar sua conta</h1>
           <p className="text-sm text-gray-500 mt-1">
             Convite para <strong>{convite?.nome}</strong>

@@ -17,10 +17,12 @@ const LoginPage = () => {
       <div className="w-full max-w-md">
         {/* Cabeçalho */}
         <div className="text-center mb-8">
-          <span className="text-5xl mb-3 block">💊</span>
-          <h1 className="font-heading text-2xl font-extrabold text-gray-900">Bem-vindo ao Telefarmácia</h1>
+          <p className="font-heading font-extrabold text-2xl mb-3">
+            <span className="text-ink">Farma</span><span className="text-brand">Consulta</span>
+          </p>
+          <h1 className="font-heading text-2xl font-extrabold text-gray-900">Bem-vindo de volta</h1>
           <p className="text-gray-500 mt-2 text-sm">
-            Entre com sua conta Google para acessar ou criar sua conta.
+            Entre com Google ou e-mail para acessar suas consultas.
           </p>
         </div>
 
