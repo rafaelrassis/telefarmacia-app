@@ -9,13 +9,13 @@ const LogsTabContainer = ({ api, pharmacists, patients }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 border-b border-gray-100">
+      <div className="flex gap-1 border-b border-line">
         {[{ id: 'consultas', label: 'Consultas' }, { id: 'admin', label: 'Ações admin' }].map((t) => (
           <button
             key={t.id}
             onClick={() => setSubTab(t.id)}
             className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
-              subTab === t.id ? 'border-brand text-brand-deep' : 'border-transparent text-gray-500 hover:text-gray-700'
+              subTab === t.id ? 'border-brand text-brand-deep' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {t.label}
