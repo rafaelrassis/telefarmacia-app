@@ -1,5 +1,5 @@
 import React from 'react';
-import { inp, area, lbl, sec, Toggle, SINAIS_ALERTA } from './shared';
+import { inp, area, lbl, sec, Toggle, inpError, SINAIS_ALERTA } from './shared';
 
 const SintomasSection = ({
   queixaPrincipal, setQueixaPrincipal, queixaPrefilled,
@@ -14,97 +14,96 @@ const SintomasSection = ({
   sinaisAlerta, toggleSinal,
 }) => (
   <>
-    <p style={sec}>Queixa principal</p>
-    <div style={{ marginBottom: 12 }}>
-      <label style={lbl}>O que está sentindo?</label>
-      <textarea value={queixaPrincipal} onChange={(e) => setQueixaPrincipal(e.target.value)} placeholder="Descreva seus sintomas..." style={area} />
+    <p className={sec}>Queixa principal</p>
+    <div className="mb-3">
+      <label className={lbl}>O que está sentindo?</label>
+      <textarea value={queixaPrincipal} onChange={(e) => setQueixaPrincipal(e.target.value)} placeholder="Descreva seus sintomas..." className={area} />
       {queixaPrefilled && (
-        <p style={{ fontSize: 11, color: '#3B9FE0', margin: '4px 0 0' }}>
+        <p className="text-[11px] text-brand mt-1">
           Preenchido com o que você digitou na página inicial
         </p>
       )}
     </div>
-    <div style={{ marginBottom: 12 }}>
-      <label style={lbl}>Há quanto tempo?</label>
-      <input type="text" value={tempoSintomas} onChange={(e) => setTempoSintomas(e.target.value)} placeholder="Ex: 3 dias, 1 semana..." style={inp} />
+    <div className="mb-3">
+      <label className={lbl}>Há quanto tempo?</label>
+      <input type="text" value={tempoSintomas} onChange={(e) => setTempoSintomas(e.target.value)} placeholder="Ex: 3 dias, 1 semana..." className={inp} />
     </div>
-    <div style={{ marginBottom: 4 }}>
-      <label style={lbl}>Os sintomas estão:</label>
-      <div style={{ display: 'flex', gap: 6 }}>
-        {['Melhorando', 'Piorando', 'Iguais'].map((op) => (
-          <button
-            key={op}
-            type="button"
-            onClick={() => setEvolucaoSintomas(op.toLowerCase())}
-            style={{
-              flex: 1, padding: '8px 4px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-              border: `1px solid ${evolucaoSintomas === op.toLowerCase() ? '#3B9FE0' : '#e5e7eb'}`,
-              background: evolucaoSintomas === op.toLowerCase() ? '#eff6ff' : 'white',
-              color: evolucaoSintomas === op.toLowerCase() ? '#1d4ed8' : '#6b7280',
-              cursor: 'pointer',
-            }}
-          >
-            {op}
-          </button>
-        ))}
+    <div className="mb-1">
+      <label className={lbl}>Os sintomas estão:</label>
+      <div className="flex gap-1.5">
+        {['Melhorando', 'Piorando', 'Iguais'].map((op) => {
+          const selecionado = evolucaoSintomas === op.toLowerCase();
+          return (
+            <button
+              key={op}
+              type="button"
+              onClick={() => setEvolucaoSintomas(op.toLowerCase())}
+              className={`flex-1 py-2 rounded-md text-xs font-medium border transition-colors ${
+                selecionado ? 'border-brand bg-brand-wash text-brand-deep' : 'border-line bg-canvas text-muted'
+              }`}
+            >
+              {op}
+            </button>
+          );
+        })}
       </div>
     </div>
 
-    <p style={sec}>Características dos sintomas</p>
-    <div style={{ marginBottom: 12 }}>
-      <label style={lbl}>Localização</label>
-      <input type="text" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} placeholder="Ex: cabeça, barriga, peito..." style={inp} />
+    <p className={sec}>Características dos sintomas</p>
+    <div className="mb-3">
+      <label className={lbl}>Localização</label>
+      <input type="text" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} placeholder="Ex: cabeça, barriga, peito..." className={inp} />
     </div>
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={lbl}>Intensidade geral</span>
-        <span style={{ fontSize: 20, fontWeight: 800, color: '#3B9FE0' }}>{intensidade}/10</span>
+    <div className="mb-3">
+      <div className="flex justify-between mb-1">
+        <span className={lbl}>Intensidade geral</span>
+        <span className="text-xl font-extrabold text-brand">{intensidade}/10</span>
       </div>
       <input
         type="range" min={0} max={10} value={intensidade}
         onChange={(e) => setIntensidade(parseInt(e.target.value))}
-        style={{ width: '100%', accentColor: '#3B9FE0' }}
+        className="w-full accent-brand"
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
+      <div className="flex justify-between text-[11px] text-muted">
         <span>Sem desconforto</span>
         <span>Insuportável</span>
       </div>
     </div>
     <Toggle value={febre} onChange={setFebre} label="Possui febre?" />
     {febre && (
-      <div style={{ paddingLeft: 16, borderLeft: '2px solid #e5e7eb', marginBottom: 8, marginTop: 4 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="pl-4 border-l-2 border-line mb-2 mt-1">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label style={lbl}>Temperatura (°C)</label>
-            <input type="text" value={temperatura} onChange={(e) => setTemperatura(e.target.value)} placeholder="Ex: 38,5" style={inp} />
+            <label className={lbl}>Temperatura (°C)</label>
+            <input type="text" value={temperatura} onChange={(e) => setTemperatura(e.target.value)} placeholder="Ex: 38,5" className={inp} />
           </div>
           <div>
-            <label style={lbl}>Há quantos dias? <span style={{ color: '#ef4444' }}>*</span></label>
+            <label className={lbl}>Há quantos dias? <span className="text-error">*</span></label>
             <input
               type="number" min={1} max={99} value={diasFebre}
               onChange={(e) => { setDiasFebre(e.target.value.slice(0, 2)); setDiasFebreError(false); }}
               placeholder="Ex: 3"
-              style={{ ...inp, borderColor: diasFebreError ? '#ef4444' : '#e5e7eb' }}
+              className={diasFebreError ? inpError : inp}
             />
           </div>
         </div>
         {diasFebreError && (
-          <p style={{ fontSize: 11, color: '#ef4444', margin: '4px 0 0' }}>
+          <p className="text-[11px] text-error mt-1">
             Informe há quantos dias a febre está presente.
           </p>
         )}
       </div>
     )}
-    <div style={{ marginTop: 12 }}>
-      <label style={lbl}>Outros sintomas associados</label>
-      <textarea value={outrosSintomas} onChange={(e) => setOutrosSintomas(e.target.value)} placeholder="Náusea, cansaço, tontura..." style={area} />
+    <div className="mt-3">
+      <label className={lbl}>Outros sintomas associados</label>
+      <textarea value={outrosSintomas} onChange={(e) => setOutrosSintomas(e.target.value)} placeholder="Náusea, cansaço, tontura..." className={area} />
     </div>
 
-    <p style={sec}>Sinais de alerta</p>
-    <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 10, marginTop: -8 }}>
+    <p className={sec}>Sinais de alerta</p>
+    <p className="text-xs text-muted mb-2.5 -mt-2">
       Toque para marcar se algum dos seguintes estiver presente:
     </p>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+    <div className="grid grid-cols-2 gap-2">
       {SINAIS_ALERTA.map((s) => {
         const marcado = sinaisAlerta.includes(s);
         return (
@@ -113,14 +112,9 @@ const SintomasSection = ({
             type="button"
             onClick={() => toggleSinal(s)}
             aria-pressed={marcado}
-            style={{
-              textAlign: 'left', padding: '10px 12px', borderRadius: 8, fontSize: 13,
-              border: `1.5px solid ${marcado ? '#dc2626' : '#e5e7eb'}`,
-              background: marcado ? '#fef2f2' : 'white',
-              color: marcado ? '#dc2626' : '#374151',
-              fontWeight: marcado ? 600 : 400,
-              cursor: 'pointer',
-            }}
+            className={`text-left px-3 py-2.5 rounded-lg text-[13px] border-2 transition-colors ${
+              marcado ? 'border-error bg-error-wash text-error font-semibold' : 'border-line bg-canvas text-ink'
+            }`}
           >
             {s}
           </button>

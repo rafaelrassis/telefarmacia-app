@@ -1,5 +1,6 @@
 import React from 'react';
-import { area, lbl, sec, Toggle } from './shared';
+import { Check, Paperclip } from 'lucide-react';
+import { area, areaError, lbl, sec, Toggle } from './shared';
 
 const ReceitaSection = ({
   tipoConsulta,
@@ -10,11 +11,11 @@ const ReceitaSection = ({
   <>
     {tipoConsulta === 'tratamento' && (
       <>
-        <p style={sec}>Receita</p>
+        <p className={sec}>Receita</p>
         <Toggle value={temReceita} onChange={setTemReceita} label="Tem receita para compartilhar?" />
         {temReceita && (
-          <div style={{ padding: '8px 12px', background: '#f9fafb', borderRadius: 8, marginTop: 8, border: '1px solid #e5e7eb' }}>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+          <div className="px-3 py-2 bg-surface rounded-lg mt-2 border border-line">
+            <p className="text-[13px] text-muted m-0">
               Traga a receita física ou tire uma foto para mostrar ao farmacêutico durante o atendimento.
             </p>
           </div>
@@ -24,43 +25,43 @@ const ReceitaSection = ({
 
     {tipoConsulta === 'interpretacao_receita' && (
       <>
-        <p style={sec}>Dúvida sobre a receita</p>
-        <div style={{ marginBottom: 8 }}>
-          <label style={lbl}>
-            Descreva sua dúvida <span style={{ color: '#ef4444' }}>*</span>
+        <p className={sec}>Dúvida sobre a receita</p>
+        <div className="mb-2">
+          <label className={lbl}>
+            Descreva sua dúvida <span className="text-error">*</span>
           </label>
           <textarea
             value={duvidaReceita}
             onChange={(e) => { setDuvidaReceita(e.target.value); setDuvidaError(false); }}
             placeholder="Ex: quero entender a posologia, dosagem, interações com outros medicamentos..."
-            style={{ ...area, borderColor: duvidaError ? '#ef4444' : '#e5e7eb' }}
+            className={duvidaError ? areaError : area}
           />
           {duvidaError && (
-            <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>
+            <p className="text-[11px] text-error mt-1">
               Descreva sua dúvida (mínimo 10 caracteres).
             </p>
           )}
         </div>
-        <div style={{ marginBottom: 8 }}>
-          <label style={lbl}>Anexar foto ou PDF da receita <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
-          <div style={{
-            border: `1.5px dashed ${anexoError ? '#ef4444' : '#d1d5db'}`, borderRadius: 10,
-            padding: '14px 12px', textAlign: 'center', background: '#f9fafb',
-          }}>
+        <div className="mb-2">
+          <label className={lbl}>Anexar foto ou PDF da receita <span className="text-muted font-normal">(opcional)</span></label>
+          <div className={`border-2 border-dashed rounded-xl px-3 py-4 text-center bg-surface ${anexoError ? 'border-error' : 'border-line'}`}>
+            <Paperclip className="w-5 h-5 text-muted mx-auto mb-1.5" strokeWidth={2} />
             <input
               type="file"
               accept="image/jpeg,image/png,application/pdf"
               onChange={handleAnexoChange}
-              style={{ width: '100%', fontSize: 13, color: '#374151', fontFamily: 'inherit' }}
+              className="w-full text-[13px] text-ink"
             />
           </div>
-          {anexoError && <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>{anexoError}</p>}
+          {anexoError && <p className="text-[11px] text-error mt-1">{anexoError}</p>}
           {receitaAnexoFile && !anexoError && (
-            <p style={{ fontSize: 11, color: '#059669', margin: '3px 0 0' }}>✓ {receitaAnexoFile.name}</p>
+            <p className="flex items-center gap-1 text-[11px] text-success mt-1">
+              <Check className="w-3.5 h-3.5" strokeWidth={3} /> {receitaAnexoFile.name}
+            </p>
           )}
         </div>
-        <div style={{ padding: '10px 12px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
-          <p style={{ fontSize: 13, color: '#166534', margin: 0 }}>
+        <div className="px-3 py-2.5 bg-success-wash rounded-lg border border-success/30">
+          <p className="text-[13px] text-success m-0">
             Tenha a receita em mãos (física ou foto) para mostrar ao farmacêutico durante o atendimento.
           </p>
         </div>

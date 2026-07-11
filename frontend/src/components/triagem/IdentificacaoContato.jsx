@@ -1,7 +1,8 @@
 import React from 'react';
+import { MessageCircle, Video } from 'lucide-react';
 import { formatIdade } from '../../utils/formatIdade.js';
 import {
-  inp, lbl, sec, initials, maskWhatsapp, toLocalDateStr,
+  inp, lbl, sec, inpError, initials, maskWhatsapp, toLocalDateStr,
   PARENTESCO_LABEL, DEP_COLORS,
 } from './shared';
 
@@ -10,31 +11,21 @@ const PessoaSelector = ({ pacienteNome, dependentes, selectedPerson, setSelected
   if (todosAtivos.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 4 }}>
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+    <div className="mb-1">
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
         {/* Titular */}
         <button
           type="button"
           onClick={() => setSelectedPerson(null)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: selectedPerson === null ? 700 : 500,
-            border: selectedPerson === null ? '2px solid #3B9FE0' : '1.5px solid #e5e7eb',
-            background: selectedPerson === null ? '#EAF6FE' : 'white',
-            color: selectedPerson === null ? '#1D74B8' : '#374151',
-            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-          }}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs whitespace-nowrap shrink-0 border-2 ${
+            selectedPerson === null ? 'border-brand bg-brand-wash text-brand-deep font-bold' : 'border-line bg-canvas text-ink font-medium'
+          }`}
         >
-          <span style={{
-            width: 18, height: 18, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3B9FE0, #1D74B8)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 7, fontWeight: 700, color: 'white', flexShrink: 0,
-          }}>
+          <span className="w-[18px] h-[18px] rounded-full bg-gradient-to-br from-brand to-brand-deep flex items-center justify-center text-[7px] font-bold text-white shrink-0">
             {initials(pacienteNome)}
           </span>
           {pacienteNome?.split(' ')[0] || 'Eu'}
-          <span style={{ fontSize: 10, color: selectedPerson === null ? '#3B9FE0' : '#9ca3af' }}>(eu)</span>
+          <span className={`text-[10px] ${selectedPerson === null ? 'text-brand' : 'text-muted'}`}>(eu)</span>
         </button>
 
         {/* Dependentes */}
@@ -45,26 +36,16 @@ const PessoaSelector = ({ pacienteNome, dependentes, selectedPerson, setSelected
               key={dep.id}
               type="button"
               onClick={() => setSelectedPerson(dep)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: isSelected ? 700 : 500,
-                border: isSelected ? '2px solid #3B9FE0' : '1.5px solid #e5e7eb',
-                background: isSelected ? '#EAF6FE' : 'white',
-                color: isSelected ? '#1D74B8' : '#374151',
-                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs whitespace-nowrap shrink-0 border-2 ${
+                isSelected ? 'border-brand bg-brand-wash text-brand-deep font-bold' : 'border-line bg-canvas text-ink font-medium'
+              }`}
             >
-              <span style={{
-                width: 18, height: 18, borderRadius: '50%',
-                background: `linear-gradient(135deg, ${DEP_COLORS[idx % DEP_COLORS.length].replace('from-', '').replace(' to-', ',')})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 7, fontWeight: 700, color: 'white', flexShrink: 0,
-              }}>
+              <span className={`w-[18px] h-[18px] rounded-full bg-gradient-to-br ${DEP_COLORS[idx % DEP_COLORS.length]} flex items-center justify-center text-[7px] font-bold text-white shrink-0`}>
                 {initials(dep.nome)}
               </span>
               {dep.nome.split(' ')[0]}
               {(dep.parentesco || dep.dataNascimento) && (
-                <span style={{ fontSize: 10, color: isSelected ? '#3B9FE0' : '#9ca3af' }}>
+                <span className={`text-[10px] ${isSelected ? 'text-brand' : 'text-muted'}`}>
                   {[dep.parentesco ? (PARENTESCO_LABEL[dep.parentesco] ?? dep.parentesco) : null, formatIdade(dep.dataNascimento)].filter(Boolean).join(' · ')}
                 </span>
               )}
@@ -88,28 +69,28 @@ const IdentificacaoContato = ({
   <>
     {dependentes.filter(d => d.ativo).length > 0 && (
       <>
-        <p style={sec}>Para quem é a consulta?</p>
+        <p className={sec}>Para quem é a consulta?</p>
         <PessoaSelector pacienteNome={pacienteNome} dependentes={dependentes} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
       </>
     )}
 
     {/* Identificação */}
-    <p style={sec}>Identificação</p>
-    <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-      <span style={{ fontSize: 12, color: '#6b7280', display: 'block', marginBottom: 2 }}>Paciente</span>
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{pessoaNome || '—'}</span>
+    <p className={sec}>Identificação</p>
+    <div className="mb-3 px-3 py-2 bg-surface rounded-lg border border-line">
+      <span className="text-xs text-muted block mb-0.5">Paciente</span>
+      <span className="text-sm font-semibold text-ink">{pessoaNome || '—'}</span>
       {(selectedPerson?.dataNascimento || pessoaIdade !== null) && (
-        <span style={{ fontSize: 13, color: '#6b7280', marginLeft: 8 }}>
+        <span className="text-[13px] text-muted ml-2">
           {selectedPerson?.dataNascimento
             ? formatIdade(selectedPerson.dataNascimento)
             : `${pessoaIdade} anos`}
         </span>
       )}
     </div>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+    <div className="grid grid-cols-2 gap-3 mb-3">
       <div>
-        <label style={lbl}>Sexo</label>
-        <select value={sexo} onChange={(e) => setSexo(e.target.value)} style={inp}>
+        <label className={lbl}>Sexo</label>
+        <select value={sexo} onChange={(e) => setSexo(e.target.value)} className={inp}>
           <option value="">Selecionar</option>
           <option value="masculino">Masculino</option>
           <option value="feminino">Feminino</option>
@@ -117,71 +98,69 @@ const IdentificacaoContato = ({
         </select>
       </div>
       <div>
-        <label style={lbl}>Peso (kg)</label>
-        <input type="number" min={1} max={300} value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="Ex: 70" style={inp} />
+        <label className={lbl}>Peso (kg)</label>
+        <input type="number" min={1} max={300} value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="Ex: 70" className={inp} />
       </div>
     </div>
 
     {/* Contato e preferência de atendimento */}
-    <p style={sec}>Contato para o atendimento</p>
-    <div style={{ marginBottom: 10 }}>
-      <label style={lbl}>WhatsApp / Telefone para contato <span style={{ color: '#9ca3af', fontWeight: 400 }}>(o farmacêutico vai usar este número)</span></label>
+    <p className={sec}>Contato para o atendimento</p>
+    <div className="mb-2.5">
+      <label className={lbl}>WhatsApp / Telefone para contato <span className="text-muted font-normal">(o farmacêutico vai usar este número)</span></label>
       <input
         type="tel"
         value={maskWhatsapp(whatsappContato)}
         onChange={(e) => { setWhatsappContato(e.target.value.replace(/\D/g,'')); setWhatsappError(''); }}
         placeholder="(11) 99999-9999"
-        style={{ ...inp, borderColor: whatsappError ? '#ef4444' : '#e5e7eb' }}
+        className={whatsappError ? inpError : inp}
       />
-      {whatsappError && <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>{whatsappError}</p>}
+      {whatsappError && <p className="text-[11px] text-error mt-1">{whatsappError}</p>}
     </div>
-    <div style={{ marginBottom: 14 }}>
-      <label style={lbl}>Prefiro ser atendido por</label>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {[{ val: 'whatsapp', label: '💬 WhatsApp / Telefone' }, { val: 'meet', label: '📹 Vídeo (Google Meet)' }].map(({ val, label }) => (
-          <button
-            key={val}
-            type="button"
-            onClick={() => setModalidadeAtend(val)}
-            style={{
-              flex: 1, padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-              border: `2px solid ${modalidadeAtend === val ? '#3B9FE0' : '#e5e7eb'}`,
-              background: modalidadeAtend === val ? '#EAF6FE' : 'white',
-              color: modalidadeAtend === val ? '#3B9FE0' : '#6b7280',
-              cursor: 'pointer',
-            }}
-          >{label}</button>
-        ))}
+    <div className="mb-3.5">
+      <label className={lbl}>Prefiro ser atendido por</label>
+      <div className="flex gap-2">
+        {[{ val: 'whatsapp', label: 'WhatsApp / Telefone', Icon: MessageCircle }, { val: 'meet', label: 'Vídeo (Google Meet)', Icon: Video }].map(({ val, label, Icon }) => {
+          const selecionado = modalidadeAtend === val;
+          return (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setModalidadeAtend(val)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                selecionado ? 'border-brand bg-brand-wash text-brand-deep' : 'border-line bg-canvas text-muted'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
 
     {/* Coleta de data de nascimento do titular (quando ausente/inválida) */}
     {selectedPerson === null && perfilCarregado && !perfilTemNasc && (
-      <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: 10, padding: 16, marginBottom: 16, marginTop: 8 }}>
-        <p style={{ fontSize: 14, fontWeight: 700, color: '#92400e', margin: '0 0 4px' }}>
+      <div className="bg-alert-wash border border-alert/30 rounded-xl p-4 mb-4 mt-2">
+        <p className="text-sm font-bold text-alert mb-1">
           Data de nascimento necessária
         </p>
-        <p style={{ fontSize: 13, color: '#78350f', margin: '0 0 10px' }}>
+        <p className="text-[13px] text-alert mb-2.5">
           Informe sua data de nascimento para continuar.
         </p>
-        <label style={lbl}>Data de nascimento</label>
+        <label className={lbl}>Data de nascimento</label>
         <input
           type="date"
           value={nascInput}
           max={toLocalDateStr()}
           onChange={(e) => { setNascInput(e.target.value); setNascError(''); }}
-          style={{ ...inp, marginBottom: 8, borderColor: nascError ? '#ef4444' : '#e5e7eb' }}
+          className={`${nascError ? inpError : inp} mb-2`}
         />
-        {nascError && <p style={{ fontSize: 11, color: '#ef4444', margin: '-4px 0 8px' }}>{nascError}</p>}
+        {nascError && <p className="text-[11px] text-error -mt-1 mb-2">{nascError}</p>}
         <button
           type="button"
           onClick={handleSalvarNasc}
           disabled={nascSaving}
-          style={{
-            width: '100%', padding: '9px 0', borderRadius: 8, border: 'none',
-            background: nascSaving ? '#9ca3af' : '#d97706', color: 'white',
-            fontSize: 13, fontWeight: 700, cursor: nascSaving ? 'not-allowed' : 'pointer',
-          }}
+          className="w-full py-2.5 rounded-lg border-none bg-alert text-white text-[13px] font-bold disabled:opacity-60"
         >
           {nascSaving ? 'Salvando...' : 'Salvar e continuar'}
         </button>

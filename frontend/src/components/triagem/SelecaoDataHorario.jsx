@@ -1,4 +1,5 @@
 import React from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { inp, lbl } from './shared';
 
 const SelecaoDataHorario = ({
@@ -6,77 +7,80 @@ const SelecaoDataHorario = ({
   loadingSlots, slots, selectedSlot, setSelectedSlot,
   walletBalance, saldoOk, onAddCredits, onProximo,
 }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
-    <div style={{ padding: '24px 24px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: 18, margin: 0 }}>Agendar Consulta</h2>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1, width: 32, height: 32, borderRadius: '50%' }}>×</button>
+  <div className="flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="px-6 pt-6">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-heading font-bold text-ink text-lg m-0">Agendar Consulta</h2>
+        <button onClick={onBack} aria-label="Fechar" className="text-muted hover:text-ink w-8 h-8 rounded-full flex items-center justify-center">
+          <X className="w-5 h-5" />
+        </button>
       </div>
       {sistemaInfo && !sistemaInfo.aberto && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <p style={{ fontWeight: 600, color: '#991b1b', margin: '0 0 4px', fontSize: 14 }}>Sistema fechado no momento</p>
-          <p style={{ color: '#dc2626', margin: 0, fontSize: 13 }}>{sistemaInfo.motivo}</p>
+        <div className="bg-error-wash border border-error/30 rounded-xl p-4 mb-4">
+          <p className="font-semibold text-error mb-1 text-sm">Sistema fechado no momento</p>
+          <p className="text-error m-0 text-[13px]">{sistemaInfo.motivo}</p>
         </div>
       )}
-      <div style={{ marginBottom: 16 }}>
-        <label style={lbl}>Data da consulta</label>
+      <div className="mb-4">
+        <label className={lbl}>Data da consulta</label>
         <input type="date" value={selectedDate} min={today} onChange={e => setSelectedDate(e.target.value)}
-          style={{ ...inp, borderRadius: 12, padding: '10px 12px' }} />
+          className={`${inp} rounded-xl px-3 py-2.5`} />
       </div>
-      <label style={lbl}>Horário disponível</label>
+      <label className={lbl}>Horário disponível</label>
     </div>
-    <div style={{ overflowY: 'auto', flex: 1, maxHeight: 300, padding: '0 24px 8px' }}>
+    <div className="overflow-y-auto flex-1 max-h-[300px] px-6 pb-2">
       {loadingSlots ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-          <div style={{ width: 20, height: 20, border: '2px solid #3B9FE0', borderTopColor: 'transparent', borderRadius: '50%' }} />
+        <div className="flex justify-center py-6">
+          <Loader2 className="w-5 h-5 text-brand animate-spin" />
         </div>
       ) : slots.length === 0 ? (
-        <div style={{ background: '#f9fafb', borderRadius: 12, padding: '20px 0', textAlign: 'center' }}>
-          <p style={{ color: '#9ca3af', fontSize: 14, margin: 0 }}>Sem horários disponíveis nesta data.</p>
-          <p style={{ color: '#d1d5db', fontSize: 12, margin: '4px 0 0' }}>Tente outra data.</p>
+        <div className="bg-surface rounded-xl py-5 text-center">
+          <p className="text-muted text-sm m-0">Sem horários disponíveis nesta data.</p>
+          <p className="text-line text-xs mt-1">Tente outra data.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <div className="grid grid-cols-3 gap-2">
           {slots.map(hora => (
-            <button key={hora} onClick={() => setSelectedSlot(hora)} style={selectedSlot === hora ? {
-              background: '#3B9FE0', color: '#fff', border: 'none', borderRadius: 12,
-              padding: '10px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            } : {
-              background: '#fff', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 12,
-              padding: '10px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            }}>{hora}</button>
+            <button
+              key={hora}
+              onClick={() => setSelectedSlot(hora)}
+              className={`py-2.5 rounded-xl text-sm font-semibold border ${
+                selectedSlot === hora ? 'bg-brand text-white border-brand' : 'bg-canvas text-ink border-line'
+              }`}
+            >
+              {hora}
+            </button>
           ))}
         </div>
       )}
     </div>
-    <div style={{ borderTop: '1px solid #e5e7eb', padding: 16, background: 'white', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 14, color: '#6b7280' }}>Seu saldo</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: walletBalance === null ? '#9ca3af' : saldoOk ? '#059669' : '#ef4444' }}>
+    <div className="border-t border-line p-4 bg-canvas rounded-b-2xl">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm text-muted">Seu saldo</span>
+        <span className={`text-sm font-bold ${walletBalance === null ? 'text-muted' : saldoOk ? 'text-success' : 'text-error'}`}>
           {walletBalance === null ? '...' : `R$ ${walletBalance.toFixed(2).replace('.', ',')}`}
         </span>
       </div>
       {walletBalance !== null && !saldoOk && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 12, textAlign: 'center' }}>
-          <p style={{ fontWeight: 600, color: '#991b1b', margin: '0 0 2px', fontSize: 14 }}>Saldo insuficiente</p>
-          <button onClick={onAddCredits} style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
+        <div className="bg-error-wash border border-error/30 rounded-xl p-3 mb-3 text-center">
+          <p className="font-semibold text-error mb-0.5 text-sm">Saldo insuficiente</p>
+          <button onClick={onAddCredits} className="text-error text-xs underline">
             Adicionar créditos à carteira
           </button>
         </div>
       )}
       {selectedSlot && (
-        <button onClick={onProximo} disabled={!saldoOk} style={{
-          background: saldoOk ? '#3B9FE0' : '#9ca3af', color: 'white', padding: 12, width: '100%',
-          borderRadius: 8, border: 'none', fontSize: 15, fontWeight: 'bold',
-          cursor: saldoOk ? 'pointer' : 'not-allowed', marginBottom: 8, display: 'block',
-        }}>
+        <button
+          onClick={onProximo}
+          disabled={!saldoOk}
+          className={`block w-full py-3 rounded-lg text-white text-[15px] font-bold mb-2 ${saldoOk ? 'bg-brand' : 'bg-muted cursor-not-allowed'}`}
+        >
           Próximo → Triagem ({selectedSlot})
         </button>
       )}
-      <button onClick={onBack} style={{
-        width: '100%', padding: 10, background: 'transparent', border: '1px solid #e5e7eb',
-        borderRadius: 8, fontSize: 14, fontWeight: 500, color: '#6b7280', cursor: 'pointer', display: 'block',
-      }}>Cancelar</button>
+      <button onClick={onBack} className="block w-full py-2.5 bg-transparent border border-line rounded-lg text-sm font-medium text-muted">
+        Cancelar
+      </button>
     </div>
   </div>
 );

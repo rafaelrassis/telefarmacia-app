@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatIdade } from '../utils/formatIdade.js';
 import { uploadReceitaAnexo, ANEXO_RECEITA_MAX_BYTES, ANEXO_RECEITA_TIPOS_ACEITOS } from '../utils/uploadReceitaAnexo.js';
@@ -423,24 +424,24 @@ const TriagemForm = ({
   const resumoQueixa = tipoConsulta === 'tratamento' ? queixaPrincipal : duvidaReceita;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden', position: 'relative' }}>
+    <div className="flex flex-col max-h-[90vh] overflow-hidden relative">
       {/* Progress bar segmentada */}
-      <div style={{ display: 'flex', gap: 4, padding: '10px 24px 0', flexShrink: 0 }}>
+      <div className="flex gap-1 px-6 pt-2.5 shrink-0">
         {[1, 2, 3, 4].map((n) => (
-          <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: n <= wizardStep ? '#3B9FE0' : '#e5e7eb' }} />
+          <div key={n} className={`flex-1 h-1 rounded-full ${n <= wizardStep ? 'bg-brand' : 'bg-line'}`} />
         ))}
       </div>
 
       {/* Header */}
-      <div style={{ padding: '12px 24px 0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>{STEP_TITLES[wizardStep]}</h2>
-          <span style={{ fontSize: 12, color: '#6b7280', background: '#f3f4f6', padding: '2px 10px', borderRadius: 20, fontWeight: 600 }}>
+      <div className="px-6 pt-3 shrink-0">
+        <div className="flex items-center justify-between mb-0.5">
+          <h2 className="text-base font-heading font-bold text-ink m-0">{STEP_TITLES[wizardStep]}</h2>
+          <span className="text-xs text-muted bg-surface px-2.5 py-0.5 rounded-full font-semibold">
             Passo {wizardStep} de 4
           </span>
         </div>
         {(pessoaNome || pessoaIdade !== null) && (
-          <p style={{ fontSize: 12, color: '#9ca3af', margin: '2px 0 0' }}>
+          <p className="text-xs text-muted mt-0.5">
             {pessoaNome}
             {pessoaNome && (selectedPerson?.dataNascimento || pessoaIdade !== null) ? ' · ' : ''}
             {selectedPerson?.dataNascimento
@@ -451,7 +452,7 @@ const TriagemForm = ({
       </div>
 
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 24px 16px' }}>
+      <div className="flex-1 overflow-y-auto px-6 pt-1 pb-4">
 
         {wizardStep === 1 && (
           <IdentificacaoContato
@@ -527,43 +528,43 @@ const TriagemForm = ({
             />
 
             {/* Revisão */}
-            <p style={sec}>Revisão</p>
-            <div style={{ background: '#f9fafb', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: '#6b7280' }}>Paciente</span>
-                <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>{pessoaNome || '—'}</span>
+            <p className={sec}>Revisão</p>
+            <div className="bg-surface rounded-xl p-3.5 flex flex-col gap-2">
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted">Paciente</span>
+                <span className="font-semibold text-ink text-right">{pessoaNome || '—'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: '#6b7280' }}>Motivo</span>
-                <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>{TIPO_LABEL[tipoConsulta] || '—'}</span>
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted">Motivo</span>
+                <span className="font-semibold text-ink text-right">{TIPO_LABEL[tipoConsulta] || '—'}</span>
               </div>
               {resumoQueixa && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-                  <span style={{ color: '#6b7280', flexShrink: 0 }}>{tipoConsulta === 'tratamento' ? 'Queixa' : 'Dúvida'}</span>
-                  <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>
+                <div className="flex justify-between gap-3 text-[13px]">
+                  <span className="text-muted shrink-0">{tipoConsulta === 'tratamento' ? 'Queixa' : 'Dúvida'}</span>
+                  <span className="font-semibold text-ink text-right">
                     {resumoQueixa.length > 80 ? `${resumoQueixa.slice(0, 80)}…` : resumoQueixa}
                   </span>
                 </div>
               )}
               {isAgendado && selectedSlot && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: '#6b7280' }}>Data e horário</span>
-                  <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-muted">Data e horário</span>
+                  <span className="font-semibold text-ink text-right">
                     {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('pt-BR')} às {selectedSlot}
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: '#6b7280' }}>Custo</span>
-                <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted">Custo</span>
+                <span className="font-semibold text-ink text-right">
                   R$ {PRECO_CONSULTA.toFixed(2).replace('.', ',')}
                 </span>
               </div>
             </div>
 
             {whatsappContato && (
-              <div style={{ background: '#EAF6FE', border: '1px solid #8ED2F6', borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
-                <p style={{ fontSize: 13, color: '#1D74B8', margin: 0 }}>
+              <div className="bg-brand-wash border border-brand/30 rounded-lg px-3 py-2.5 mt-2.5">
+                <p className="text-[13px] text-brand-deep m-0">
                   Vamos te chamar no WhatsApp <strong>{maskWhatsapp(whatsappContato)}</strong>.
                 </p>
               </div>
@@ -573,31 +574,24 @@ const TriagemForm = ({
       </div>
 
       {/* Fixed footer */}
-      <div style={{ borderTop: '1px solid #e5e7eb', padding: 16, background: 'white', flexShrink: 0, borderRadius: '0 0 16px 16px' }}>
-        <div style={{ display: 'flex', gap: 10 }}>
+      <div className="border-t border-line p-4 bg-canvas shrink-0 rounded-b-2xl">
+        <div className="flex gap-2.5">
           <button
             type="button"
             onClick={handleVoltarWizard}
             disabled={loading}
-            style={{
-              padding: '11px 20px', borderRadius: 8, border: '1px solid #e5e7eb',
-              background: 'white', color: '#374151', fontSize: 14, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1,
-            }}
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg border border-line bg-canvas text-ink text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            ← Voltar
+            <ArrowLeft className="w-4 h-4" /> Voltar
           </button>
           {wizardStep < 4 ? (
             <button
               type="button"
               onClick={handleContinuarWizard}
               disabled={(wizardStep === 2 && !tipoConsulta) || loading}
-              style={{
-                flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-                background: ((wizardStep === 2 && !tipoConsulta) || loading) ? '#9ca3af' : '#3B9FE0',
-                color: 'white', fontSize: 15, fontWeight: 700,
-                cursor: ((wizardStep === 2 && !tipoConsulta) || loading) ? 'not-allowed' : 'pointer',
-              }}
+              className={`flex-1 py-2.5 rounded-lg text-white text-[15px] font-bold ${
+                ((wizardStep === 2 && !tipoConsulta) || loading) ? 'bg-muted cursor-not-allowed' : 'bg-brand'
+              }`}
             >
               Continuar
             </button>
@@ -606,12 +600,9 @@ const TriagemForm = ({
               type="button"
               onClick={handleConfirm}
               disabled={!tipoConsulta || loading}
-              style={{
-                flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-                background: (!tipoConsulta || loading) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#3B9FE0'),
-                color: 'white', fontSize: 15, fontWeight: 700,
-                cursor: (!tipoConsulta || loading) ? 'not-allowed' : 'pointer',
-              }}
+              className={`flex-1 py-2.5 rounded-lg text-white text-[15px] font-bold ${
+                (!tipoConsulta || loading) ? 'bg-muted cursor-not-allowed' : modoUrgente ? 'bg-error' : 'bg-brand'
+              }`}
             >
               {loading ? 'Aguarde...' : modoUrgente ? 'Confirmar atendimento urgente' : 'Confirmar consulta'}
             </button>

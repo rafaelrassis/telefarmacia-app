@@ -62,81 +62,49 @@ export const validarWhatsapp = (v) => {
   return digits.length === 10 || digits.length === 11;
 };
 
-// ── Estilos inline compartilhados (fase B1 — decomposição sem restyle;
-//    migram para tokens Tailwind na fase B3) ────────────────────────────────
-export const inp = {
-  width: '100%', boxSizing: 'border-box',
-  border: '1px solid #e5e7eb', borderRadius: 8,
-  padding: '8px 12px', fontSize: 14, color: '#111827',
-  fontFamily: 'inherit', outline: 'none', background: 'white',
-};
-export const area = { ...inp, resize: 'vertical', minHeight: 72 };
-export const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 4 };
-export const sec = {
-  fontSize: 13, fontWeight: 700, color: '#374151',
-  margin: '20px 0 12px', borderBottom: '1px solid #f3f4f6', paddingBottom: 8,
-};
+// ── Tokens compartilhados (Fase 9B.3) ───────────────────────────────────────
+const fieldBase = 'w-full box-border rounded-lg px-3 py-2 text-sm text-ink outline-none bg-canvas border focus:ring-2 focus:ring-brand';
+export const inp = `${fieldBase} border-line`;
+export const inpError = `${fieldBase} border-error`;
+export const area = `${inp} resize-y min-h-[72px]`;
+export const areaError = `${inpError} resize-y min-h-[72px]`;
+export const lbl = 'block text-xs font-semibold text-muted mb-1';
+export const sec = 'text-[13px] font-bold text-ink mt-5 mb-3 border-b border-line pb-2';
 
 export const Toggle = ({ value, onChange, label }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f9fafb' }}>
-    <span style={{ fontSize: 14, color: '#374151' }}>{label}</span>
+  <div className="flex justify-between items-center py-2.5 border-b border-line/60">
+    <span className="text-sm text-ink">{label}</span>
     <button
       type="button"
       onClick={() => onChange(!value)}
-      style={{
-        width: 44, height: 24, borderRadius: 12,
-        background: value ? '#3B9FE0' : '#d1d5db',
-        border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0,
-      }}
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
+      className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${value ? 'bg-brand' : 'bg-line'}`}
     >
-      <span style={{
-        position: 'absolute', top: 2, left: value ? 22 : 2,
-        width: 20, height: 20, borderRadius: '50%', background: 'white',
-        transition: 'left 0.15s',
-      }} />
+      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-canvas shadow transition-all ${value ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
   </div>
 );
 
-// Linha de pergunta Sim/Não (histórico e revisão — Fase 9B.2)
+// Linha de pergunta Sim/Não (histórico e revisão)
 export const SimNaoRow = ({ value, onChange, label }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid #f9fafb' }}>
-    <span style={{ fontSize: 14, color: '#374151', flex: 1 }}>{label}</span>
-    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+  <div className="flex justify-between items-center gap-2.5 py-2.5 border-b border-line/60">
+    <span className="text-sm text-ink flex-1">{label}</span>
+    <div className="flex gap-1.5 shrink-0">
       {[{ v: true, t: 'Sim' }, { v: false, t: 'Não' }].map(({ v, t }) => (
         <button
           key={t}
           type="button"
           onClick={() => onChange(v)}
-          style={{
-            padding: '5px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-            border: `1.5px solid ${value === v ? '#3B9FE0' : '#e5e7eb'}`,
-            background: value === v ? '#EAF6FE' : 'white',
-            color: value === v ? '#1D74B8' : '#6b7280',
-            cursor: 'pointer',
-          }}
+          aria-pressed={value === v}
+          className={`px-3.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            value === v ? 'border-brand bg-brand-wash text-brand-deep' : 'border-line bg-canvas text-muted'
+          }`}
         >
           {t}
         </button>
       ))}
-    </div>
-  </div>
-);
-
-export const Slider = ({ value, onChange, label }) => (
-  <div style={{ marginBottom: 12 }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-      <span style={lbl}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 700, color: '#3B9FE0' }}>{value}/10</span>
-    </div>
-    <input
-      type="range" min={0} max={10} value={value}
-      onChange={(e) => onChange(parseInt(e.target.value))}
-      style={{ width: '100%', accentColor: '#3B9FE0' }}
-    />
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
-      <span>Sem desconforto</span>
-      <span>Insuportável</span>
     </div>
   </div>
 );

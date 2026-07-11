@@ -1,33 +1,27 @@
 import React from 'react';
+import { Siren } from 'lucide-react';
 
 // Bloqueio total (overlay) quando algum sinal de alerta é marcado — não é um
 // aviso inline: cobre a ficha inteira e força o encerramento da triagem.
 const AlertaEmergencia = ({ onFechar }) => (
-  <div style={{
-    position: 'absolute', inset: 0, background: 'rgba(127,29,29,0.97)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '32px 24px', borderRadius: 16, zIndex: 10,
-  }}>
-    <div style={{ fontSize: 52, marginBottom: 16, lineHeight: 1 }}>🚨</div>
-    <h3 style={{ color: 'white', fontWeight: 800, fontSize: 18, margin: '0 0 12px', textAlign: 'center' }}>
+  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-error/97 px-6 py-8 text-center">
+    <Siren className="w-12 h-12 text-white mb-4" strokeWidth={2} />
+    <h3 className="text-white font-heading font-extrabold text-lg mb-3">
       Procure atendimento presencial imediatamente
     </h3>
-    <p style={{ color: '#fca5a5', fontSize: 14, textAlign: 'center', lineHeight: 1.5, margin: '0 0 8px' }}>
+    <p className="text-white/85 text-sm leading-relaxed mb-2">
       Os sintomas informados indicam uma situação que{' '}
-      <strong style={{ color: 'white' }}>não pode ser tratada por teleconsulta</strong>.
+      <strong className="text-white">não pode ser tratada por teleconsulta</strong>.
     </p>
-    <p style={{ color: '#fca5a5', fontSize: 14, textAlign: 'center', lineHeight: 1.5, margin: '0 0 28px' }}>
+    <p className="text-white/85 text-sm leading-relaxed mb-7">
       Ligue imediatamente para o{' '}
-      <strong style={{ color: 'white', fontSize: 17 }}>SAMU (192)</strong>{' '}
+      <strong className="text-white text-[17px]">SAMU (192)</strong>{' '}
       ou vá ao pronto-socorro mais próximo.
     </p>
     <button
       type="button"
       onClick={onFechar}
-      style={{
-        width: '100%', maxWidth: 280, padding: '13px 0', borderRadius: 8, border: 'none',
-        background: 'white', color: '#7f1d1d', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-      }}
+      className="w-full max-w-[280px] py-3 rounded-lg bg-white text-error font-bold text-sm"
     >
       Fechar e cancelar
     </button>
