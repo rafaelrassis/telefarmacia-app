@@ -99,7 +99,10 @@ const TriagemForm = ({
 
   // ── Contato e modalidade ─────────────────────────────────────────────────────
   const [whatsappContato,  setWhatsappContato]  = useState('');
-  const [modalidadeAtend,  setModalidadeAtend]  = useState('whatsapp'); // 'whatsapp' | 'meet'
+  // Sempre 'whatsapp' — a opção de vídeo (Google Meet) foi removida do
+  // produto (Fase 12.3); o campo permanece no payload por compatibilidade
+  // com o backend (FilaController persiste modalidade_atend).
+  const [modalidadeAtend] = useState('whatsapp');
   const [whatsappError,    setWhatsappError]    = useState('');
 
   // ── Campos de triagem ────────────────────────────────────────────────────────
@@ -466,7 +469,6 @@ const TriagemForm = ({
             peso={peso} setPeso={setPeso}
             whatsappContato={whatsappContato} setWhatsappContato={setWhatsappContato}
             whatsappError={whatsappError} setWhatsappError={setWhatsappError}
-            modalidadeAtend={modalidadeAtend} setModalidadeAtend={setModalidadeAtend}
             perfilCarregado={perfilCarregado}
             perfilTemNasc={perfilTemNasc}
             nascInput={nascInput} setNascInput={setNascInput}

@@ -1,30 +1,31 @@
 import React from 'react';
+import { Mail, Phone, MessageCircle, Clock } from 'lucide-react';
 import { fmtElapsed } from '../../utils/consultaFormat';
 
 const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisualizacao, isActive }) => (
-  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+  <div className="bg-surface rounded-xl p-4 space-y-2">
     <div className="flex items-start justify-between gap-2 flex-wrap">
-      <p className="font-bold text-gray-900 text-base">{consulta.pacienteNome}</p>
-      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-200 text-gray-600 shrink-0">
+      <p className="font-bold text-ink text-base">{consulta.pacienteNome}</p>
+      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-line text-muted shrink-0">
         {tipoBadge}
       </span>
     </div>
-    <p className="text-sm text-gray-600">
+    <p className="text-sm text-muted">
       {new Date(consulta.dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
     </p>
 
     {/* Linha de contato do paciente — só informativa, sem botão de ação (o
         botão de WhatsApp único fica no bloco "Contato preferido" abaixo). */}
     {consulta.paciente && (consulta.paciente.telefone || consulta.paciente.email) && (
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#6b7280', paddingTop: '2px' }}>
+      <div className="flex items-center flex-wrap gap-2 text-xs text-muted pt-0.5">
         {consulta.paciente.email && (
-          <span>📧 {consulta.paciente.email}</span>
+          <span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{consulta.paciente.email}</span>
         )}
         {consulta.paciente.email && consulta.paciente.telefone && (
-          <span style={{ color: '#d1d5db' }}>|</span>
+          <span className="text-line">|</span>
         )}
         {consulta.paciente.telefone && (
-          <span>📞 {consulta.paciente.telefone}</span>
+          <span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{consulta.paciente.telefone}</span>
         )}
       </div>
     )}
@@ -33,35 +34,22 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
         usa o número indicado na triagem (whatsappContato) quando existir,
         senão cai para o telefone de cadastro do paciente. */}
     {isActive && !isVisualizacao && (
-      consulta.modalidadeAtend === 'meet' ? (
-        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '7px 12px' }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', margin: 0 }}>
-            📹 Paciente prefere Google Meet
-          </p>
-          <p style={{ fontSize: 11, color: '#0284c7', margin: '2px 0 0' }}>
-            Envie o link de Meet por e-mail ao paciente.
-          </p>
-        </div>
-      ) : (consulta.whatsappContato || consulta.paciente?.telefone) ? (
+      (consulta.whatsappContato || consulta.paciente?.telefone) ? (
         <a
           href={`https://wa.me/55${(consulta.whatsappContato || consulta.paciente.telefone).replace(/\D/g, '')}`}
           target="_blank" rel="noreferrer"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: '#25D366', color: 'white',
-            padding: '6px 14px', borderRadius: 8,
-            fontSize: 13, fontWeight: 700, textDecoration: 'none',
-          }}
+          className="inline-flex items-center gap-1.5 bg-[#25D366] text-white px-3.5 py-1.5 rounded-lg text-[13px] font-bold no-underline"
         >
-          📱 Chamar no WhatsApp ({consulta.whatsappContato || consulta.paciente.telefone})
+          <MessageCircle className="w-3.5 h-3.5" />
+          Chamar no WhatsApp ({consulta.whatsappContato || consulta.paciente.telefone})
         </a>
       ) : null
     )}
 
     {consulta.farmaceuticoNome && (
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-muted">
         Farmacêutico(a):{' '}
-        <span className="font-semibold text-gray-700">{consulta.farmaceuticoNome}</span>
+        <span className="font-semibold text-ink">{consulta.farmaceuticoNome}</span>
       </p>
     )}
 
@@ -70,16 +58,17 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
         {statusCfg.label}
       </span>
       {consulta.status === 'em_atendimento' && !isVisualizacao && (
-        <span className="font-mono text-sm font-bold text-green-700">
-          ⏱ {fmtElapsed(elapsed)}
+        <span className="font-mono text-sm font-bold text-success inline-flex items-center gap-1">
+          <Clock className="w-3.5 h-3.5" />
+          {fmtElapsed(elapsed)}
         </span>
       )}
     </div>
 
     {consulta.status === 'cancelado' && consulta.motivoCancelamento && (
-      <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 mt-1">
-        <p className="text-xs font-semibold text-red-600 mb-0.5">Motivo do cancelamento</p>
-        <p className="text-xs text-red-700 leading-snug">{consulta.motivoCancelamento}</p>
+      <div className="bg-error-wash border border-error/30 rounded-lg px-3 py-2 mt-1">
+        <p className="text-xs font-semibold text-error mb-0.5">Motivo do cancelamento</p>
+        <p className="text-xs text-error leading-snug">{consulta.motivoCancelamento}</p>
       </div>
     )}
   </div>
