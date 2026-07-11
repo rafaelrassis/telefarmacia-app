@@ -46,14 +46,16 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
     <form onSubmit={handleSubmit} className="space-y-3">
       {mode === 'register' && (
         <div>
-          <label className="block text-xs font-semibold text-muted mb-1">Nome</label>
+          <label htmlFor="login-nome" className="block text-xs font-semibold text-muted mb-1">Nome</label>
           <div className="relative">
             <User className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
+              id="login-nome"
               type="text"
               placeholder="Seu nome completo"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
+              autoComplete="name"
               className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
             />
           </div>
@@ -61,38 +63,42 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-muted mb-1">E-mail</label>
+        <label htmlFor="login-email" className="block text-xs font-semibold text-muted mb-1">E-mail</label>
         <div className="relative">
           <Mail className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            id="login-email"
             type="email"
             placeholder="seu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
             className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-muted mb-1">Senha</label>
+        <label htmlFor="login-senha" className="block text-xs font-semibold text-muted mb-1">Senha</label>
         <div className="relative">
           <Lock className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            id="login-senha"
             type={showPassword ? 'text' : 'password'}
             placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={mode === 'register' ? 6 : undefined}
+            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
             className="w-full pl-10 pr-10 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -100,13 +106,13 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
       </div>
 
       {error && (
-        <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg">{error}</p>
+        <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg" role="alert">{error}</p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
+        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         {loading
           ? 'Aguarde...'
@@ -118,7 +124,7 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
         <button
           type="button"
           onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
-          className="text-brand-deep font-semibold hover:underline"
+          className="text-brand-deep font-semibold hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {mode === 'login' ? 'Criar conta' : 'Entrar'}
         </button>
@@ -172,7 +178,7 @@ const Login = ({ onModeChange }) => {
           <button
             key={key}
             onClick={() => { setAuthMethod(key); setError(''); }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
               authMethod === key
                 ? 'bg-canvas text-brand-deep shadow-sm'
                 : 'text-muted hover:text-ink'
@@ -203,7 +209,7 @@ const Login = ({ onModeChange }) => {
             Se for seu primeiro acesso, sua conta é criada automaticamente.
           </p>
           {error && (
-            <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg mt-2">{error}</p>
+            <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg mt-2" role="alert">{error}</p>
           )}
         </div>
       ) : (
