@@ -37,7 +37,7 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
-const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar }) => {
+const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, initialShowRemarcarForm = false }) => {
   const { token } = useAuth();
   const [data,          setData]          = useState(null);
   const [loading,       setLoading]       = useState(true);
@@ -73,6 +73,14 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar })
       .catch((err) => { if (!cancelled) { setFetchError(String(err)); setLoading(false); } });
     return () => { cancelled = true; };
   }, [id, tipo, token]);
+
+  // Atalho vindo do hero: abre direto o formulário de remarcação quando aplicável
+  useEffect(() => {
+    if (!initialShowRemarcarForm || !data) return;
+    if (data.status === 'aceito' && tipo === 'agendada' && (data.remarcacoes ?? 0) < 2) {
+      setShowRemarcarForm(true);
+    }
+  }, [initialShowRemarcarForm, data, tipo]);
 
   // Carrega parceiros "Onde comprar" (apenas para consultas concluídas)
   useEffect(() => {

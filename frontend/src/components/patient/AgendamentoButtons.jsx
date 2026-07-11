@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Calendar, Zap, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PRECO_CONSULTA } from '../../utils/patientDashboardFormat';
 import TermoConsentimento from '../TermoConsentimento';
@@ -9,7 +10,7 @@ import { uploadReceitaAnexo } from '../../utils/uploadReceitaAnexo.js';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const AgendamentoButtons = ({
-  walletBalance, sistemaAberto, selectedPerson, dependentes,
+  walletBalance, sistemaAberto, sistemaMotivo, sistemaProximaAbertura, selectedPerson, dependentes,
   setAppointmentsRefreshKey, fetchWalletBalance, maybeRequestPush,
   onOpenDataModal, onOpenWalletTopup,
 }) => {
@@ -20,7 +21,19 @@ const AgendamentoButtons = ({
   const [showConsentUrgente, setShowConsentUrgente] = useState(false);
   const [consentUrgenteOk, setConsentUrgenteOk] = useState(null);
   const [filaInfo, setFilaInfo] = useState(null);
+  const [disponibilidadeUrgente, setDisponibilidadeUrgente] = useState(null); // { disponivel, total }
   const urgentIdRef = useRef(null);
+
+  // Indicador de disponibilidade no card "Falar agora" — mesmo endpoint já usado
+  // ao clicar; aqui só antecipamos a checagem para mostrar antes do clique.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/fila/urgente/disponibilidade`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && !cancelled) setDisponibilidadeUrgente(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Verifica se já existe uma urgência ativa ao montar o dashboard
   useEffect(() => {
@@ -171,39 +184,61 @@ const AgendamentoButtons = ({
     return () => clearInterval(interval);
   }, [passarAgoraMsg?.type, token, fetchWalletBalance, setAppointmentsRefreshKey]);
 
-  if (sistemaAberto === false) return null;
-
   const saldoInsuficiente = walletBalance !== null && walletBalance < PRECO_CONSULTA;
   const urgenteBloqueado  = passarAgoraMsg?.type === 'waiting';
+  const sistemaFechado    = sistemaAberto === false;
+  // Regra replicada do comportamento anterior: com o sistema fechado, o próprio
+  // agendamento por este componente também fica bloqueado (o componente inteiro
+  // deixava de renderizar); outros pontos de entrada (retorno sugerido, "agendar
+  // nova consulta" a partir dos detalhes) continuam abrindo o modal normalmente.
+  const agendarBloqueado  = sistemaFechado || saldoInsuficiente;
+  const urgenteDesabilitado = sistemaFechado || passarAgoraLoading || saldoInsuficiente || urgenteBloqueado;
 
   return (
     <>
-      <div style={{ display: 'flex', gap: '12px', margin: '16px 0' }}>
+      {sistemaFechado && (
+        <div className="bg-alert-wash border border-alert/30 rounded-xl px-4 py-3 flex items-center gap-3 mb-3">
+          <Clock className="w-5 h-5 text-alert shrink-0" strokeWidth={2.5} />
+          <div>
+            <p className="text-sm font-semibold text-alert">Fora do horário de atendimento</p>
+            <p className="text-xs text-alert mt-0.5">
+              {sistemaProximaAbertura
+                ? `Abre ${sistemaProximaAbertura.dia} às ${sistemaProximaAbertura.hora}`
+                : (sistemaMotivo || 'Tente novamente mais tarde.')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={onOpenDataModal}
-          disabled={saldoInsuficiente}
-          title={saldoInsuficiente ? 'Saldo insuficiente — adicione créditos para continuar' : undefined}
-          style={{
-            flex: 1,
-            background: '#3B9FE0',
-            color: 'white',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            fontSize: '15px',
-            fontWeight: 'bold',
-            cursor: saldoInsuficiente ? 'not-allowed' : 'pointer',
-            opacity: saldoInsuficiente ? 0.55 : 1,
-          }}
+          disabled={agendarBloqueado}
+          title={
+            sistemaFechado    ? 'Fora do horário de atendimento' :
+            saldoInsuficiente ? 'Saldo insuficiente — adicione créditos para continuar' :
+            undefined
+          }
+          className={`flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition ${
+            agendarBloqueado
+              ? 'border-line bg-surface opacity-55 cursor-not-allowed'
+              : 'border-line bg-canvas hover:border-brand/60 cursor-pointer'
+          }`}
         >
-          📅 Agendar Consulta
+          <span className="w-9 h-9 rounded-full bg-brand-wash flex items-center justify-center text-brand-deep shrink-0">
+            <Calendar className="w-4 h-4" strokeWidth={2.5} />
+          </span>
+          <span className="font-heading text-sm font-bold text-ink">Agendar consulta</span>
+          <span className="text-xs text-muted leading-snug">Escolha data e horário com um farmacêutico</span>
         </button>
+
         <button
           onClick={async () => {
             // Verifica disponibilidade antes de mostrar triagem
             try {
               const dr = await fetch(`${API_URL}/api/fila/urgente/disponibilidade`);
               const dd = dr.ok ? await dr.json() : null;
+              if (dd) setDisponibilidadeUrgente(dd);
               if (dd && !dd.disponivel) {
                 setPassarAgoraMsg({ type: 'nenhum_disponivel' });
                 return;
@@ -218,30 +253,36 @@ const AgendamentoButtons = ({
               else           { setConsentUrgenteOk(false); setShowConsentUrgente(true); }
             } catch { setShowTriagemUrgente(true); }
           }}
-          disabled={passarAgoraLoading || saldoInsuficiente || urgenteBloqueado}
+          disabled={urgenteDesabilitado}
           title={
+            sistemaFechado    ? 'Fora do horário de atendimento' :
             urgenteBloqueado  ? 'Você já tem um atendimento urgente em andamento' :
             saldoInsuficiente ? 'Saldo insuficiente — adicione créditos para continuar' :
             undefined
           }
-          style={{
-            flex: 1,
-            background: 'white',
-            color: '#3B9FE0',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: '2px solid #3B9FE0',
-            fontSize: '15px',
-            fontWeight: 'bold',
-            cursor: (passarAgoraLoading || saldoInsuficiente || urgenteBloqueado) ? 'not-allowed' : 'pointer',
-            opacity: (passarAgoraLoading || saldoInsuficiente || urgenteBloqueado) ? 0.55 : 1,
-          }}
+          className={`flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition ${
+            urgenteDesabilitado
+              ? 'border-line bg-surface opacity-55 cursor-not-allowed'
+              : 'border-brand bg-brand-wash hover:bg-brand/15 cursor-pointer'
+          }`}
         >
-          {passarAgoraLoading ? '...' : '⚡ Quero Passar Agora'}
+          <span className="w-9 h-9 rounded-full bg-brand-deep flex items-center justify-center text-white shrink-0">
+            <Zap className="w-4 h-4" strokeWidth={2.5} />
+          </span>
+          <span className="font-heading text-sm font-bold text-ink">
+            {passarAgoraLoading ? 'Solicitando...' : 'Falar agora'}
+          </span>
+          <span className="text-xs text-muted leading-snug">
+            {!sistemaFechado && disponibilidadeUrgente
+              ? (disponibilidadeUrgente.disponivel
+                  ? `${disponibilidadeUrgente.total} farmacêutico${disponibilidadeUrgente.total !== 1 ? 's' : ''} online agora`
+                  : 'Nenhum farmacêutico online agora')
+              : 'Atendimento imediato pelo WhatsApp'}
+          </span>
         </button>
       </div>
       {saldoInsuficiente && (
-        <p style={{ fontSize: '13px', color: '#dc2626', textAlign: 'center', marginTop: '-8px', marginBottom: '4px' }}>
+        <p className="text-[13px] text-error text-center mt-1">
           Saldo insuficiente — adicione créditos para continuar
         </p>
       )}
@@ -268,10 +309,7 @@ const AgendamentoButtons = ({
       {showTriagemUrgente && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowTriagemUrgente(false)} />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
-            style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}
-          >
+          <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh]">
             <TriagemForm
               modoUrgente
               onBack={() => setShowTriagemUrgente(false)}

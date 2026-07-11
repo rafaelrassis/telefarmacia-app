@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { HeartPulse, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import DadosSaudeForm from './DadosSaudeForm';
 
@@ -12,7 +13,7 @@ const readDismissed = () => {
 };
 
 // selectedPerson: null (titular) ou { id, nome, dadosSaude } (dependente, já vem da lista de dependentes)
-const DadosSaudeBanner = ({ selectedPerson, nomeTitular }) => {
+const DadosSaudeBanner = ({ selectedPerson, nomeTitular, onVisibleChange }) => {
   const { token } = useAuth();
   const personId = selectedPerson?.id ?? null;
   const nome = selectedPerson ? selectedPerson.nome?.split(' ')[0] : (nomeTitular?.split(' ')[0] || 'você');
@@ -40,48 +41,48 @@ const DadosSaudeBanner = ({ selectedPerson, nomeTitular }) => {
     return () => { cancelled = true; };
   }, [personId, token]);
 
+  const visible = !loading && !dismissed && !justSaved && isIncompleto(dadosSaude);
+  useEffect(() => { onVisibleChange?.(visible); }, [visible, onVisibleChange]);
+
   const handleDismiss = () => {
     const next = { ...readDismissed(), [personId ?? 'titular']: true };
     try { localStorage.setItem(DISMISS_KEY, JSON.stringify(next)); } catch {}
     setDismissed(true);
   };
 
-  if (loading || dismissed || justSaved || !isIncompleto(dadosSaude)) return null;
+  if (!visible) return null;
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">🩺</span>
-          <div>
-            <p className="text-sm font-semibold text-gray-800">Complete o perfil de saúde de {nome}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Peso, altura e alergias ajudam o farmacêutico a orientar com mais precisão — nunca é obrigatório.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleDismiss}
-            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 transition"
-          >
-            Agora não
-          </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-1.5 rounded-lg transition whitespace-nowrap"
-          >
-            Preencher
-          </button>
-        </div>
+      <div className="shrink-0 w-[230px] rounded-2xl border border-line bg-canvas p-4 flex flex-col gap-2 relative">
+        <button
+          onClick={handleDismiss}
+          aria-label="Agora não"
+          className="absolute top-3 right-3 text-muted hover:text-ink transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <span className="w-8 h-8 rounded-full bg-brand-wash flex items-center justify-center text-brand-deep shrink-0">
+          <HeartPulse className="w-4 h-4" strokeWidth={2.5} />
+        </span>
+        <p className="font-heading text-sm font-bold text-ink">Complete o perfil de saúde de {nome}</p>
+        <p className="text-xs text-muted leading-snug flex-1">
+          Peso, altura e alergias ajudam o farmacêutico a orientar com mais precisão.
+        </p>
+        <button
+          onClick={() => setShowForm(true)}
+          className="bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-lg transition"
+        >
+          Preencher
+        </button>
       </div>
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <h3 className="font-heading text-lg font-bold text-gray-900 mb-1">Perfil de saúde</h3>
-            <p className="text-sm text-gray-500 mb-4">Dados de {nome}, sempre editáveis depois.</p>
+          <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="font-heading text-lg font-bold text-ink mb-1">Perfil de saúde</h3>
+            <p className="text-sm text-muted mb-4">Dados de {nome}, sempre editáveis depois.</p>
             <DadosSaudeForm
               personId={personId}
               onClose={() => setShowForm(false)}

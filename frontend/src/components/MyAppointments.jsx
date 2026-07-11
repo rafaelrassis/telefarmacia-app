@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FileText, Receipt, Eye, CalendarClock, Zap, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConsultaModal from './ConsultaModal';
 import ConsultaDetalhesPaciente from './ConsultaDetalhesPaciente';
@@ -8,6 +9,9 @@ import RemarcarModal from './RemarcarModal';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ── Status config ─────────────────────────────────────────────────────────────
+// cls/dot seguem sendo usados na visão do farmacêutico (fora de escopo do
+// restyle desta fase); PILL_CLASS é a pill nos tokens usada na linha compacta
+// do paciente.
 
 const STATUS_CONFIG = {
   aguardando:           { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
@@ -19,9 +23,19 @@ const STATUS_CONFIG = {
   remarcacao_pendente:  { label: 'Remarcação pendente',     cls: 'text-amber-600',   dot: 'bg-amber-400' },
 };
 
+const PILL_CLASS = {
+  aguardando:           'bg-brand-wash text-brand-deep',
+  aceito:                'bg-brand-wash text-brand-deep',
+  em_atendimento:        'bg-success-wash text-success',
+  concluido:             'bg-success-wash text-success',
+  cancelado:             'bg-surface text-muted',
+  expirado:              'bg-surface text-muted',
+  remarcacao_pendente:   'bg-alert-wash text-alert',
+};
+
 const TIPO_BADGE = {
   agendada:    { label: 'Agendada',   cls: 'bg-brand-wash text-brand-deep' },
-  urgente:     { label: 'Urgente',    cls: 'bg-red-100 text-red-700' },
+  urgente:     { label: 'Urgente',    cls: 'bg-error-wash text-error' },
 };
 
 // Status efetivo: "aceito" em agendada futura ≠ "em atendimento" (item 4)
@@ -329,10 +343,10 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       {remarcarToast && (
         <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
           remarcarToast.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+            ? 'bg-success-wash border border-success/30 text-success'
+            : 'bg-error-wash border border-error/30 text-error'
         }`}>
-          {remarcarToast.type === 'success' ? '✓' : '✕'} {remarcarToast.msg}
+          {remarcarToast.type === 'success' ? <Check className="w-4 h-4 shrink-0" strokeWidth={3} /> : <X className="w-4 h-4 shrink-0" strokeWidth={3} />} {remarcarToast.msg}
         </div>
       )}
 
@@ -340,10 +354,10 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       {reciboToast && (
         <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
           reciboToast.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+            ? 'bg-success-wash border border-success/30 text-success'
+            : 'bg-error-wash border border-error/30 text-error'
         }`}>
-          {reciboToast.type === 'success' ? '✓' : '✕'} {reciboToast.msg}
+          {reciboToast.type === 'success' ? <Check className="w-4 h-4 shrink-0" strokeWidth={3} /> : <X className="w-4 h-4 shrink-0" strokeWidth={3} />} {reciboToast.msg}
         </div>
       )}
 
@@ -351,10 +365,10 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       {cancelToast && (
         <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-semibold flex items-center gap-2 ${
           cancelToast.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+            ? 'bg-success-wash border border-success/30 text-success'
+            : 'bg-error-wash border border-error/30 text-error'
         }`}>
-          {cancelToast.type === 'success' ? '✓' : '✕'} {cancelToast.msg}
+          {cancelToast.type === 'success' ? <Check className="w-4 h-4 shrink-0" strokeWidth={3} /> : <X className="w-4 h-4 shrink-0" strokeWidth={3} />} {cancelToast.msg}
         </div>
       )}
 
@@ -362,27 +376,27 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       {confirmCancelFila && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmCancelFila(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-gray-900 mb-2">Cancelar consulta?</h3>
-            <p className="text-sm text-gray-600 mb-1">
+          <div className="relative bg-canvas rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="font-bold text-ink mb-2">Cancelar consulta?</h3>
+            <p className="text-sm text-muted mb-1">
               {confirmCancelFila.tipo === 'urgente'
                 ? 'Atendimento urgente'
                 : new Date(confirmCancelFila.dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
             </p>
-            <p className="text-sm text-gray-700 mb-1">
+            <p className="text-sm text-ink mb-1">
               O valor de{' '}
               <strong>R$ {(confirmCancelFila.creditoDebitado ?? 50).toFixed(2).replace('.', ',')}</strong>{' '}
               será devolvido ao seu saldo.
             </p>
-            <p className="text-xs text-gray-400 mb-6">Esta ação não pode ser desfeita.</p>
+            <p className="text-xs text-muted mb-6">Esta ação não pode ser desfeita.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmCancelFila(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-medium border border-line rounded-xl hover:bg-surface transition">
                 Voltar
               </button>
               <button onClick={handleCancelFila}
                 disabled={cancellingFilaId === confirmCancelFila.id}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:opacity-90 disabled:opacity-60 transition">
                 {cancellingFilaId === confirmCancelFila.id ? 'Cancelando...' : 'Sim, cancelar'}
               </button>
             </div>
@@ -526,161 +540,154 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               const canRemarcar     = !isPharmacist && tipo === 'agendada' && ['aguardando', 'aceito'].includes(app.status);
               const eAgora          = !isPharmacist && isEAgora(app);
 
+              // ── Linha do farmacêutico (visão fora de escopo desta fase — mantida) ──
+              if (isPharmacist) {
+                return (
+                  <div
+                    key={app.id}
+                    className={`p-4 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${isCancelled ? 'border-red-100 opacity-60' : 'border-gray-200'}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <p className={`font-bold text-gray-800 ${isCancelled ? 'line-through' : ''}`}>
+                          {new Date(dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
+                        {tipoBadge && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge.cls}`}>
+                            {tipoBadge.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
+                      <p className="text-sm font-semibold mt-1 flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full inline-block shrink-0 ${statusCfg.dot}`} />
+                        <span className={statusCfg.cls}>{statusCfg.label}</span>
+                      </p>
+                      {app.creditoDebitado != null && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0 flex-wrap">
+                      <button
+                        onClick={() => setViewingConsulta({ id: app.id, tipo })}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-brand border border-brand-wash rounded-lg text-[13px] font-semibold whitespace-nowrap"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Ver detalhes
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              // ── Linha compacta do paciente ──────────────────────────────────
+              const dt  = new Date(dataHora);
+              const dia = dt.getDate();
+              const mes = dt.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+              const hora = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              const pillCls = PILL_CLASS[effectiveStatus] ?? 'bg-surface text-muted';
+
               return (
                 <div
                   key={app.id}
-                  style={eAgora ? { border: '2px solid #16a34a', borderRadius: 10, background: '#f0fdf4', boxShadow: '0 0 0 3px #bbf7d040' } : undefined}
-                  className={eAgora ? 'p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition' : `p-4 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${isCancelled ? 'border-red-100 opacity-60' : 'border-gray-200'}`}
+                  className={`flex items-start gap-3 p-3 rounded-xl border transition ${
+                    eAgora ? 'border-success bg-success-wash' : isCancelled ? 'border-line opacity-60' : 'border-line bg-canvas'
+                  }`}
                 >
-                  <div className="flex-1 min-w-0">
+                  {/* Data em destaque */}
+                  <div className={`shrink-0 w-14 text-center rounded-lg py-1.5 ${eAgora ? 'bg-success text-white' : 'bg-surface text-ink'}`}>
+                    <p className="font-heading text-lg font-bold leading-none">{dia}</p>
+                    <p className="text-[10px] uppercase tracking-wide leading-none mt-1">{mes}</p>
+                  </div>
 
-                    {/* Badge "É agora!" */}
+                  <div className="flex-1 min-w-0">
                     {eAgora && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '3px 10px', borderRadius: 20 }}>
-                          ⚡ É agora!
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-canvas px-2 py-0.5 rounded-full">
+                          <Zap className="w-3 h-3" strokeWidth={3} /> É agora!
                         </span>
-                        {dataHora && (
-                          <span style={{ fontSize: 12, color: '#16a34a' }}>{countdownLabel(dataHora)}</span>
-                        )}
+                        {dataHora && <span className="text-xs text-success">{countdownLabel(dataHora)}</span>}
                       </div>
                     )}
 
-                    {/* Cabeçalho: data + badge de tipo */}
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className={`font-bold ${eAgora ? 'text-green-800' : 'text-gray-800'} ${isCancelled ? 'line-through' : ''}`}>
-                        {new Date(dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                      </p>
-                      {tipoBadge && (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge.cls}`}>
-                          {tipoBadge.label}
-                        </span>
-                      )}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`text-sm font-semibold text-ink ${isCancelled ? 'line-through' : ''}`}>{hora}</p>
+                        {tipoBadge && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge.cls}`}>
+                            {tipoBadge.label}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${pillCls}`}>
+                        {statusCfg.label}
+                      </span>
                     </div>
 
-                    {/* Farmacêutico ou paciente */}
-                    {isPharmacist ? (
-                      <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gray-600">
-                          {nomeFarm ? `Farmacêutico(a): ${nomeFarm}` : 'Farmacêutico: aguardando atribuição'}
-                        </p>
-                      </>
-                    )}
-
-                    {/* Status com dot colorido */}
-                    <p className="text-sm font-semibold mt-1 flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full inline-block shrink-0 ${statusCfg.dot}`} />
-                      <span className={statusCfg.cls}>{statusCfg.label}</span>
+                    <p className="text-xs text-muted mt-0.5 truncate">
+                      {nomeFarm ? `Farmacêutico(a): ${nomeFarm}` : 'Farmacêutico: aguardando atribuição'}
                     </p>
 
-                    {/* Crédito debitado (fila) */}
                     {app.creditoDebitado != null && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-[11px] text-muted mt-0.5">
                         R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
                       </p>
                     )}
 
-                    {/* Aviso de remarcação pendente */}
-                    {!isPharmacist && app.status === 'remarcacao_pendente' && (
-                      <p style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 6, padding: '4px 8px', marginTop: 6, display: 'inline-block' }}>
-                        📅 Farmacêutico propôs novo horário — veja os detalhes
+                    {app.status === 'remarcacao_pendente' && (
+                      <p className="inline-flex items-center gap-1 text-[11px] text-alert bg-alert-wash border border-alert/30 rounded px-2 py-0.5 mt-1.5">
+                        <CalendarClock className="w-3 h-3 shrink-0" /> Farmacêutico propôs novo horário — veja os detalhes
                       </p>
                     )}
 
-                  </div>
-
-                  {/* Botões de ação */}
-                  <div className="flex gap-2 shrink-0 flex-wrap">
-
-                    {/* Ver detalhes (farmacêutico, fila) */}
-                    {isPharmacist && (
-                      <button
-                        onClick={() => setViewingConsulta({ id: app.id, tipo })}
-                        style={{
-                          padding: '8px 14px',
-                          background: 'white',
-                          color: '#3B9FE0',
-                          border: '1.5px solid #8ED2F6',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        👁 Ver detalhes
-                      </button>
-                    )}
-
-                    {/* Remarcar (paciente, agendada aguardando ou aceita) */}
-                    {canRemarcar && (
-                      <button
-                        onClick={() => setRemarcandoConsulta(app)}
-                        className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 font-bold rounded hover:bg-indigo-50 transition text-sm"
-                      >
-                        Remarcar
-                      </button>
-                    )}
-
-                    {/* Cancelar fila (paciente, aguardando ou aceito) */}
-                    {canCancelFila && (
-                      <button
-                        onClick={() => setConfirmCancelFila(app)}
-                        className="px-4 py-2 bg-white border border-red-200 text-red-500 font-bold rounded hover:bg-red-50 transition text-sm"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-
-                    {/* Detalhes (paciente) */}
-                    {!isPharmacist && (
+                    {/* Ações */}
+                    <div className="flex gap-2 flex-wrap mt-2">
                       <button
                         onClick={() => setViewingDetalhes({ id: app.id, tipo })}
-                        style={{
-                          padding: '8px 14px', background: 'white',
-                          color: '#6b7280', border: '1.5px solid #e5e7eb',
-                          borderRadius: 8, fontSize: 13, fontWeight: 600,
-                          cursor: 'pointer', whiteSpace: 'nowrap',
-                        }}
+                        className="px-3 py-1.5 bg-canvas text-muted border border-line rounded-lg text-xs font-semibold whitespace-nowrap"
                       >
                         Detalhes →
                       </button>
-                    )}
 
-                    {/* Ver receita (paciente, fila concluída com receita) */}
-                    {!isPharmacist && app.status === 'concluido' &&
-                      (Array.isArray(app.receita) && app.receita.length > 0 || app.receitaPdfUrl) && (
-                      <button
-                        onClick={() => setViewingReceita({ id: app.id, tipo, data: app })}
-                        style={{
-                          padding: '8px 14px', background: '#3B9FE0', color: 'white',
-                          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                          cursor: 'pointer', whiteSpace: 'nowrap',
-                        }}
-                      >
-                        📄 Ver receita
-                      </button>
-                    )}
+                      {canRemarcar && (
+                        <button
+                          onClick={() => setRemarcandoConsulta(app)}
+                          className="px-3 py-1.5 bg-canvas border border-brand-wash text-brand-deep font-semibold rounded-lg text-xs whitespace-nowrap"
+                        >
+                          Remarcar
+                        </button>
+                      )}
 
-                    {/* Recibo (paciente, consulta concluída) */}
-                    {!isPharmacist && app.status === 'concluido' && (
-                      <button
-                        onClick={() => handleRecibo(app)}
-                        disabled={reciboLoadingId === app.id}
-                        style={{
-                          padding: '8px 14px', background: 'white',
-                          color: '#059669', border: '1.5px solid #a7f3d0',
-                          borderRadius: 8, fontSize: 13, fontWeight: 700,
-                          cursor: reciboLoadingId === app.id ? 'wait' : 'pointer',
-                          opacity: reciboLoadingId === app.id ? 0.7 : 1,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {reciboLoadingId === app.id ? 'Gerando...' : '🧾 Recibo'}
-                      </button>
-                    )}
+                      {canCancelFila && (
+                        <button
+                          onClick={() => setConfirmCancelFila(app)}
+                          className="px-3 py-1.5 bg-canvas border border-error/30 text-error font-semibold rounded-lg text-xs whitespace-nowrap"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+
+                      {app.status === 'concluido' &&
+                        (Array.isArray(app.receita) && app.receita.length > 0 || app.receitaPdfUrl) && (
+                        <button
+                          onClick={() => setViewingReceita({ id: app.id, tipo, data: app })}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-lg text-xs font-bold whitespace-nowrap"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> Ver receita
+                        </button>
+                      )}
+
+                      {app.status === 'concluido' && (
+                        <button
+                          onClick={() => handleRecibo(app)}
+                          disabled={reciboLoadingId === app.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-canvas border border-success/30 text-success font-bold rounded-lg text-xs whitespace-nowrap disabled:opacity-70"
+                        >
+                          <Receipt className="w-3.5 h-3.5" /> {reciboLoadingId === app.id ? 'Gerando...' : 'Recibo'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

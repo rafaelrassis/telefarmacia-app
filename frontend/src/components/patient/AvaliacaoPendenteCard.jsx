@@ -1,14 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Star, X, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const AvaliacaoPendenteCard = () => {
+const AvaliacaoPendenteCard = ({ onVisibleChange }) => {
   const { token } = useAuth();
   const [avaliacaoPendente,  setAvaliacaoPendente]  = useState(null);
   const [avaliacaoDismiss,   setAvaliacaoDismiss]    = useState(() => {
     try { return JSON.parse(localStorage.getItem('avaliacaoDismiss') || '{}'); } catch { return {}; }
   });
+  const [showForm,           setShowForm]            = useState(false);
   const [avaliacaoNota,      setAvaliacaoNota]       = useState(0);
   const [avaliacaoComentario, setAvaliacaoComentario] = useState('');
   const [avaliacaoEnviando,  setAvaliacaoEnviando]   = useState(false);
@@ -28,15 +30,19 @@ const AvaliacaoPendenteCard = () => {
 
   useEffect(() => { fetchAvaliacaoPendente(); }, [fetchAvaliacaoPendente]);
 
-  if (!avaliacaoPendente) return null;
-  const dismissCount = avaliacaoDismiss[avaliacaoPendente.id] ?? 0;
-  if (dismissCount >= 2) return null;
+  const dismissCount = avaliacaoPendente ? (avaliacaoDismiss[avaliacaoPendente.id] ?? 0) : 0;
+  const visible = Boolean(avaliacaoPendente) && dismissCount < 2;
+
+  useEffect(() => { onVisibleChange?.(visible); }, [visible, onVisibleChange]);
+
+  if (!visible) return null;
   const fmtData = new Date(avaliacaoPendente.dataHora).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
   const handleDismiss = () => {
     const next = { ...avaliacaoDismiss, [avaliacaoPendente.id]: dismissCount + 1 };
     setAvaliacaoDismiss(next);
     try { localStorage.setItem('avaliacaoDismiss', JSON.stringify(next)); } catch {}
+    setShowForm(false);
   };
 
   const handleEnviar = async () => {
@@ -57,6 +63,7 @@ const AvaliacaoPendenteCard = () => {
         setAvaliacaoEnviada(true);
         setTimeout(() => {
           setAvaliacaoPendente(null);
+          setShowForm(false);
           setAvaliacaoEnviada(false);
           setAvaliacaoNota(0);
           setAvaliacaoComentario('');
@@ -67,96 +74,102 @@ const AvaliacaoPendenteCard = () => {
   };
 
   return (
-    <div style={{
-      background: '#EAF6FE', border: '1.5px solid #8ED2F6',
-      borderRadius: 12, padding: '14px 16px',
-    }}>
-      {avaliacaoEnviada ? (
-        <p style={{ fontSize: 14, color: '#3B9FE0', fontWeight: 700, margin: 0, textAlign: 'center' }}>
-          ✓ Avaliação enviada! Obrigado.
+    <>
+      <div className="shrink-0 w-[230px] rounded-2xl border border-line bg-canvas p-4 flex flex-col gap-2 relative">
+        <button
+          onClick={handleDismiss}
+          aria-label="Agora não"
+          className="absolute top-3 right-3 text-muted hover:text-ink transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <span className="w-8 h-8 rounded-full bg-alert-wash flex items-center justify-center text-alert shrink-0">
+          <Star className="w-4 h-4" strokeWidth={2.5} />
+        </span>
+        <p className="font-heading text-sm font-bold text-ink">Como foi sua consulta?</p>
+        <p className="text-xs text-muted leading-snug flex-1">
+          {avaliacaoPendente.farmaceutico ? `Com ${avaliacaoPendente.farmaceutico.split(' ')[0]}` : 'Consulta'} · {fmtData}
         </p>
-      ) : (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1D74B8' }}>Como foi sua consulta?</p>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#3B9FE0' }}>
-                {avaliacaoPendente.farmaceutico ? `Com ${avaliacaoPendente.farmaceutico.split(' ')[0]}` : 'Consulta'} · {fmtData}
+        <button
+          onClick={() => setShowForm(true)}
+          className="bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-lg transition"
+        >
+          Avaliar
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            {avaliacaoEnviada ? (
+              <p className="flex items-center justify-center gap-2 text-sm font-bold text-success text-center">
+                <Check className="w-5 h-5" strokeWidth={3} /> Avaliação enviada! Obrigado.
               </p>
-            </div>
-            <button
-              onClick={handleDismiss}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8ED2F6', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}
-              aria-label="Agora não"
-            >
-              ×
-            </button>
-          </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-start gap-3 mb-3">
+                  <div>
+                    <p className="font-heading text-base font-bold text-ink">Como foi sua consulta?</p>
+                    <p className="text-xs text-muted mt-0.5">
+                      {avaliacaoPendente.farmaceutico ? `Com ${avaliacaoPendente.farmaceutico.split(' ')[0]}` : 'Consulta'} · {fmtData}
+                    </p>
+                  </div>
+                  <button onClick={() => setShowForm(false)} aria-label="Fechar" className="text-muted hover:text-ink shrink-0">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-          {/* Estrelas */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setAvaliacaoNota(n)}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  fontSize: 28, lineHeight: 1,
-                  color: n <= avaliacaoNota ? '#f59e0b' : '#e5e7eb',
-                  transition: 'color 0.1s',
-                }}
-                aria-label={`${n} estrelas`}
-              >
-                ★
-              </button>
-            ))}
-          </div>
+                <div className="flex gap-1.5 mb-3">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setAvaliacaoNota(n)}
+                      aria-label={`${n} estrelas`}
+                      className="p-0"
+                    >
+                      <Star
+                        className={`w-7 h-7 ${n <= avaliacaoNota ? 'text-alert' : 'text-line'}`}
+                        fill={n <= avaliacaoNota ? 'currentColor' : 'none'}
+                        strokeWidth={1.5}
+                      />
+                    </button>
+                  ))}
+                </div>
 
-          {avaliacaoNota > 0 && (
-            <>
-              <textarea
-                value={avaliacaoComentario}
-                onChange={(e) => setAvaliacaoComentario(e.target.value)}
-                placeholder="Comentário opcional..."
-                maxLength={500}
-                rows={2}
-                style={{
-                  width: '100%', boxSizing: 'border-box', resize: 'none',
-                  border: '1px solid #8ED2F6', borderRadius: 8,
-                  padding: '8px 10px', fontSize: 13, fontFamily: 'inherit',
-                  outline: 'none', marginBottom: 10, color: '#374151',
-                  background: 'white',
-                }}
-              />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={handleDismiss}
-                  style={{
-                    flex: 1, padding: '9px 0', background: 'white',
-                    border: '1px solid #8ED2F6', borderRadius: 8,
-                    fontSize: 13, color: '#3B9FE0', cursor: 'pointer',
-                  }}
-                >
-                  Agora não
-                </button>
-                <button
-                  onClick={handleEnviar}
-                  disabled={avaliacaoEnviando}
-                  style={{
-                    flex: 2, padding: '9px 0', background: '#3B9FE0', color: 'white',
-                    border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                    cursor: avaliacaoEnviando ? 'not-allowed' : 'pointer',
-                    opacity: avaliacaoEnviando ? 0.6 : 1,
-                  }}
-                >
-                  {avaliacaoEnviando ? 'Enviando...' : 'Enviar avaliação'}
-                </button>
-              </div>
-            </>
-          )}
-        </>
+                {avaliacaoNota > 0 && (
+                  <>
+                    <textarea
+                      value={avaliacaoComentario}
+                      onChange={(e) => setAvaliacaoComentario(e.target.value)}
+                      placeholder="Comentário opcional..."
+                      maxLength={500}
+                      rows={2}
+                      className="w-full resize-none border border-line rounded-lg px-3 py-2 text-sm outline-none mb-3 text-ink bg-canvas focus:ring-2 focus:ring-brand"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleDismiss}
+                        className="flex-1 py-2.5 bg-canvas border border-line rounded-lg text-sm text-brand-deep"
+                      >
+                        Agora não
+                      </button>
+                      <button
+                        onClick={handleEnviar}
+                        disabled={avaliacaoEnviando}
+                        className="flex-[2] py-2.5 bg-brand hover:bg-brand-deep disabled:opacity-60 text-white rounded-lg text-sm font-bold transition"
+                      >
+                        {avaliacaoEnviando ? 'Enviando...' : 'Enviar avaliação'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 };
 
