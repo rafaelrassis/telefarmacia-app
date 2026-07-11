@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ── Formulário de e-mail/senha ───────────────────────────────────────────────
-const EmailForm = ({ onSuccess }) => {
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
+const EmailForm = ({ mode, setMode, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
@@ -110,10 +109,15 @@ const EmailForm = ({ onSuccess }) => {
 };
 
 // ── Componente principal ─────────────────────────────────────────────────────
-const Login = () => {
+const Login = ({ onModeChange }) => {
   const { login } = useAuth();
   const [authMethod, setAuthMethod] = useState('google'); // 'google' | 'email'
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
 
   // Toda conta nova entra como PACIENTE (papel padrão do backend); virar
   // farmacêutico é um fluxo à parte (PharmacistSignupWizard), não uma
@@ -181,7 +185,7 @@ const Login = () => {
           )}
         </div>
       ) : (
-        <EmailForm onSuccess={handleAuthSuccess} />
+        <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
       )}
     </div>
   );
