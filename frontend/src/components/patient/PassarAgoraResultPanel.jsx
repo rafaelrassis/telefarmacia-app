@@ -71,11 +71,7 @@ const PassarAgoraResultPanel = ({
             <p style={{ fontSize: '13px', color: '#166534', margin: '0 0 8px 0' }}>
               {passarAgoraMsg.farmaceutico} está pronto para seu atendimento.
             </p>
-            {passarAgoraMsg.modalidadeAtend === 'meet' ? (
-              <p style={{ fontSize: '13px', color: '#166534', margin: 0 }}>
-                📹 Atendimento via <strong>Google Meet</strong> — aguarde o link no chat ou e-mail.
-              </p>
-            ) : passarAgoraMsg.whatsappContato ? (
+            {passarAgoraMsg.whatsappContato ? (
               <a
                 href={`https://wa.me/55${passarAgoraMsg.whatsappContato.replace(/\D/g, '')}`}
                 target="_blank"

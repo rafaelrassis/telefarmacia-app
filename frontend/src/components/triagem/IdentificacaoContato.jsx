@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, Video } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { formatIdade } from '../../utils/formatIdade.js';
 import {
   inp, lbl, sec, inpError, initials, maskWhatsapp, toLocalDateStr,
@@ -62,7 +62,6 @@ const IdentificacaoContato = ({
   pessoaNome, pessoaIdade,
   sexo, setSexo, peso, setPeso,
   whatsappContato, setWhatsappContato, whatsappError, setWhatsappError,
-  modalidadeAtend, setModalidadeAtend,
   perfilCarregado, perfilTemNasc,
   nascInput, setNascInput, nascError, setNascError, nascSaving, handleSalvarNasc,
 }) => (
@@ -116,26 +115,11 @@ const IdentificacaoContato = ({
       />
       {whatsappError && <p className="text-[11px] text-error mt-1">{whatsappError}</p>}
     </div>
-    <div className="mb-3.5">
-      <label className={lbl}>Prefiro ser atendido por</label>
-      <div className="flex gap-2">
-        {[{ val: 'whatsapp', label: 'WhatsApp / Telefone', Icon: MessageCircle }, { val: 'meet', label: 'Vídeo (Google Meet)', Icon: Video }].map(({ val, label, Icon }) => {
-          const selecionado = modalidadeAtend === val;
-          return (
-            <button
-              key={val}
-              type="button"
-              onClick={() => setModalidadeAtend(val)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${
-                selecionado ? 'border-brand bg-brand-wash text-brand-deep' : 'border-line bg-canvas text-muted'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {label}
-            </button>
-          );
-        })}
-      </div>
+    <div className="mb-3.5 flex items-center gap-2 bg-brand-wash border border-brand/30 rounded-lg px-3 py-2.5">
+      <MessageCircle className="w-4 h-4 text-brand-deep shrink-0" strokeWidth={2} />
+      <p className="text-xs text-brand-deep m-0">
+        O farmacêutico vai te chamar por WhatsApp, no número informado acima.
+      </p>
     </div>
 
     {/* Coleta de data de nascimento do titular (quando ausente/inválida) */}

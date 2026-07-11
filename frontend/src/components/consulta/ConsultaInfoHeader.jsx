@@ -33,16 +33,7 @@ const ConsultaInfoHeader = ({ consulta, tipoBadge, statusCfg, elapsed, isVisuali
         usa o número indicado na triagem (whatsappContato) quando existir,
         senão cai para o telefone de cadastro do paciente. */}
     {isActive && !isVisualizacao && (
-      consulta.modalidadeAtend === 'meet' ? (
-        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '7px 12px' }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', margin: 0 }}>
-            📹 Paciente prefere Google Meet
-          </p>
-          <p style={{ fontSize: 11, color: '#0284c7', margin: '2px 0 0' }}>
-            Envie o link de Meet por e-mail ao paciente.
-          </p>
-        </div>
-      ) : (consulta.whatsappContato || consulta.paciente?.telefone) ? (
+      (consulta.whatsappContato || consulta.paciente?.telefone) ? (
         <a
           href={`https://wa.me/55${(consulta.whatsappContato || consulta.paciente.telefone).replace(/\D/g, '')}`}
           target="_blank" rel="noreferrer"
