@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatIdade } from '../utils/formatIdade.js';
 import { uploadReceitaAnexo, ANEXO_RECEITA_MAX_BYTES, ANEXO_RECEITA_TIPOS_ACEITOS } from '../utils/uploadReceitaAnexo.js';
+import { PRECO_CONSULTA } from '../utils/patientDashboardFormat';
 import {
-  API_URL, toLocalDateStr, calcIdade, validarWhatsapp,
+  API_URL, toLocalDateStr, calcIdade, validarWhatsapp, maskWhatsapp, sec,
 } from './triagem/shared';
 import SelecaoDataHorario from './triagem/SelecaoDataHorario';
 import { ResultadoLoading, ResultadoSucesso, ResultadoErro } from './triagem/ResultadoTriagem';
@@ -106,11 +107,13 @@ const TriagemForm = ({
   const [tipoConsulta, setTipoConsulta] = useState(null);
 
   const [queixaPrincipal, setQueixaPrincipal] = useState('');
+  const [queixaPrefilled, setQueixaPrefilled] = useState(false);
   useEffect(() => {
     if (queixaPrincipal) return;
     const queixaInicial = sessionStorage.getItem('fc_queixa_inicial');
     if (queixaInicial) {
       setQueixaPrincipal(queixaInicial);
+      setQueixaPrefilled(true);
       sessionStorage.removeItem('fc_queixa_inicial');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -331,6 +334,59 @@ const TriagemForm = ({
     onBack();
   };
 
+  // ── Wizard de 4 passos ───────────────────────────────────────────────────
+  // 1: Para quem + contato · 2: Motivo · 3: Detalhes por tipo · 4: Histórico + Revisão
+  const [wizardStep, setWizardStep] = useState(1);
+  const STEP_TITLES = {
+    1: 'Para quem é a consulta?',
+    2: 'Qual é o motivo?',
+    3: 'Detalhes da consulta',
+    4: 'Histórico e revisão',
+  };
+  const TIPO_LABEL = {
+    tratamento: 'Orientação de tratamento',
+    interpretacao_receita: 'Interpretação de receita',
+  };
+
+  const validarPasso = (step) => {
+    if (step === 1) {
+      if (whatsappContato && !validarWhatsapp(whatsappContato)) {
+        setWhatsappError('WhatsApp inválido. Informe DDD + número (10 ou 11 dígitos).');
+        return false;
+      }
+      setWhatsappError('');
+      return true;
+    }
+    if (step === 2) {
+      return Boolean(tipoConsulta);
+    }
+    if (step === 3) {
+      if (tipoConsulta === 'interpretacao_receita' && duvidaReceita.trim().length < 10) {
+        setDuvidaError(true);
+        return false;
+      }
+      if (tipoConsulta === 'tratamento' && febre && !diasFebre.trim()) {
+        setDiasFebreError(true);
+        return false;
+      }
+      return true;
+    }
+    return true;
+  };
+
+  const handleContinuarWizard = () => {
+    if (!validarPasso(wizardStep)) return;
+    setWizardStep((s) => Math.min(4, s + 1));
+  };
+
+  const handleVoltarWizard = () => {
+    if (wizardStep === 1) {
+      if (isAgendado) setAgStep('select'); else onBack();
+      return;
+    }
+    setWizardStep((s) => Math.max(1, s - 1));
+  };
+
   if (isAgendado && agStep === 'select') return (
     <SelecaoDataHorario
       onBack={onBack}
@@ -364,19 +420,23 @@ const TriagemForm = ({
     />
   );
 
+  const resumoQueixa = tipoConsulta === 'tratamento' ? queixaPrincipal : duvidaReceita;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden', position: 'relative' }}>
-      {/* Progress bar */}
-      <div style={{ height: 4, background: '#e5e7eb', flexShrink: 0, borderRadius: '16px 16px 0 0', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: '100%', background: '#3B9FE0' }} />
+      {/* Progress bar segmentada */}
+      <div style={{ display: 'flex', gap: 4, padding: '10px 24px 0', flexShrink: 0 }}>
+        {[1, 2, 3, 4].map((n) => (
+          <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: n <= wizardStep ? '#3B9FE0' : '#e5e7eb' }} />
+        ))}
       </div>
 
       {/* Header */}
-      <div style={{ padding: '16px 24px 0', flexShrink: 0 }}>
+      <div style={{ padding: '12px 24px 0', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>Ficha de Triagem</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>{STEP_TITLES[wizardStep]}</h2>
           <span style={{ fontSize: 12, color: '#6b7280', background: '#f3f4f6', padding: '2px 10px', borderRadius: 20, fontWeight: 600 }}>
-            Etapa 2 de 2
+            Passo {wizardStep} de 4
           </span>
         </div>
         {(pessoaNome || pessoaIdade !== null) && (
@@ -393,46 +453,60 @@ const TriagemForm = ({
       {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 24px 16px' }}>
 
-        <IdentificacaoContato
-          pacienteNome={pacienteNome}
-          dependentes={dependentes}
-          selectedPerson={selectedPerson}
-          setSelectedPerson={setSelectedPerson}
-          pessoaNome={pessoaNome}
-          pessoaIdade={pessoaIdade}
-          sexo={sexo} setSexo={setSexo}
-          peso={peso} setPeso={setPeso}
-          whatsappContato={whatsappContato} setWhatsappContato={setWhatsappContato}
-          whatsappError={whatsappError} setWhatsappError={setWhatsappError}
-          modalidadeAtend={modalidadeAtend} setModalidadeAtend={setModalidadeAtend}
-          perfilCarregado={perfilCarregado}
-          perfilTemNasc={perfilTemNasc}
-          nascInput={nascInput} setNascInput={setNascInput}
-          nascError={nascError} setNascError={setNascError}
-          nascSaving={nascSaving} handleSalvarNasc={handleSalvarNasc}
-        />
-
-        <TipoConsulta tipoConsulta={tipoConsulta} setTipoConsulta={setTipoConsulta} />
-
-        {/* Sections 2–4: only for 'tratamento' */}
-        {tipoConsulta === 'tratamento' && (
-          <SintomasSection
-            queixaPrincipal={queixaPrincipal} setQueixaPrincipal={setQueixaPrincipal}
-            tempoSintomas={tempoSintomas} setTempoSintomas={setTempoSintomas}
-            evolucaoSintomas={evolucaoSintomas} setEvolucaoSintomas={setEvolucaoSintomas}
-            localizacao={localizacao} setLocalizacao={setLocalizacao}
-            intensidade={intensidade} setIntensidade={setIntensidade}
-            febre={febre} setFebre={setFebre}
-            temperatura={temperatura} setTemperatura={setTemperatura}
-            diasFebre={diasFebre} setDiasFebre={setDiasFebre}
-            diasFebreError={diasFebreError} setDiasFebreError={setDiasFebreError}
-            outrosSintomas={outrosSintomas} setOutrosSintomas={setOutrosSintomas}
-            sinaisAlerta={sinaisAlerta} toggleSinal={toggleSinal}
+        {wizardStep === 1 && (
+          <IdentificacaoContato
+            pacienteNome={pacienteNome}
+            dependentes={dependentes}
+            selectedPerson={selectedPerson}
+            setSelectedPerson={setSelectedPerson}
+            pessoaNome={pessoaNome}
+            pessoaIdade={pessoaIdade}
+            sexo={sexo} setSexo={setSexo}
+            peso={peso} setPeso={setPeso}
+            whatsappContato={whatsappContato} setWhatsappContato={setWhatsappContato}
+            whatsappError={whatsappError} setWhatsappError={setWhatsappError}
+            modalidadeAtend={modalidadeAtend} setModalidadeAtend={setModalidadeAtend}
+            perfilCarregado={perfilCarregado}
+            perfilTemNasc={perfilTemNasc}
+            nascInput={nascInput} setNascInput={setNascInput}
+            nascError={nascError} setNascError={setNascError}
+            nascSaving={nascSaving} handleSalvarNasc={handleSalvarNasc}
           />
         )}
 
-        {/* Sections 5–8: shown when any objective is selected */}
-        {tipoConsulta && (
+        {wizardStep === 2 && (
+          <TipoConsulta tipoConsulta={tipoConsulta} setTipoConsulta={setTipoConsulta} />
+        )}
+
+        {wizardStep === 3 && (
+          <>
+            {tipoConsulta === 'tratamento' && (
+              <SintomasSection
+                queixaPrincipal={queixaPrincipal} setQueixaPrincipal={setQueixaPrincipal}
+                queixaPrefilled={queixaPrefilled}
+                tempoSintomas={tempoSintomas} setTempoSintomas={setTempoSintomas}
+                evolucaoSintomas={evolucaoSintomas} setEvolucaoSintomas={setEvolucaoSintomas}
+                localizacao={localizacao} setLocalizacao={setLocalizacao}
+                intensidade={intensidade} setIntensidade={setIntensidade}
+                febre={febre} setFebre={setFebre}
+                temperatura={temperatura} setTemperatura={setTemperatura}
+                diasFebre={diasFebre} setDiasFebre={setDiasFebre}
+                diasFebreError={diasFebreError} setDiasFebreError={setDiasFebreError}
+                outrosSintomas={outrosSintomas} setOutrosSintomas={setOutrosSintomas}
+                sinaisAlerta={sinaisAlerta} toggleSinal={toggleSinal}
+              />
+            )}
+            <ReceitaSection
+              tipoConsulta={tipoConsulta}
+              temReceita={temReceita} setTemReceita={setTemReceita}
+              duvidaReceita={duvidaReceita} setDuvidaReceita={setDuvidaReceita}
+              duvidaError={duvidaError} setDuvidaError={setDuvidaError}
+              handleAnexoChange={handleAnexoChange} anexoError={anexoError} receitaAnexoFile={receitaAnexoFile}
+            />
+          </>
+        )}
+
+        {wizardStep === 4 && (
           <>
             <HistoricoSection
               isTratamento={tipoConsulta === 'tratamento'}
@@ -452,13 +526,48 @@ const TriagemForm = ({
               quaisOutrasAlergias={quaisOutrasAlergias} setQuaisOutrasAlergias={setQuaisOutrasAlergias}
             />
 
-            <ReceitaSection
-              tipoConsulta={tipoConsulta}
-              temReceita={temReceita} setTemReceita={setTemReceita}
-              duvidaReceita={duvidaReceita} setDuvidaReceita={setDuvidaReceita}
-              duvidaError={duvidaError} setDuvidaError={setDuvidaError}
-              handleAnexoChange={handleAnexoChange} anexoError={anexoError} receitaAnexoFile={receitaAnexoFile}
-            />
+            {/* Revisão */}
+            <p style={sec}>Revisão</p>
+            <div style={{ background: '#f9fafb', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: '#6b7280' }}>Paciente</span>
+                <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>{pessoaNome || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: '#6b7280' }}>Motivo</span>
+                <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>{TIPO_LABEL[tipoConsulta] || '—'}</span>
+              </div>
+              {resumoQueixa && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                  <span style={{ color: '#6b7280', flexShrink: 0 }}>{tipoConsulta === 'tratamento' ? 'Queixa' : 'Dúvida'}</span>
+                  <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>
+                    {resumoQueixa.length > 80 ? `${resumoQueixa.slice(0, 80)}…` : resumoQueixa}
+                  </span>
+                </div>
+              )}
+              {isAgendado && selectedSlot && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: '#6b7280' }}>Data e horário</span>
+                  <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>
+                    {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('pt-BR')} às {selectedSlot}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: '#6b7280' }}>Custo</span>
+                <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right' }}>
+                  R$ {PRECO_CONSULTA.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+            </div>
+
+            {whatsappContato && (
+              <div style={{ background: '#EAF6FE', border: '1px solid #8ED2F6', borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
+                <p style={{ fontSize: 13, color: '#1D74B8', margin: 0 }}>
+                  Vamos te chamar no WhatsApp <strong>{maskWhatsapp(whatsappContato)}</strong>.
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -468,7 +577,7 @@ const TriagemForm = ({
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             type="button"
-            onClick={isAgendado ? () => setAgStep('select') : onBack}
+            onClick={handleVoltarWizard}
             disabled={loading}
             style={{
               padding: '11px 20px', borderRadius: 8, border: '1px solid #e5e7eb',
@@ -478,19 +587,35 @@ const TriagemForm = ({
           >
             ← Voltar
           </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!tipoConsulta || loading}
-            style={{
-              flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-              background: (!tipoConsulta || loading) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#3B9FE0'),
-              color: 'white', fontSize: 15, fontWeight: 700,
-              cursor: (!tipoConsulta || loading) ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {loading ? 'Aguarde...' : modoUrgente ? 'Confirmar atendimento urgente' : 'Confirmar agendamento'}
-          </button>
+          {wizardStep < 4 ? (
+            <button
+              type="button"
+              onClick={handleContinuarWizard}
+              disabled={(wizardStep === 2 && !tipoConsulta) || loading}
+              style={{
+                flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
+                background: ((wizardStep === 2 && !tipoConsulta) || loading) ? '#9ca3af' : '#3B9FE0',
+                color: 'white', fontSize: 15, fontWeight: 700,
+                cursor: ((wizardStep === 2 && !tipoConsulta) || loading) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Continuar
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={!tipoConsulta || loading}
+              style={{
+                flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
+                background: (!tipoConsulta || loading) ? '#9ca3af' : (modoUrgente ? '#dc2626' : '#3B9FE0'),
+                color: 'white', fontSize: 15, fontWeight: 700,
+                cursor: (!tipoConsulta || loading) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Aguarde...' : modoUrgente ? 'Confirmar atendimento urgente' : 'Confirmar consulta'}
+            </button>
+          )}
         </div>
       </div>
 

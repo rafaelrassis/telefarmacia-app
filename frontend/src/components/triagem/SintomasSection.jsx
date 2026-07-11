@@ -1,8 +1,8 @@
 import React from 'react';
-import { inp, area, lbl, sec, Toggle, Slider, SINAIS_ALERTA } from './shared';
+import { inp, area, lbl, sec, Toggle, SINAIS_ALERTA } from './shared';
 
 const SintomasSection = ({
-  queixaPrincipal, setQueixaPrincipal,
+  queixaPrincipal, setQueixaPrincipal, queixaPrefilled,
   tempoSintomas, setTempoSintomas,
   evolucaoSintomas, setEvolucaoSintomas,
   localizacao, setLocalizacao,
@@ -14,10 +14,15 @@ const SintomasSection = ({
   sinaisAlerta, toggleSinal,
 }) => (
   <>
-    <p style={sec}>2. Queixa principal</p>
+    <p style={sec}>Queixa principal</p>
     <div style={{ marginBottom: 12 }}>
       <label style={lbl}>O que está sentindo?</label>
       <textarea value={queixaPrincipal} onChange={(e) => setQueixaPrincipal(e.target.value)} placeholder="Descreva seus sintomas..." style={area} />
+      {queixaPrefilled && (
+        <p style={{ fontSize: 11, color: '#3B9FE0', margin: '4px 0 0' }}>
+          Preenchido com o que você digitou na página inicial
+        </p>
+      )}
     </div>
     <div style={{ marginBottom: 12 }}>
       <label style={lbl}>Há quanto tempo?</label>
@@ -45,12 +50,26 @@ const SintomasSection = ({
       </div>
     </div>
 
-    <p style={sec}>3. Características dos sintomas</p>
+    <p style={sec}>Características dos sintomas</p>
     <div style={{ marginBottom: 12 }}>
       <label style={lbl}>Localização</label>
       <input type="text" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} placeholder="Ex: cabeça, barriga, peito..." style={inp} />
     </div>
-    <Slider value={intensidade} onChange={setIntensidade} label="Intensidade geral" />
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={lbl}>Intensidade geral</span>
+        <span style={{ fontSize: 20, fontWeight: 800, color: '#3B9FE0' }}>{intensidade}/10</span>
+      </div>
+      <input
+        type="range" min={0} max={10} value={intensidade}
+        onChange={(e) => setIntensidade(parseInt(e.target.value))}
+        style={{ width: '100%', accentColor: '#3B9FE0' }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
+        <span>Sem desconforto</span>
+        <span>Insuportável</span>
+      </div>
+    </div>
     <Toggle value={febre} onChange={setFebre} label="Possui febre?" />
     {febre && (
       <div style={{ paddingLeft: 16, borderLeft: '2px solid #e5e7eb', marginBottom: 8, marginTop: 4 }}>
@@ -81,29 +100,33 @@ const SintomasSection = ({
       <textarea value={outrosSintomas} onChange={(e) => setOutrosSintomas(e.target.value)} placeholder="Náusea, cansaço, tontura..." style={area} />
     </div>
 
-    <p style={sec}>7. Sinais de alerta</p>
+    <p style={sec}>Sinais de alerta</p>
     <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 10, marginTop: -8 }}>
-      Marque se algum dos seguintes estiver presente:
+      Toque para marcar se algum dos seguintes estiver presente:
     </p>
-    {SINAIS_ALERTA.map((s) => (
-      <label
-        key={s}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '8px 0', cursor: 'pointer', borderBottom: '1px solid #f9fafb',
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={sinaisAlerta.includes(s)}
-          onChange={() => toggleSinal(s)}
-          style={{ width: 16, height: 16, accentColor: '#dc2626', cursor: 'pointer', flexShrink: 0 }}
-        />
-        <span style={{ fontSize: 14, color: sinaisAlerta.includes(s) ? '#dc2626' : '#374151', fontWeight: sinaisAlerta.includes(s) ? 600 : 400 }}>
-          {s}
-        </span>
-      </label>
-    ))}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      {SINAIS_ALERTA.map((s) => {
+        const marcado = sinaisAlerta.includes(s);
+        return (
+          <button
+            key={s}
+            type="button"
+            onClick={() => toggleSinal(s)}
+            aria-pressed={marcado}
+            style={{
+              textAlign: 'left', padding: '10px 12px', borderRadius: 8, fontSize: 13,
+              border: `1.5px solid ${marcado ? '#dc2626' : '#e5e7eb'}`,
+              background: marcado ? '#fef2f2' : 'white',
+              color: marcado ? '#dc2626' : '#374151',
+              fontWeight: marcado ? 600 : 400,
+              cursor: 'pointer',
+            }}
+          >
+            {s}
+          </button>
+        );
+      })}
+    </div>
   </>
 );
 

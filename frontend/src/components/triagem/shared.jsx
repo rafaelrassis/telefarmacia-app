@@ -98,6 +98,31 @@ export const Toggle = ({ value, onChange, label }) => (
   </div>
 );
 
+// Linha de pergunta Sim/Não (histórico e revisão — Fase 9B.2)
+export const SimNaoRow = ({ value, onChange, label }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid #f9fafb' }}>
+    <span style={{ fontSize: 14, color: '#374151', flex: 1 }}>{label}</span>
+    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+      {[{ v: true, t: 'Sim' }, { v: false, t: 'Não' }].map(({ v, t }) => (
+        <button
+          key={t}
+          type="button"
+          onClick={() => onChange(v)}
+          style={{
+            padding: '5px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+            border: `1.5px solid ${value === v ? '#3B9FE0' : '#e5e7eb'}`,
+            background: value === v ? '#EAF6FE' : 'white',
+            color: value === v ? '#1D74B8' : '#6b7280',
+            cursor: 'pointer',
+          }}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
 export const Slider = ({ value, onChange, label }) => (
   <div style={{ marginBottom: 12 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>

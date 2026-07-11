@@ -93,8 +93,8 @@ const IdentificacaoContato = ({
       </>
     )}
 
-    {/* 1. Identificação */}
-    <p style={sec}>1. Identificação</p>
+    {/* Identificação */}
+    <p style={sec}>Identificação</p>
     <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
       <span style={{ fontSize: 12, color: '#6b7280', display: 'block', marginBottom: 2 }}>Paciente</span>
       <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{pessoaNome || '—'}</span>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { inp, area, lbl, sec, Toggle } from './shared';
+import { area, lbl, sec, Toggle } from './shared';
 
 const ReceitaSection = ({
   tipoConsulta,
@@ -10,7 +10,7 @@ const ReceitaSection = ({
   <>
     {tipoConsulta === 'tratamento' && (
       <>
-        <p style={sec}>8. Receita</p>
+        <p style={sec}>Receita</p>
         <Toggle value={temReceita} onChange={setTemReceita} label="Tem receita para compartilhar?" />
         {temReceita && (
           <div style={{ padding: '8px 12px', background: '#f9fafb', borderRadius: 8, marginTop: 8, border: '1px solid #e5e7eb' }}>
@@ -43,12 +43,17 @@ const ReceitaSection = ({
         </div>
         <div style={{ marginBottom: 8 }}>
           <label style={lbl}>Anexar foto ou PDF da receita <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,application/pdf"
-            onChange={handleAnexoChange}
-            style={{ ...inp, padding: '7px 12px' }}
-          />
+          <div style={{
+            border: `1.5px dashed ${anexoError ? '#ef4444' : '#d1d5db'}`, borderRadius: 10,
+            padding: '14px 12px', textAlign: 'center', background: '#f9fafb',
+          }}>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={handleAnexoChange}
+              style={{ width: '100%', fontSize: 13, color: '#374151', fontFamily: 'inherit' }}
+            />
+          </div>
           {anexoError && <p style={{ fontSize: 11, color: '#ef4444', margin: '3px 0 0' }}>{anexoError}</p>}
           {receitaAnexoFile && !anexoError && (
             <p style={{ fontSize: 11, color: '#059669', margin: '3px 0 0' }}>✓ {receitaAnexoFile.name}</p>
