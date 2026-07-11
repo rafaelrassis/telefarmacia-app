@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { TriangleAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Modal from './ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// ⚠️  RASCUNHO — texto aguardando validação jurídica (ver especificacoes/termo-telefarmacia-v1.0.md)
+// RASCUNHO — texto aguardando validação jurídica (ver especificacoes/termo-telefarmacia-v1.0.md)
 const VERSAO_TERMO = import.meta.env.VITE_TERMOS_TELEFARMACIA_VERSAO || '1.0';
 
 const TEXTO_TERMO = `1. NATUREZA DO SERVIÇO
@@ -64,57 +66,36 @@ const TermoConsentimento = ({ onAceito, onFechar }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
-
-        {/* Header */}
-        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
-          {/* Alerta de rascunho */}
-          <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '6px 10px', marginBottom: 10, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
-            <p style={{ fontSize: 11, color: '#92400e', margin: 0, lineHeight: 1.4 }}>
-              <strong>RASCUNHO — pendente validação jurídica.</strong> Este texto ainda não foi revisado por advogada e não deve ser considerado definitivo.
-            </p>
-          </div>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
-            Termo de Consentimento para Teleconsulta Farmacêutica
-          </h2>
-          <p style={{ fontSize: 11, color: '#6b7280', margin: '3px 0 0' }}>Versão {VERSAO_TERMO} — necessário uma vez por versão</p>
-        </div>
-
-        {/* Texto do termo */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
-          <pre style={{ fontSize: 12, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>
-            {TEXTO_TERMO}
-          </pre>
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: '12px 20px 16px', borderTop: '1px solid #f3f4f6', flexShrink: 0 }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 12 }}>
+    <Modal
+      onClose={onFechar}
+      closeOnBackdrop={Boolean(onFechar)}
+      maxWidth="max-w-lg"
+      footer={(
+        <>
+          <label className="flex items-start gap-2.5 cursor-pointer mb-3">
             <input
               type="checkbox"
               checked={aceito}
               onChange={(e) => { setAceito(e.target.checked); setErro(''); }}
-              style={{ marginTop: 2, width: 16, height: 16, accentColor: '#3B9FE0', flexShrink: 0 }}
+              className="mt-0.5 w-4 h-4 accent-brand shrink-0"
             />
-            <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
+            <span className="text-[13px] text-ink leading-relaxed">
               Li e compreendi o Termo de Consentimento e aceito as condições descritas.
             </span>
           </label>
 
           {erro && (
-            <p style={{ fontSize: 12, color: '#dc2626', marginBottom: 10, background: '#fef2f2', padding: '6px 10px', borderRadius: 6 }}>
+            <p className="text-xs text-error bg-error-wash rounded-md px-2.5 py-1.5 mb-2.5">
               {erro}
             </p>
           )}
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             {onFechar && (
               <button
                 onClick={onFechar}
                 disabled={loading}
-                style={{ flex: 1, padding: '10px 0', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#6b7280', background: 'white', cursor: 'pointer' }}
+                className="flex-1 py-2.5 border border-line rounded-xl text-[13px] font-semibold text-muted bg-canvas disabled:opacity-60"
               >
                 Agora não
               </button>
@@ -122,20 +103,35 @@ const TermoConsentimento = ({ onAceito, onFechar }) => {
             <button
               onClick={handleConfirmar}
               disabled={loading || !aceito}
-              style={{
-                flex: 2, padding: '10px 0', border: 'none', borderRadius: 10,
-                fontSize: 13, fontWeight: 700, color: 'white',
-                background: aceito ? '#3B9FE0' : '#d1d5db',
-                cursor: aceito && !loading ? 'pointer' : 'not-allowed',
-                opacity: loading ? 0.7 : 1,
-              }}
+              className={`flex-[2] py-2.5 rounded-xl text-[13px] font-bold text-white ${aceito ? 'bg-brand' : 'bg-line'} ${
+                aceito && !loading ? '' : 'cursor-not-allowed'
+              } disabled:opacity-70`}
             >
               {loading ? 'Registrando...' : 'Aceitar e continuar'}
             </button>
           </div>
+        </>
+      )}
+    >
+      <div className="px-6 pt-4 pb-1">
+        <div className="flex items-start gap-1.5 bg-alert-wash border border-alert/30 rounded-lg px-2.5 py-1.5 mb-2.5">
+          <TriangleAlert className="w-3.5 h-3.5 text-alert shrink-0 mt-0.5" />
+          <p className="text-[11px] text-alert leading-snug m-0">
+            <strong>RASCUNHO — pendente validação jurídica.</strong> Este texto ainda não foi revisado por advogada e não deve ser considerado definitivo.
+          </p>
         </div>
+        <h2 className="text-[15px] font-heading font-bold text-ink m-0">
+          Termo de Consentimento para Teleconsulta Farmacêutica
+        </h2>
+        <p className="text-[11px] text-muted mt-0.5">Versão {VERSAO_TERMO} — necessário uma vez por versão</p>
       </div>
-    </div>
+
+      <div className="px-6 pb-4">
+        <pre className="text-xs text-ink leading-relaxed whitespace-pre-wrap font-body m-0">
+          {TEXTO_TERMO}
+        </pre>
+      </div>
+    </Modal>
   );
 };
 
