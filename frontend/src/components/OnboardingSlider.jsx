@@ -1,30 +1,31 @@
 import React, { useState } from 'react';
+import { CalendarClock, QrCode, MessageCircle, Pill, Stethoscope, ClipboardList, Leaf, Rocket } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const SLIDES = [
   {
-    emoji: '📅',
+    Icon: CalendarClock,
     titulo: 'Como funciona',
     passos: [
-      { icon: '📅', texto: 'Agende uma consulta com o farmacêutico disponível' },
-      { icon: '💳', texto: 'Pague com créditos — recarga simples via PIX' },
-      { icon: '🎥', texto: 'Consulta por vídeo, de onde você estiver' },
+      { Icon: CalendarClock, texto: 'Agende uma consulta com o farmacêutico disponível' },
+      { Icon: QrCode, texto: 'Pague com créditos — recarga simples via PIX' },
+      { Icon: MessageCircle, texto: 'Consulta pelo seu WhatsApp, de onde você estiver' },
     ],
   },
   {
-    emoji: '💊',
+    Icon: Pill,
     titulo: 'O que o farmacêutico pode fazer por você',
     passos: [
-      { icon: '💊', texto: 'Orientação sobre medicamentos e interações' },
-      { icon: '🩺', texto: 'Dúvidas sobre exames e resultados laboratoriais' },
-      { icon: '📋', texto: 'Acompanhamento de doenças crônicas e uso contínuo' },
-      { icon: '🌿', texto: 'Orientação nutricional e suplementação' },
+      { Icon: Pill, texto: 'Orientação sobre medicamentos e interações' },
+      { Icon: Stethoscope, texto: 'Dúvidas sobre exames e resultados laboratoriais' },
+      { Icon: ClipboardList, texto: 'Acompanhamento de doenças crônicas e uso contínuo' },
+      { Icon: Leaf, texto: 'Orientação nutricional e suplementação' },
     ],
   },
   {
-    emoji: '🚀',
+    Icon: Rocket,
     titulo: 'Vamos começar?',
     cta: true,
   },
@@ -48,68 +49,58 @@ const OnboardingSlider = ({ onConcluido }) => {
 
   const isLast = slide === SLIDES.length - 1;
   const s      = SLIDES[slide];
+  const SlideIcon = s.Icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
-      <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full flex flex-col"
-        style={{ maxWidth: 420, maxHeight: '90vh' }}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/55 backdrop-blur-sm">
+      <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-[420px] max-h-[90vh] flex flex-col">
         {/* Pular */}
         <button
           onClick={concluir}
           disabled={loading}
-          style={{
-            position: 'absolute', top: 16, right: 16,
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 13, color: '#9ca3af', fontWeight: 600, padding: '4px 8px',
-            borderRadius: 6, zIndex: 1,
-          }}
+          className="absolute top-4 right-4 z-[1] bg-transparent border-none cursor-pointer text-[13px] text-muted font-semibold px-2 py-1 rounded-md hover:text-ink transition"
         >
           Pular
         </button>
 
         {/* Conteúdo */}
-        <div style={{ padding: '40px 28px 24px', flex: 1, overflowY: 'auto' }}>
-          {/* Emoji grande */}
-          <div style={{ fontSize: 52, textAlign: 'center', marginBottom: 16, lineHeight: 1 }}>
-            {s.emoji}
+        <div className="px-7 pt-10 pb-6 flex-1 overflow-y-auto">
+          {/* Ícone grande */}
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand-wash text-brand-deep flex items-center justify-center">
+            <SlideIcon className="w-8 h-8" strokeWidth={1.75} />
           </div>
 
           {/* Título */}
-          <h2 style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 20, fontWeight: 800, color: '#111827', textAlign: 'center', margin: '0 0 20px' }}>
+          <h2 className="font-heading text-xl font-extrabold text-ink text-center mb-5">
             {s.titulo}
           </h2>
 
           {/* Passos ou CTA */}
           {s.passos && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {s.passos.map((p, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <span style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: '#EAF6FE', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18,
-                  }}>
-                    {p.icon}
-                  </span>
-                  <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.5, paddingTop: 7 }}>
-                    {p.texto}
-                  </p>
-                </div>
-              ))}
+            <div className="flex flex-col gap-3.5">
+              {s.passos.map((p, i) => {
+                const PassoIcon = p.Icon;
+                return (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="w-9 h-9 rounded-[10px] bg-brand-wash text-brand-deep shrink-0 flex items-center justify-center">
+                      <PassoIcon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    </span>
+                    <p className="m-0 text-sm text-ink leading-relaxed pt-1.5">
+                      {p.texto}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {s.cta && (
-            <div style={{ textAlign: 'center', padding: '12px 0 4px' }}>
-              <p style={{ fontSize: 15, color: '#6b7280', lineHeight: 1.6, marginBottom: 8 }}>
+            <div className="text-center py-3 pb-1">
+              <p className="text-[15px] text-muted leading-relaxed mb-2">
                 Sua saúde merece atenção especializada.<br />
                 Agende sua primeira consulta agora.
               </p>
-              <p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>
+              <p className="text-[13px] text-muted m-0">
                 Disponível 24h • Sem deslocamento • Reembolso total se cancelar
               </p>
             </div>
@@ -117,19 +108,17 @@ const OnboardingSlider = ({ onConcluido }) => {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '16px 28px 28px', borderTop: '1px solid #f3f4f6' }}>
+        <div className="px-7 pt-4 pb-7 border-t border-line">
           {/* Dots */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
+          <div className="flex justify-center gap-1.5 mb-4">
             {SLIDES.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setSlide(i)}
-                style={{
-                  width: i === slide ? 20 : 8, height: 8, borderRadius: 4,
-                  background: i === slide ? '#3B9FE0' : '#e5e7eb',
-                  border: 'none', cursor: 'pointer', padding: 0,
-                  transition: 'width 0.2s, background 0.2s',
-                }}
+                style={{ width: i === slide ? 20 : 8 }}
+                className={`h-2 rounded-full border-none cursor-pointer p-0 transition-all duration-200 ${
+                  i === slide ? 'bg-brand' : 'bg-line'
+                }`}
                 aria-label={`Slide ${i + 1}`}
               />
             ))}
@@ -139,25 +128,16 @@ const OnboardingSlider = ({ onConcluido }) => {
             <button
               onClick={concluir}
               disabled={loading}
-              style={{
-                width: '100%', padding: '14px 0',
-                background: loading ? '#8ED2F6' : '#3B9FE0',
-                color: 'white', border: 'none', borderRadius: 12,
-                fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s',
-              }}
+              className={`w-full py-3.5 text-white border-none rounded-xl text-[15px] font-extrabold transition-colors ${
+                loading ? 'bg-brand/60 cursor-not-allowed' : 'bg-brand hover:bg-brand-deep cursor-pointer'
+              }`}
             >
-              {loading ? 'Carregando...' : '🚀 Agendar minha primeira consulta'}
+              {loading ? 'Carregando...' : 'Agendar minha primeira consulta'}
             </button>
           ) : (
             <button
               onClick={() => setSlide((s) => s + 1)}
-              style={{
-                width: '100%', padding: '14px 0',
-                background: '#3B9FE0', color: 'white',
-                border: 'none', borderRadius: 12,
-                fontSize: 15, fontWeight: 700, cursor: 'pointer',
-              }}
+              className="w-full py-3.5 bg-brand hover:bg-brand-deep text-white border-none rounded-xl text-[15px] font-bold cursor-pointer transition-colors"
             >
               Próximo →
             </button>
