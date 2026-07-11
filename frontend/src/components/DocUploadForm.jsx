@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { FileText, Upload, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -7,25 +8,27 @@ const FileInput = ({ label, name, accept, file, onChange }) => {
   const ref = useRef();
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-muted mb-1.5">{label}</label>
       <div
         onClick={() => ref.current?.click()}
         className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition ${
           file
             ? 'border-brand bg-brand-wash'
-            : 'border-gray-200 hover:border-brand/60 bg-gray-50'
+            : 'border-line hover:border-brand/60 bg-surface'
         }`}
       >
-        <span className="text-xl">{file ? '📄' : '⬆️'}</span>
+        {file
+          ? <FileText className="w-5 h-5 text-brand-deep shrink-0" strokeWidth={2} />
+          : <Upload className="w-5 h-5 text-muted shrink-0" strokeWidth={2} />}
         <div className="min-w-0">
-          <p className={`text-sm font-medium truncate ${file ? 'text-brand-deep' : 'text-gray-500'}`}>
+          <p className={`text-sm font-medium truncate ${file ? 'text-brand-deep' : 'text-muted'}`}>
             {file ? file.name : 'Clique para selecionar'}
           </p>
-          <p className="text-xs text-gray-400">JPG, PNG ou PDF · máx. 5MB</p>
+          <p className="text-xs text-muted">JPG, PNG ou PDF · máx. 5MB</p>
         </div>
         {file && (
-          <span className="ml-auto text-xs text-brand-deep font-semibold shrink-0">
-            ✓ Selecionado
+          <span className="ml-auto flex items-center gap-1 text-xs text-brand-deep font-semibold shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} /> Selecionado
           </span>
         )}
       </div>
@@ -83,8 +86,8 @@ const DocUploadForm = ({ onSuccess }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <h3 className="font-bold text-gray-800 text-sm mb-1">Enviar documentos para ativação</h3>
-        <p className="text-xs text-gray-500">
+        <h3 className="font-heading font-bold text-ink text-sm mb-1">Enviar documentos para ativação</h3>
+        <p className="text-xs text-muted">
           Após o envio, um administrador irá analisar os documentos e ativar seu cadastro.
         </p>
       </div>
@@ -106,7 +109,7 @@ const DocUploadForm = ({ onSuccess }) => {
       />
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+        <p role="alert" className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg">{error}</p>
       )}
 
       <button

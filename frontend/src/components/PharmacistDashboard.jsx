@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { CircleCheck, Ban, Clock, Zap, ZapOff, Bell, BellOff, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MyAppointments from './MyAppointments';
 import PharmacistProfileEditor from './PharmacistProfileEditor';
@@ -6,6 +7,7 @@ import DocUploadForm from './DocUploadForm';
 import ConsultaModal from './ConsultaModal';
 import GanhosTab from './GanhosTab';
 import AvaliacoesTab from './AvaliacoesTab';
+import Badge from './ui/Badge';
 import { isPushSupported, getCurrentPushSubscription, subscribeToPush, unsubscribeFromPush } from '../utils/push';
 import { useIsLg } from '../hooks/useIsLg';
 import FilaPanel from './pharmacist/FilaPanel';
@@ -16,6 +18,36 @@ import AgendaTab from './pharmacist/AgendaTab';
 import TemplatesTab from './pharmacist/TemplatesTab';
 import ResumoDoDia from './pharmacist/ResumoDoDia';
 import { getPharmacistStatus } from '../utils/pharmacistFormat';
+
+const STATUS_BADGE = {
+  ativo:    { variant: 'success', icon: CircleCheck },
+  suspenso: { variant: 'error',   icon: Ban },
+  pendente: { variant: 'alert',   icon: Clock },
+};
+
+// Controle compacto de switch usado no header (disponibilidade p/ urgências, push)
+const ToggleRow = ({ icon: Icon, label, title, checked, onChange, disabled }) => (
+  <div className="flex items-center justify-between gap-3 border border-line rounded-xl px-3.5 py-2 bg-canvas" title={title}>
+    <div className="flex items-center gap-2 min-w-0">
+      <Icon className={`w-4 h-4 shrink-0 ${checked ? 'text-brand' : 'text-muted'}`} strokeWidth={2} />
+      <p className="text-xs font-medium text-ink truncate">{label}</p>
+    </div>
+    <button
+      onClick={onChange}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+        checked ? 'bg-brand' : 'bg-line'
+      }`}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+    >
+      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-canvas shadow ring-0 transition duration-200 ${
+        checked ? 'translate-x-4' : 'translate-x-0'
+      }`} />
+    </button>
+  </div>
+);
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -45,6 +77,8 @@ const PharmacistDashboard = () => {
   const isSuspenso          = status.key === 'suspenso';
   const docEnviado          = status.docEnviado;
   const disponivelUrgencias = user?.pharmacistProfile?.disponivelUrgencias ?? true;
+  const primeiroNome        = (user?.name || '').split(' ')[0];
+  const statusBadge         = STATUS_BADGE[status.key];
 
   // Solicita permissão de notificação do navegador ao aprovar o farmacêutico
   useEffect(() => {
@@ -161,13 +195,53 @@ const PharmacistDashboard = () => {
   return (
     <div className="w-full">
 
+      {/* Header: saudação + status + toggles de estação de trabalho */}
+      <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
+        <div>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-ink">Olá, {primeiroNome}</h1>
+          <div className="mt-1.5">
+            <Badge variant={statusBadge.variant}>
+              <statusBadge.icon className="w-3 h-3" strokeWidth={2.5} />
+              {status.label}
+            </Badge>
+          </div>
+        </div>
+
+        {isApproved && (
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+            <ToggleRow
+              icon={disponivelUrgencias ? Zap : ZapOff}
+              label="Disponível p/ urgências"
+              title={disponivelUrgencias
+                ? 'Você aparece na fila de urgências e pode ser acionado'
+                : 'Você não recebe novas urgências. Consultas agendadas não são afetadas.'}
+              checked={disponivelUrgencias}
+              onChange={toggleDisponivelUrgencias}
+              disabled={togglingDisponivel}
+            />
+            {isPushSupported() && (
+              <ToggleRow
+                icon={pushEnabled ? Bell : BellOff}
+                label="Notificações push"
+                title={pushEnabled
+                  ? 'Você recebe um alerta no celular/navegador quando surge uma urgência'
+                  : 'Ative para ser avisado de novas urgências mesmo com o app fechado'}
+                checked={pushEnabled}
+                onChange={togglePush}
+                disabled={togglingPush}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Banner de conta suspensa */}
       {isSuspenso && (
-        <div className="mb-5 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <span className="text-red-500 mt-0.5">⛔</span>
+        <div className="mb-5 bg-error-wash border border-error/30 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <Ban className="w-5 h-5 text-error shrink-0 mt-0.5" strokeWidth={2} />
           <div>
-            <p className="font-semibold text-red-800 text-sm">Conta suspensa</p>
-            <p className="text-xs text-red-700 mt-0.5">
+            <p className="font-heading font-semibold text-error text-sm">Conta suspensa</p>
+            <p className="text-xs text-error mt-0.5">
               Sua conta foi suspensa por um administrador e não recebe novas consultas no momento.
               Entre em contato com o suporte se acredita que isso é um engano.
             </p>
@@ -178,11 +252,11 @@ const PharmacistDashboard = () => {
       {/* Banner de aprovação pendente */}
       {!isApproved && !isSuspenso && (
         <div className="mb-5 space-y-3">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
-            <span className="text-amber-500 mt-0.5">⏳</span>
+          <div className="bg-alert-wash border border-alert/30 rounded-xl px-4 py-3.5 flex items-start gap-3">
+            <Clock className="w-5 h-5 text-alert shrink-0 mt-0.5" strokeWidth={2} />
             <div>
-              <p className="font-semibold text-amber-800 text-sm">Conta aguardando aprovação</p>
-              <p className="text-xs text-amber-700 mt-0.5">
+              <p className="font-heading font-semibold text-alert text-sm">Conta aguardando aprovação</p>
+              <p className="text-xs text-alert mt-0.5">
                 {docEnviado
                   ? 'Documentos enviados. Um administrador irá analisar seu CRF e seus documentos — assim que aprovado, sua conta é liberada automaticamente e você recebe um aviso aqui.'
                   : 'Envie seus documentos para que um administrador possa analisar e ativar seu cadastro.'}
@@ -191,16 +265,16 @@ const PharmacistDashboard = () => {
           </div>
 
           {!docEnviado && (
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-canvas border border-line rounded-xl p-5">
               {showDocForm ? (
                 <DocUploadForm onSuccess={async () => { setShowDocForm(false); await refreshUser(); }} />
               ) : (
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl shrink-0">📋</span>
+                    <FileText className="w-5 h-5 text-muted shrink-0" strokeWidth={2} />
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">Enviar documentos</p>
-                      <p className="text-xs text-gray-500 mt-0.5">RG/CNH e carteira do CRF são necessários para ativação.</p>
+                      <p className="text-sm font-semibold text-ink">Enviar documentos</p>
+                      <p className="text-xs text-muted mt-0.5">RG/CNH e carteira do CRF são necessários para ativação.</p>
                     </div>
                   </div>
                   <button
@@ -216,71 +290,7 @@ const PharmacistDashboard = () => {
         </div>
       )}
 
-      {/* ── Toggle: Disponível para urgências ── */}
       {isApproved && <ResumoDoDia token={token} refreshTrigger={calendarTrigger} />}
-
-      {isApproved && (
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4">
-          <div className="flex items-center gap-3">
-            <span className={`text-xl ${disponivelUrgencias ? 'text-green-500' : 'text-gray-400'}`}>
-              {disponivelUrgencias ? '🟢' : '⭕'}
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">Disponível para urgências</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {disponivelUrgencias
-                  ? 'Você aparece na fila de urgências e pode ser acionado'
-                  : 'Você não recebe novas urgências. Consultas agendadas não são afetadas.'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={toggleDisponivelUrgencias}
-            disabled={togglingDisponivel}
-            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-              disponivelUrgencias ? 'bg-green-500' : 'bg-gray-300'
-            }`}
-            role="switch"
-            aria-checked={disponivelUrgencias}
-          >
-            <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
-              disponivelUrgencias ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
-        </div>
-      )}
-
-      {/* ── Toggle: Notificações push ── */}
-      {isApproved && isPushSupported() && (
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4">
-          <div className="flex items-center gap-3">
-            <span className={`text-xl ${pushEnabled ? 'text-brand' : 'text-gray-400'}`}>
-              {pushEnabled ? '🔔' : '🔕'}
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">Notificações push</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {pushEnabled
-                  ? 'Você recebe um alerta no celular/navegador quando surge uma urgência'
-                  : 'Ative para ser avisado de novas urgências mesmo com o app fechado'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={togglePush}
-            disabled={togglingPush}
-            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-              pushEnabled ? 'bg-brand' : 'bg-gray-300'
-            }`}
-            role="switch"
-            aria-checked={pushEnabled}
-          >
-            <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
-              pushEnabled ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
-        </div>
-      )}
 
       {/* ── Duas colunas: Fila + Urgentes (sempre visíveis quando aprovado) ── */}
       {isApproved && (
