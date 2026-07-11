@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { UserPlus, Trash2 } from 'lucide-react';
+import Modal from '../ui/Modal';
 
 // ── Aba "Administradores" ────────────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
       const res = await api('/api/admin/admins', { method: 'POST', body: JSON.stringify({ email }) });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        showToast('success', '✅ Administrador adicionado!');
+        showToast('success', 'Administrador adicionado!');
         setNewEmail('');
         load();
       } else {
@@ -59,53 +61,56 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 className="font-semibold text-gray-800 text-sm mb-3">Adicionar administrador</h3>
+      <div className="bg-canvas border border-line rounded-xl p-5">
+        <h3 className="font-semibold text-ink text-sm mb-3">Adicionar administrador</h3>
         <div className="flex gap-2 flex-wrap">
+          <label htmlFor="admin-novo-email" className="sr-only">E-mail do novo administrador</label>
           <input
+            id="admin-novo-email"
             type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
             placeholder="email@exemplo.com"
-            className="flex-1 min-w-[240px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
+            className="flex-1 min-w-[240px] border border-line rounded-lg px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-brand outline-none bg-canvas"
           />
           <button
             onClick={handleAdd}
             disabled={adding || !newEmail.trim()}
-            className="text-sm font-semibold bg-brand hover:bg-brand-deep text-white px-4 py-2 rounded-lg disabled:opacity-40 transition"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold bg-brand hover:bg-brand-deep text-white px-4 py-2 rounded-lg disabled:opacity-40 transition"
           >
+            <UserPlus className="w-4 h-4" />
             {adding ? 'Adicionando...' : 'Adicionar'}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-muted mt-2">
           O e-mail precisa corresponder à conta usada no login. Acesso liberado imediatamente.
         </p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-canvas border border-line rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         ) : admins.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 text-sm">Nenhum administrador configurado.</div>
+          <div className="p-12 text-center text-muted text-sm">Nenhum administrador configurado.</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
                 <th className="text-left px-4 py-3">E-mail</th>
                 <th className="text-left px-4 py-3">Origem</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {admins.map((a) => (
-                <tr key={a.email} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3 font-medium text-gray-800">
+                <tr key={a.email} className="hover:bg-surface transition">
+                  <td className="px-4 py-3 font-medium text-ink">
                     {a.email}
                     {a.email === currentUserEmail && <span className="ml-2 text-[10px] text-brand font-semibold">(você)</span>}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      a.origem === 'env' ? 'bg-gray-100 text-gray-500' : 'bg-brand-wash text-brand-deep'
+                      a.origem === 'env' ? 'bg-surface text-muted' : 'bg-brand-wash text-brand-deep'
                     }`}>
                       {a.origem === 'env' ? 'Variável de ambiente' : 'Painel'}
                     </span>
@@ -115,8 +120,9 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
                       <button
                         onClick={() => setConfirmRemove(a.email)}
                         disabled={removing[a.email]}
-                        className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-40"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-error hover:text-error/80 disabled:opacity-40"
                       >
+                        <Trash2 className="w-3.5 h-3.5" />
                         Remover
                       </button>
                     )}
@@ -129,27 +135,31 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
       </div>
 
       {confirmRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmRemove(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-gray-900 mb-2">Remover administrador?</h3>
-            <p className="text-sm text-gray-600 mb-5">
-              <strong>{confirmRemove}</strong> perderá acesso ao painel administrativo.
-            </p>
+        <Modal
+          title="Remover administrador?"
+          onClose={() => setConfirmRemove(null)}
+          maxWidth="max-w-sm"
+          footer={(
             <div className="flex gap-3">
               <button onClick={() => setConfirmRemove(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-medium border border-line rounded-xl hover:bg-surface transition text-ink">
                 Cancelar
               </button>
               <button
                 onClick={() => handleRemove(confirmRemove)}
                 disabled={removing[confirmRemove]}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:bg-error/90 disabled:opacity-60 transition">
                 {removing[confirmRemove] ? 'Removendo...' : 'Remover'}
               </button>
             </div>
+          )}
+        >
+          <div className="px-6 pt-4 pb-2">
+            <p className="text-sm text-ink">
+              <strong>{confirmRemove}</strong> perderá acesso ao painel administrativo.
+            </p>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

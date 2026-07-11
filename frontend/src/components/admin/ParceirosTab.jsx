@@ -1,5 +1,15 @@
 import React from 'react';
+import { Store, Pencil, Trash2, Plus, MousePointerClick } from 'lucide-react';
+import Modal from '../ui/Modal';
 import { useParceirosAdmin } from '../../hooks/useParceirosAdmin';
+
+const FORM_FIELDS = [
+  { key: 'nome',          label: 'Nome *',              placeholder: 'Droga Raia' },
+  { key: 'baseUrl',       label: 'URL base *',          placeholder: 'https://drogaraia.com.br' },
+  { key: 'affiliateCode', label: 'Código afiliado *',   placeholder: 'telefarmacia2024' },
+  { key: 'logoUrl',       label: 'URL do logo',         placeholder: 'https://...' },
+  { key: 'linkTemplate',  label: 'Template MIP',        placeholder: 'https://drogaraia.com.br/busca?q={produto}&aff={code}' },
+];
 
 const ParceirosTab = ({ api, showToast }) => {
   const {
@@ -13,26 +23,24 @@ const ParceirosTab = ({ api, showToast }) => {
     <div className="space-y-6">
 
       {/* Toggle global */}
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div>
-          <p style={{ fontWeight: 700, fontSize: 14, color: '#111827', margin: '0 0 4px' }}>
-            Seção "Onde comprar"
-          </p>
-          <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>
-            {ondeComprarAtivo
-              ? 'Ativa — pacientes veem a seção após consultas concluídas.'
-              : 'Inativa — seção oculta para todos os pacientes.'}
-          </p>
+      <div className="bg-canvas border border-line rounded-xl px-5 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Store className="w-5 h-5 text-muted shrink-0" strokeWidth={1.75} />
+          <div>
+            <p className="font-bold text-sm text-ink">Seção "Onde comprar"</p>
+            <p className="text-xs text-muted">
+              {ondeComprarAtivo
+                ? 'Ativa — pacientes veem a seção após consultas concluídas.'
+                : 'Inativa — seção oculta para todos os pacientes.'}
+            </p>
+          </div>
         </div>
         <button
           onClick={handleToggleOC}
           disabled={togglingOC}
-          style={{
-            padding: '8px 18px', border: 'none', borderRadius: 8,
-            fontWeight: 700, fontSize: 13, cursor: togglingOC ? 'wait' : 'pointer',
-            background: ondeComprarAtivo ? '#dc2626' : '#16a34a',
-            color: 'white', opacity: togglingOC ? 0.6 : 1, flexShrink: 0,
-          }}
+          className={`px-4 py-2 rounded-lg font-bold text-xs text-white shrink-0 transition ${
+            ondeComprarAtivo ? 'bg-error hover:bg-error/90' : 'bg-success hover:bg-success/90'
+          } disabled:opacity-60`}
         >
           {togglingOC ? '...' : ondeComprarAtivo ? 'Desativar' : 'Ativar'}
         </button>
@@ -40,18 +48,19 @@ const ParceirosTab = ({ api, showToast }) => {
 
       {/* Métricas — cliques últimos 30 dias */}
       {metricasParceiros.length > 0 && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px 20px' }}>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginBottom: 10 }}>
+        <div className="bg-canvas border border-line rounded-xl px-5 py-4">
+          <p className="font-bold text-ink text-sm mb-2.5 inline-flex items-center gap-1.5">
+            <MousePointerClick className="w-4 h-4 text-muted" />
             Cliques por parceiro — últimos 30 dias
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="flex flex-col divide-y divide-line">
             {metricasParceiros.map((m) => (
-              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
-                <span style={{ color: '#374151' }}>
+              <div key={m.id} className="flex justify-between items-center text-sm py-1.5">
+                <span className="text-ink">
                   {m.nome}
-                  {!m.ativo && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(inativo)</span>}
+                  {!m.ativo && <span className="text-xs text-muted ml-1.5">(inativo)</span>}
                 </span>
-                <span style={{ fontWeight: 700, color: m.clicks > 0 ? '#3B9FE0' : '#9ca3af' }}>
+                <span className={`font-bold ${m.clicks > 0 ? 'text-brand' : 'text-muted'}`}>
                   {m.clicks} clique{m.clicks !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -61,74 +70,75 @@ const ParceirosTab = ({ api, showToast }) => {
       )}
 
       {/* Cabeçalho da lista + botão novo */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontWeight: 700, fontSize: 14, color: '#111827', margin: 0 }}>
+      <div className="flex items-center justify-between">
+        <p className="font-bold text-ink text-sm">
           Parceiros cadastrados ({parceiros.length})
         </p>
         <button
           onClick={() => { setParceirosForm({ nome: '', logoUrl: '', baseUrl: '', affiliateCode: '', linkTemplate: '', ativo: true, ordem: parceiros.length }); setParceirosFormErr(''); }}
-          style={{ padding: '7px 14px', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand hover:bg-brand-deep text-white rounded-lg text-xs font-bold transition"
         >
-          + Novo parceiro
+          <Plus className="w-3.5 h-3.5" />
+          Novo parceiro
         </button>
       </div>
 
       {/* Formulário de criação / edição */}
       {parceirosForm && (
-        <div style={{ background: '#EAF6FE', border: '1px solid #8ED2F6', borderRadius: 12, padding: '16px 20px' }}>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#1D74B8', marginBottom: 12 }}>
+        <div className="bg-brand-wash border border-brand/30 rounded-xl px-5 py-4">
+          <p className="font-bold text-brand-deep text-sm mb-3">
             {parceirosForm.id ? 'Editar parceiro' : 'Novo parceiro'}
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-            {[
-              { key: 'nome',          label: 'Nome *',              placeholder: 'Droga Raia' },
-              { key: 'baseUrl',       label: 'URL base *',          placeholder: 'https://drogaraia.com.br' },
-              { key: 'affiliateCode', label: 'Código afiliado *',   placeholder: 'telefarmacia2024' },
-              { key: 'logoUrl',       label: 'URL do logo',         placeholder: 'https://...' },
-              { key: 'linkTemplate',  label: 'Template MIP',        placeholder: 'https://drogaraia.com.br/busca?q={produto}&aff={code}' },
-            ].map(({ key, label, placeholder }) => (
-              <div key={key}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>{label}</label>
-                <input
-                  type="text"
-                  value={parceirosForm[key] ?? ''}
-                  onChange={(e) => setParceirosForm((p) => ({ ...p, [key]: e.target.value }))}
-                  placeholder={placeholder}
-                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #8ED2F6', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-            ))}
+          <div className="grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+            {FORM_FIELDS.map(({ key, label, placeholder }) => {
+              const inputId = `parceiro-${key}`;
+              return (
+                <div key={key}>
+                  <label htmlFor={inputId} className="text-[11px] font-semibold text-muted block mb-1">{label}</label>
+                  <input
+                    id={inputId}
+                    type="text"
+                    value={parceirosForm[key] ?? ''}
+                    onChange={(e) => setParceirosForm((p) => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full px-2.5 py-1.5 border border-brand/30 rounded-lg text-sm text-ink outline-none focus:ring-2 focus:ring-brand bg-canvas"
+                  />
+                </div>
+              );
+            })}
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Ordem</label>
+              <label htmlFor="parceiro-ordem" className="text-[11px] font-semibold text-muted block mb-1">Ordem</label>
               <input
+                id="parceiro-ordem"
                 type="number"
                 value={parceirosForm.ordem ?? 0}
                 onChange={(e) => setParceirosForm((p) => ({ ...p, ordem: parseInt(e.target.value) || 0 }))}
-                style={{ width: '100%', padding: '7px 10px', border: '1px solid #8ED2F6', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                className="w-full px-2.5 py-1.5 border border-brand/30 rounded-lg text-sm text-ink outline-none focus:ring-2 focus:ring-brand bg-canvas"
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 16 }}>
+            <div className="flex items-center gap-2 pt-4">
               <input
                 type="checkbox"
                 id="parceiroAtivo"
                 checked={parceirosForm.ativo ?? true}
                 onChange={(e) => setParceirosForm((p) => ({ ...p, ativo: e.target.checked }))}
+                className="accent-brand"
               />
-              <label htmlFor="parceiroAtivo" style={{ fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Ativo</label>
+              <label htmlFor="parceiroAtivo" className="text-sm font-semibold text-ink cursor-pointer">Ativo</label>
             </div>
           </div>
-          {parceirosFormErr && <p style={{ color: '#dc2626', fontSize: 12, marginTop: 8 }}>{parceirosFormErr}</p>}
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          {parceirosFormErr && <p role="alert" className="text-error text-xs mt-2">{parceirosFormErr}</p>}
+          <div className="flex gap-2 mt-3.5">
             <button
               onClick={() => { setParceirosForm(null); setParceirosFormErr(''); }}
-              style={{ padding: '7px 16px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+              className="px-4 py-1.5 bg-canvas border border-line rounded-lg text-sm text-ink hover:bg-surface transition"
             >
               Cancelar
             </button>
             <button
               onClick={handleSaveParceiro}
               disabled={savingParceiro}
-              style={{ padding: '7px 16px', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingParceiro ? 'wait' : 'pointer', opacity: savingParceiro ? 0.6 : 1 }}
+              className="px-4 py-1.5 bg-brand hover:bg-brand-deep text-white rounded-lg text-sm font-bold disabled:opacity-60 transition"
             >
               {savingParceiro ? 'Salvando...' : 'Salvar'}
             </button>
@@ -138,43 +148,45 @@ const ParceirosTab = ({ api, showToast }) => {
 
       {/* Lista de parceiros */}
       {parceirosLoading ? (
-        <p style={{ color: '#9ca3af', fontSize: 14 }}>Carregando...</p>
+        <p className="text-muted text-sm">Carregando...</p>
       ) : parceiros.length === 0 ? (
-        <p style={{ color: '#9ca3af', fontSize: 14 }}>Nenhum parceiro cadastrado.</p>
+        <p className="text-muted text-sm">Nenhum parceiro cadastrado.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {parceiros.map((p) => (
-            <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <div key={p.id} className="bg-canvas border border-line rounded-lg px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5 min-w-0">
                 {p.logoUrl ? (
-                  <img src={p.logoUrl} alt={p.nome} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4, border: '1px solid #e5e7eb' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  <img src={p.logoUrl} alt={p.nome} className="w-7 h-7 object-contain rounded border border-line shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 ) : (
-                  <div style={{ width: 28, height: 28, borderRadius: 4, background: '#EAF6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#3B9FE0', flexShrink: 0 }}>
+                  <div className="w-7 h-7 rounded bg-brand-wash flex items-center justify-center text-sm font-bold text-brand shrink-0">
                     {p.nome.charAt(0)}
                   </div>
                 )}
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ink truncate">
                     {p.nome}
-                    <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 12 }}>ordem {p.ordem}</span>
-                    {!p.ativo && <span style={{ marginLeft: 6, fontSize: 11, background: '#fef2f2', color: '#dc2626', padding: '1px 6px', borderRadius: 10, fontWeight: 600 }}>inativo</span>}
+                    <span className="font-normal text-muted ml-1.5 text-xs">ordem {p.ordem}</span>
+                    {!p.ativo && <span className="ml-1.5 text-xs bg-error-wash text-error px-1.5 py-0.5 rounded-full font-semibold">inativo</span>}
                   </p>
-                  <p style={{ fontSize: 11, color: '#9ca3af', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>
+                  <p className="text-xs text-muted truncate max-w-[320px]">
                     {p.baseUrl}
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div className="flex gap-1.5 shrink-0">
                 <button
                   onClick={() => { setParceirosForm({ ...p }); setParceirosFormErr(''); }}
-                  style={{ padding: '5px 12px', background: 'white', border: '1px solid #8ED2F6', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#3B9FE0', cursor: 'pointer' }}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-canvas border border-brand/40 rounded-md text-xs font-semibold text-brand-deep hover:bg-brand-wash transition"
                 >
+                  <Pencil className="w-3 h-3" />
                   Editar
                 </button>
                 <button
                   onClick={() => setConfirmDelParceiro(p)}
-                  style={{ padding: '5px 12px', background: 'white', border: '1px solid #fecaca', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#dc2626', cursor: 'pointer' }}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-canvas border border-error/40 rounded-md text-xs font-semibold text-error hover:bg-error-wash transition"
                 >
+                  <Trash2 className="w-3 h-3" />
                   Excluir
                 </button>
               </div>
@@ -185,25 +197,29 @@ const ParceirosTab = ({ api, showToast }) => {
 
       {/* Dialog: confirmar exclusão de parceiro */}
       {confirmDelParceiro && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDelParceiro(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-gray-900 mb-2">Excluir parceiro?</h3>
-            <p className="text-sm text-gray-600 mb-5">
-              <strong>{confirmDelParceiro.nome}</strong> será removido. Os dados de clique históricos serão perdidos.
-            </p>
+        <Modal
+          title="Excluir parceiro?"
+          onClose={() => setConfirmDelParceiro(null)}
+          maxWidth="max-w-sm"
+          footer={(
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelParceiro(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-medium border border-line rounded-xl hover:bg-surface transition text-ink">
                 Cancelar
               </button>
               <button onClick={() => handleDeleteParceiro(confirmDelParceiro.id)}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:bg-error/90 transition">
                 Excluir
               </button>
             </div>
+          )}
+        >
+          <div className="px-6 pt-4 pb-2">
+            <p className="text-sm text-ink">
+              <strong>{confirmDelParceiro.nome}</strong> será removido. Os dados de clique históricos serão perdidos.
+            </p>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
