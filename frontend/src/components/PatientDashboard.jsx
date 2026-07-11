@@ -56,13 +56,13 @@ const PatientDashboard = () => {
   if (!hasProfile) {
     return (
       <div className="space-y-4">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-center">
-          <p className="text-base font-bold text-amber-800 mb-1">Complete seu cadastro</p>
-          <p className="text-sm text-amber-700">
+        <div className="bg-alert-wash border border-alert/30 rounded-xl p-5 text-center">
+          <p className="text-base font-bold text-alert mb-1">Complete seu cadastro</p>
+          <p className="text-sm text-alert">
             Preencha seus dados pessoais para acessar o sistema de agendamentos e cumprir os requisitos da LGPD.
           </p>
         </div>
-        <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="max-w-lg mx-auto bg-canvas border border-line rounded-2xl p-6 shadow-sm">
           <PatientProfileForm onClose={async () => { await refreshUser(); }} />
         </div>
       </div>
@@ -96,15 +96,31 @@ const PatientDashboard = () => {
     fetchWalletBalance();
   };
 
+  const primeiroNome = (user?.name || '').split(' ')[0];
+  const cuidandoDe = dep.selectedPerson ? dep.selectedPerson.nome.split(' ')[0] : null;
+
   return (
     <div className="space-y-6">
       {/* Sucesso de agendamento */}
       {bookedSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3">
-          <span className="text-green-600 font-bold text-lg">✓</span>
-          <p className="text-sm font-semibold text-green-800">Consulta agendada com sucesso!</p>
+        <div className="bg-success-wash border border-success/30 rounded-xl px-4 py-3 flex items-center gap-3">
+          <span className="text-success font-bold text-lg">✓</span>
+          <p className="text-sm font-semibold text-success">Consulta agendada com sucesso!</p>
         </div>
       )}
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-ink">
+            {cuidandoDe ? `Cuidando de: ${cuidandoDe}` : `Olá, ${primeiroNome}`}
+          </h1>
+          <p className="text-sm text-muted mt-0.5">
+            {cuidandoDe ? 'Consultas e pendências deste perfil' : 'Bem-vindo(a) de volta'}
+          </p>
+        </div>
+        <CarteiraCard walletBalance={walletBalance} setWalletBalance={setWalletBalance} onOpenTopup={() => setShowWalletTopup(true)} />
+      </div>
 
       <PushToggleBanner pushEnabled={pushEnabled} togglingPush={togglingPush} togglePush={togglePush} />
 
@@ -145,8 +161,6 @@ const PatientDashboard = () => {
         onOpenWalletTopup={() => setShowWalletTopup(true)}
       />
 
-      <CarteiraCard walletBalance={walletBalance} setWalletBalance={setWalletBalance} />
-
       {showDataModal && (
         <AgendarConsultaModal
           initialDate={retornoInitialDate}
@@ -175,7 +189,7 @@ const PatientDashboard = () => {
       {/* My appointments */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 className="font-semibold text-gray-800 text-sm" style={{ margin: 0 }}>Minhas consultas</h3>
+          <h3 className="text-[11px] font-bold tracking-wider uppercase text-muted" style={{ margin: 0 }}>Minhas consultas</h3>
           <button
             onClick={() => setShowDocumentos(true)}
             style={{
