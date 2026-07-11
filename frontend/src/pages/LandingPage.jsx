@@ -9,8 +9,8 @@ import Footer from '../components/home/Footer.jsx';
 ───────────────────────────────────────────────────────────── */
 const TRUST = [
   { icon: '🛡️', color: 'bg-blue-50 text-blue-600',     label: 'CRF Validado',       sub: 'Registro ativo no Conselho' },
-  { icon: '🔐', color: 'bg-emerald-50 text-emerald-600', label: 'Dados Seguros',      sub: 'Criptografia end-to-end' },
-  { icon: '⚡', color: 'bg-amber-50 text-amber-600',    label: 'PIX Instantâneo',    sub: 'Confirmação em segundos' },
+  { icon: '🔐', color: 'bg-emerald-50 text-emerald-600', label: 'Dados Seguros',      sub: 'Conexão criptografada e LGPD' },
+  { icon: '⚡', color: 'bg-amber-50 text-amber-600',    label: 'Pagamento via PIX',  sub: 'Simples e sem taxas surpresa' },
   { icon: '💬', color: 'bg-purple-50 text-purple-600',  label: 'Contato Direto',     sub: 'Farmacêutico fala com você' },
   { icon: '🌐', color: 'bg-teal-50 text-teal-600',      label: '100% Online',        sub: 'De qualquer lugar' },
 ];
@@ -142,7 +142,7 @@ const SpecialtiesSection = () => (
       <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Especialidades</p>
       <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">O que você quer resolver?</h2>
       <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">
-        Selecione uma área e encontre o farmacêutico especializado para a sua necessidade.
+        Escolha o tema da sua dúvida — um farmacêutico verificado assume sua consulta.
       </p>
     </div>
 
