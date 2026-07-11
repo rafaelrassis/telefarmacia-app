@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { brDateKey, fmtEmMinOuHora } from '../../utils/pharmacistFormat';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -44,22 +45,25 @@ const ResumoDoDia = ({ token, refreshTrigger }) => {
 
   return (
     <div className={`flex flex-wrap items-center gap-x-6 gap-y-2 border rounded-xl px-4 py-3 mb-4 ${
-      alerta ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'
+      alerta ? 'bg-error-wash border-error/30' : 'bg-canvas border-line'
     }`}>
       <div>
-        <p className="text-xs text-gray-500">Consultas de hoje</p>
-        <p className="text-sm font-semibold text-gray-800">
+        <p className="text-xs text-muted">Consultas de hoje</p>
+        <p className="font-heading text-sm font-semibold text-ink">
           {resumo.totalHoje} {resumo.totalHoje === 1 ? 'aceita' : 'aceitas'}
           {resumo.proximaHorario && (
-            <span className="text-gray-400 font-normal"> · próxima {fmtEmMinOuHora(resumo.proximaHorario)}</span>
+            <span className="text-muted font-normal"> · próxima {fmtEmMinOuHora(resumo.proximaHorario)}</span>
           )}
         </p>
       </div>
-      <div>
-        <p className="text-xs text-gray-500">Urgentes aguardando</p>
-        <p className={`text-sm font-bold ${alerta ? 'text-red-600' : 'text-gray-800'}`}>
-          {resumo.urgentesAguardando} {alerta ? '🔴' : ''}
-        </p>
+      <div className="flex items-center gap-1.5">
+        <div>
+          <p className="text-xs text-muted">Urgentes aguardando</p>
+          <p className={`font-heading text-sm font-bold ${alerta ? 'text-error' : 'text-ink'}`}>
+            {resumo.urgentesAguardando}
+          </p>
+        </div>
+        {alerta && <AlertCircle className="w-4 h-4 text-error" strokeWidth={2} />}
       </div>
     </div>
   );

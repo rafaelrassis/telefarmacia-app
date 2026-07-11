@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Zap, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePharmacistToast } from '../../hooks/usePharmacistToast';
 import { timeSince, playBeep } from '../../utils/pharmacistFormat';
+import EmptyState from '../ui/EmptyState';
 import ToastBanner from './ToastBanner';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// ── Painel direito: Urgentes (polling 5s) ─────────────────────────────────────
+// ── Urgentes aguardando (polling 5s) — maior criticidade da fila ─────────────
 
 const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUrgencias }) => {
   const { token } = useAuth();
@@ -87,7 +89,6 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
   }, [load]);
 
   const aceitar = async (id, nomePaciente) => {
-    console.log('[UrgentesPanel] aceitar → id:', id, '| nomePaciente:', nomePaciente);
     setAccepting((p) => ({ ...p, [id]: true }));
     try {
       const res = await fetch(`${API_URL}/api/fila/urgente/${id}/aceitar`, {
@@ -95,10 +96,9 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      console.log('[UrgentesPanel] resposta → status:', res.status, '| body:', data);
       if (res.ok) {
         setFila((p) => p.filter((f) => f.id !== id));
-        showToast('success', `🚨 Atendimento aceito! Paciente: ${data.fila?.paciente?.name ?? nomePaciente}`);
+        showToast('success', `Atendimento aceito! Paciente: ${data.fila?.paciente?.name ?? nomePaciente}`);
         onAccepted?.();
       } else if (res.status === 409) {
         showToast('error', 'Esta urgência já foi aceita por outro farmacêutico.');
@@ -113,7 +113,6 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
         load();
       }
     } catch (err) {
-      console.error('[UrgentesPanel] catch →', err);
       showToast('error', 'Falha de conexão.');
     }
     setAccepting((p) => ({ ...p, [id]: false }));
@@ -123,28 +122,29 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
   const bloqueado   = disponivelUrgencias === false;
 
   return (
-    <div className={`rounded-2xl p-5 flex flex-col gap-4 min-h-[220px] border-2 transition-colors duration-300 ${
-      bloqueado   ? 'bg-gray-50 border-gray-200 opacity-80' :
-      temUrgentes ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'
+    <div className={`rounded-2xl p-5 flex flex-col gap-4 border-2 transition-colors duration-300 ${
+      bloqueado   ? 'bg-surface border-line opacity-80' :
+      temUrgentes ? 'bg-error-wash border-error' : 'bg-canvas border-line'
     }`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className={`font-bold text-base ${bloqueado ? 'text-gray-500' : temUrgentes ? 'text-red-800' : 'text-gray-800'}`}>
-          ⚡ Urgências
+        <h2 className={`font-heading flex items-center gap-1.5 font-bold text-base ${bloqueado ? 'text-muted' : temUrgentes ? 'text-error' : 'text-ink'}`}>
+          <Zap className="w-4 h-4" strokeWidth={2.5} />
+          Urgências aguardando
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleMute}
             title={muted ? 'Som silenciado — clique para ativar' : 'Silenciar alertas sonoros'}
-            className="text-lg leading-none opacity-60 hover:opacity-100 transition"
+            className="text-muted hover:text-ink transition"
           >
-            {muted ? '🔕' : '🔔'}
+            {muted ? <VolumeX className="w-4 h-4" strokeWidth={2} /> : <Volume2 className="w-4 h-4" strokeWidth={2} />}
           </button>
-          <span className="text-xs text-gray-400">↻ 5s</span>
+          <span className="text-xs text-muted">↻ 5s</span>
         </div>
       </div>
 
       {bloqueado && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800">
+        <div className="bg-alert-wash border border-alert/30 rounded-xl px-3 py-2.5 text-xs text-alert">
           Você está <strong>indisponível para urgências</strong>. Ative o toggle no topo do painel para aceitar novos atendimentos.
         </div>
       )}
@@ -156,19 +156,19 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
           {fila.map((f) => (
             <div key={f.id} className="relative">
               {/* Anel pulsante ao redor do card */}
-              <div className="absolute -inset-0.5 rounded-xl border-2 border-red-400 animate-ping opacity-25 pointer-events-none" />
+              <div className="absolute -inset-0.5 rounded-xl border-2 border-error animate-ping opacity-25 pointer-events-none" />
               <div
                 onClick={() => onCardClick?.({ id: f.id, tipo: 'urgente' })}
-                className={`relative bg-white border-2 border-red-300 rounded-xl p-4 flex flex-col gap-3 ${onCardClick ? 'cursor-pointer hover:bg-red-50/30 transition-colors' : ''}`}
+                className={`relative bg-canvas border-2 border-error rounded-xl p-4 flex flex-col gap-3 ${onCardClick ? 'cursor-pointer hover:bg-error-wash/40 transition-colors' : ''}`}
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl shrink-0 animate-bounce" style={{ animationDuration: '1.2s' }}>🚨</span>
+                  <AlertTriangle className="w-6 h-6 text-error shrink-0 animate-bounce [animation-duration:1.2s]" strokeWidth={2} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-red-800 text-sm leading-tight">
+                    <p className="font-bold text-error text-sm leading-tight">
                       Paciente aguardando atendimento URGENTE!
                     </p>
-                    <p className="text-sm font-semibold text-gray-800 mt-1.5 truncate">{f.paciente?.name}</p>
-                    <p className="text-xs text-red-600 mt-0.5">aguardando {timeSince(f.criadoEm)}</p>
+                    <p className="text-sm font-semibold text-ink mt-1.5 truncate">{f.paciente?.name}</p>
+                    <p className="text-xs text-error mt-0.5">aguardando {timeSince(f.criadoEm)}</p>
                   </div>
                 </div>
                 <button
@@ -178,19 +178,19 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
                     bloqueado         ? 'Ative "Disponível para urgências" para aceitar' :
                     hasEmAtendimento  ? 'Finalize o atendimento atual primeiro' : undefined
                   }
-                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl text-sm transition"
+                  className="w-full bg-error hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl text-sm transition"
                 >
-                  {accepting[f.id] ? 'Aceitando...' : '🚨 Atender Agora'}
+                  {accepting[f.id] ? 'Aceitando...' : 'Atender agora'}
                 </button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center gap-1">
-          <p className="text-sm text-gray-400">Nenhuma urgência no momento</p>
-          <p className="text-xs text-gray-300">Verificando a cada 5s</p>
-        </div>
+        <EmptyState
+          title="Nenhuma urgência no momento"
+          description="Verificando a cada 5s"
+        />
       )}
     </div>
   );
