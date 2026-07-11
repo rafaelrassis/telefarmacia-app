@@ -50,10 +50,7 @@ const CarteiraCard = ({ walletBalance, setWalletBalance, onOpenTopup }) => {
       {showExtrato && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowExtrato(false)} />
-          <div
-            className="relative bg-canvas w-full sm:rounded-2xl shadow-2xl sm:max-w-md rounded-t-2xl"
-            style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
-          >
+          <div className="relative bg-canvas w-full sm:rounded-2xl shadow-2xl sm:max-w-md rounded-t-2xl flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between px-5 pt-[18px] shrink-0">
               <h2 className="font-heading text-base font-bold text-ink m-0">Extrato da carteira</h2>
               <button

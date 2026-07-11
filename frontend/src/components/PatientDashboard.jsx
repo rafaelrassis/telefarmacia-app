@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FileText, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MyAppointments from './MyAppointments';
 import CheckoutPix from './CheckoutPix';
@@ -79,7 +80,7 @@ const PatientDashboard = () => {
       <div className="space-y-4">
         <button
           onClick={() => setShowWalletTopup(false)}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition"
+          className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition"
         >
           ← Voltar
         </button>
@@ -109,7 +110,7 @@ const PatientDashboard = () => {
       {/* Sucesso de agendamento */}
       {bookedSuccess && (
         <div className="bg-success-wash border border-success/30 rounded-xl px-4 py-3 flex items-center gap-3">
-          <span className="text-success font-bold text-lg">✓</span>
+          <Check className="w-5 h-5 text-success shrink-0" strokeWidth={3} />
           <p className="text-sm font-semibold text-success">Consulta agendada com sucesso!</p>
         </div>
       )}
@@ -193,18 +194,14 @@ const PatientDashboard = () => {
       )}
 
       {/* My appointments */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 className="text-[11px] font-bold tracking-wider uppercase text-muted" style={{ margin: 0 }}>Minhas consultas</h3>
+      <div className="bg-canvas border border-line rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[11px] font-bold tracking-wider uppercase text-muted m-0">Minhas consultas</h3>
           <button
             onClick={() => setShowDocumentos(true)}
-            style={{
-              background: 'none', border: '1.5px solid #e5e7eb', borderRadius: 8,
-              padding: '5px 10px', fontSize: 12, fontWeight: 600, color: '#3B9FE0',
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
+            className="inline-flex items-center gap-1.5 bg-canvas border border-line rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-deep whitespace-nowrap"
           >
-            📄 Meus documentos
+            <FileText className="w-3.5 h-3.5" /> Meus documentos
           </button>
         </div>
         <MyAppointments onCancelled={fetchWalletBalance} selectedPerson={dep.selectedPerson} refreshKey={appointmentsRefreshKey} />
