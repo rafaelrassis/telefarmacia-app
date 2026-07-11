@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ── Formulário de e-mail/senha ───────────────────────────────────────────────
-const EmailForm = ({ onSuccess }) => {
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
+const EmailForm = ({ mode, setMode, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,62 +46,85 @@ const EmailForm = ({ onSuccess }) => {
     <form onSubmit={handleSubmit} className="space-y-3">
       {mode === 'register' && (
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Nome</label>
-          <input
-            type="text"
-            placeholder="Seu nome completo"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
-          />
+          <label htmlFor="login-nome" className="block text-xs font-semibold text-muted mb-1">Nome</label>
+          <div className="relative">
+            <User className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="login-nome"
+              type="text"
+              placeholder="Seu nome completo"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              autoComplete="name"
+              className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+            />
+          </div>
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">E-mail</label>
-        <input
-          type="email"
-          placeholder="seu@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
-        />
+        <label htmlFor="login-email" className="block text-xs font-semibold text-muted mb-1">E-mail</label>
+        <div className="relative">
+          <Mail className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            id="login-email"
+            type="email"
+            placeholder="seu@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+          />
+        </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Senha</label>
-        <input
-          type="password"
-          placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={mode === 'register' ? 6 : undefined}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
-        />
+        <label htmlFor="login-senha" className="block text-xs font-semibold text-muted mb-1">Senha</label>
+        <div className="relative">
+          <Lock className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            id="login-senha"
+            type={showPassword ? 'text' : 'password'}
+            placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={mode === 'register' ? 6 : undefined}
+            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+            className="w-full pl-10 pr-10 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+        <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg" role="alert">{error}</p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
+        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         {loading
           ? 'Aguarde...'
           : mode === 'login' ? 'Entrar' : 'Criar conta'}
       </button>
 
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-muted">
         {mode === 'login' ? 'Não tem uma conta?' : 'Já tem uma conta?'}{' '}
         <button
           type="button"
           onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
-          className="text-brand-deep font-semibold hover:underline"
+          className="text-brand-deep font-semibold hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {mode === 'login' ? 'Criar conta' : 'Entrar'}
         </button>
@@ -110,10 +134,15 @@ const EmailForm = ({ onSuccess }) => {
 };
 
 // ── Componente principal ─────────────────────────────────────────────────────
-const Login = () => {
+const Login = ({ onModeChange }) => {
   const { login } = useAuth();
   const [authMethod, setAuthMethod] = useState('google'); // 'google' | 'email'
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
 
   // Toda conta nova entra como PACIENTE (papel padrão do backend); virar
   // farmacêutico é um fluxo à parte (PharmacistSignupWizard), não uma
@@ -141,7 +170,7 @@ const Login = () => {
   return (
     <div>
       {/* Tab switcher */}
-      <div className="flex rounded-xl border border-gray-200 p-1 mb-6 bg-gray-50">
+      <div className="flex rounded-xl border border-line p-1 mb-6 bg-surface">
         {[
           { key: 'google', label: 'Google' },
           { key: 'email',  label: 'E-mail e senha' },
@@ -149,10 +178,10 @@ const Login = () => {
           <button
             key={key}
             onClick={() => { setAuthMethod(key); setError(''); }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
               authMethod === key
-                ? 'bg-white text-brand-deep shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-canvas text-brand-deep shadow-sm'
+                : 'text-muted hover:text-ink'
             }`}
           >
             {label}
@@ -162,7 +191,7 @@ const Login = () => {
 
       {authMethod === 'google' ? (
         <div className="text-center">
-          <p className="text-sm text-gray-500 mb-5">
+          <p className="text-sm text-muted mb-5">
             Entre ou crie uma conta usando sua conta Google.
           </p>
           <div className="flex justify-center mb-4">
@@ -176,12 +205,15 @@ const Login = () => {
               locale="pt_BR"
             />
           </div>
+          <p className="text-xs text-muted mt-2">
+            Se for seu primeiro acesso, sua conta é criada automaticamente.
+          </p>
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mt-2">{error}</p>
+            <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg mt-2" role="alert">{error}</p>
           )}
         </div>
       ) : (
-        <EmailForm onSuccess={handleAuthSuccess} />
+        <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
       )}
     </div>
   );
