@@ -1,37 +1,33 @@
 import React from 'react';
+import { ChevronUp, ChevronDown, Paperclip } from 'lucide-react';
 import TriagemDisplay from './TriagemDisplay';
 
 const TriagemCollapsible = ({ triagem, pacienteNome, showTriagem, setShowTriagem, anexoReceitaUrl, onAbrirAnexo }) => {
   if (!triagem) return null;
 
   return (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+    <div className="border border-line rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setShowTriagem((p) => !p)}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', background: '#f9fafb', border: 'none', cursor: 'pointer',
-          fontSize: 13, fontWeight: 700, color: '#374151',
-        }}
+        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-surface border-0 cursor-pointer text-[13px] font-bold text-ink"
       >
         <span>Triagem do paciente</span>
-        <span style={{ fontSize: 11, color: '#9ca3af' }}>{showTriagem ? '▲ Fechar' : '▼ Ver'}</span>
+        <span className="text-[11px] text-muted inline-flex items-center gap-1">
+          {showTriagem ? (<><ChevronUp className="w-3.5 h-3.5" />Fechar</>) : (<><ChevronDown className="w-3.5 h-3.5" />Ver</>)}
+        </span>
       </button>
       {showTriagem && (
-        <div style={{ padding: '12px 14px', background: 'white', fontSize: 13, color: '#374151' }}>
+        <div className="px-3.5 py-3 bg-canvas text-[13px] text-ink">
           <TriagemDisplay triagem={triagem} solicitanteNome={pacienteNome} />
           {anexoReceitaUrl && (
             <button
               type="button"
               onClick={() => onAbrirAnexo?.(anexoReceitaUrl)}
-              style={{
-                marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '7px 12px', borderRadius: 8, border: '1px solid #bfdbfe',
-                background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              }}
+              className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand/30 bg-brand-wash text-brand-deep text-xs font-bold cursor-pointer"
             >
-              📎 Ver anexo da receita
+              <Paperclip className="w-3.5 h-3.5" />
+              Ver anexo da receita
             </button>
           )}
         </div>

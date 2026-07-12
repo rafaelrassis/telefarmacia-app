@@ -66,44 +66,28 @@ const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
   return (
     <div
       ref={ref}
-      style={{
-        position:     'absolute',
-        top:          '110%',
-        right:        0,
-        zIndex:       100,
-        width:        '320px',
-        background:   'white',
-        border:       '1px solid #e5e7eb',
-        borderRadius: '12px',
-        boxShadow:    '0 8px 24px rgba(0,0,0,0.12)',
-        overflow:     'hidden',
-      }}
+      className="absolute top-[110%] right-0 z-[100] w-80 bg-canvas border border-line rounded-xl shadow-lg overflow-hidden"
     >
       {/* Busca */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+      <div className="px-3 py-2.5 border-b border-line">
         <input
           autoFocus
           type="text"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar template por título..."
-          style={{
-            width: '100%', boxSizing: 'border-box',
-            border: '1px solid #e5e7eb', borderRadius: 8,
-            padding: '7px 10px', fontSize: 13, outline: 'none',
-            fontFamily: 'inherit',
-          }}
+          className="w-full box-border border border-line rounded-lg px-2.5 py-1.5 text-[13px] outline-none font-inherit bg-surface"
         />
       </div>
 
       {/* Lista */}
-      <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+      <div className="max-h-60 overflow-y-auto">
         {loading ? (
-          <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: '16px 0' }}>
+          <p className="text-[13px] text-muted text-center py-4">
             Carregando...
           </p>
         ) : filtrados.length === 0 ? (
-          <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: '16px 12px' }}>
+          <p className="text-[13px] text-muted text-center py-4 px-3">
             {templates.length === 0
               ? 'Nenhum template criado ainda. Crie na aba "Templates".'
               : 'Nenhum template encontrado.'}
@@ -113,20 +97,12 @@ const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
             <button
               key={t.id}
               onClick={() => onInsert(applyPlaceholders(t.conteudo, { pacienteNome, triagem, farmaceuticoNome }))}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '10px 14px', background: 'transparent',
-                border: 'none', borderBottom: '1px solid #f3f4f6',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#EAF6FE')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className="block w-full text-left px-3.5 py-2.5 bg-transparent border-0 border-b border-line last:border-b-0 cursor-pointer font-inherit hover:bg-brand-wash transition-colors"
             >
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: 0, lineHeight: 1.3 }}>
+              <p className="text-[13px] font-semibold text-ink m-0 leading-tight">
                 {t.titulo}
               </p>
-              <p style={{ fontSize: 11, color: '#9ca3af', margin: '3px 0 0', lineHeight: 1.4,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p className="text-[11px] text-muted mt-0.5 mb-0 leading-snug overflow-hidden text-ellipsis whitespace-nowrap">
                 {t.conteudo}
               </p>
             </button>
@@ -135,11 +111,11 @@ const TemplatePicker = ({ pacienteNome, triagem, onInsert, onClose }) => {
       </div>
 
       {/* Dica de placeholders */}
-      <div style={{ padding: '8px 12px', borderTop: '1px solid #f3f4f6', background: '#fafafa' }}>
-        <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>
-          Placeholders: <code style={{ fontFamily: 'monospace' }}>{'{{paciente_nome}}'}</code>,{' '}
-          <code style={{ fontFamily: 'monospace' }}>{'{{data}}'}</code>,{' '}
-          <code style={{ fontFamily: 'monospace' }}>{'{{farmaceutico_nome}}'}</code>
+      <div className="px-3 py-2 border-t border-line bg-surface">
+        <p className="text-[11px] text-muted m-0">
+          Placeholders: <code className="font-mono">{'{{paciente_nome}}'}</code>,{' '}
+          <code className="font-mono">{'{{data}}'}</code>,{' '}
+          <code className="font-mono">{'{{farmaceutico_nome}}'}</code>
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClipboardList } from 'lucide-react';
 import TemplatePicker from '../TemplatePicker';
 
 const MotivoObservacoesForm = ({
@@ -7,36 +8,39 @@ const MotivoObservacoesForm = ({
   isEncerrada, isVisualizacao, podeEditar, canConcluir,
   consulta, triagem,
   showTemplatePicker, setShowTemplatePicker,
-}) => (
+}) => {
+  const motivoDisabled = !podeEditar && !isEncerrada && !isVisualizacao;
+  return (
   <div className="space-y-3">
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">
+      <label htmlFor="motivo-consulta" className="block text-xs font-semibold text-muted mb-1">
         Motivo / Queixa principal
       </label>
       <textarea
+        id="motivo-consulta"
         value={motivo}
         onChange={(e) => setMotivo(e.target.value)}
         readOnly={isEncerrada || isVisualizacao || !podeEditar}
-        title={!podeEditar && !isEncerrada && !isVisualizacao ? 'Inicie o atendimento para editar' : undefined}
+        title={motivoDisabled ? 'Inicie o atendimento para editar' : undefined}
         placeholder="Descreva o motivo da consulta ou queixa do paciente..."
         rows={3}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 focus:ring-brand outline-none"
-        style={{ background: (!podeEditar && !isEncerrada && !isVisualizacao) ? '#f3f4f6' : undefined }}
+        className={`w-full border border-line rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 focus:ring-brand outline-none ${motivoDisabled ? 'bg-surface' : 'bg-canvas'}`}
       />
     </div>
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-xs font-semibold text-gray-600">
-          Observações do atendimento{canConcluir && <span className="text-red-500 ml-0.5">*</span>}
+        <label htmlFor="observacoes-consulta" className="text-xs font-semibold text-muted">
+          Observações do atendimento{canConcluir && <span className="text-error ml-0.5">*</span>}
         </label>
         {podeEditar && (
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowTemplatePicker((v) => !v)}
-              className="text-xs text-brand-deep hover:text-brand font-semibold border border-brand/30 rounded-lg px-2 py-1 hover:bg-brand-wash transition"
+              className="text-xs text-brand-deep hover:text-brand font-semibold border border-brand/30 rounded-lg px-2 py-1 hover:bg-brand-wash transition inline-flex items-center gap-1"
             >
-              📋 Usar template
+              <ClipboardList className="w-3.5 h-3.5" />
+              Usar template
             </button>
             {showTemplatePicker && (
               <TemplatePicker
@@ -54,26 +58,27 @@ const MotivoObservacoesForm = ({
         )}
       </div>
       <textarea
+        id="observacoes-consulta"
         value={observacoes}
         onChange={(e) => { setObservacoes(e.target.value); if (obsError) setObsError(false); }}
         readOnly={isEncerrada || isVisualizacao || !podeEditar}
-        title={!podeEditar && !isEncerrada && !isVisualizacao ? 'Inicie o atendimento para editar' : undefined}
+        title={motivoDisabled ? 'Inicie o atendimento para editar' : undefined}
         placeholder="Orientações, recomendações ou observações clínicas..."
         rows={4}
         className={`w-full border rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 outline-none transition ${
           obsError
-            ? 'border-red-400 focus:ring-red-300 bg-red-50'
-            : 'border-gray-200 focus:ring-brand'
+            ? 'border-error focus:ring-error/30 bg-error-wash'
+            : `border-line focus:ring-brand ${motivoDisabled ? 'bg-surface' : 'bg-canvas'}`
         }`}
-        style={{ background: (!podeEditar && !isEncerrada && !isVisualizacao && !obsError) ? '#f3f4f6' : undefined }}
       />
       {obsError && (
-        <p className="text-xs text-red-600 mt-1 font-medium">
+        <p className="text-xs text-error mt-1 font-medium">
           Preencha as observações antes de concluir.
         </p>
       )}
     </div>
   </div>
-);
+  );
+};
 
 export default MotivoObservacoesForm;

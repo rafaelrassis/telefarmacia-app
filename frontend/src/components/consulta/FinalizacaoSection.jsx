@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClipboardCheck } from 'lucide-react';
 import RadioGroup from './RadioGroup';
 import { RADIO_LABELS } from '../../utils/consultaFormat';
 
@@ -13,33 +14,31 @@ const FinalizacaoSection = ({
   encaminhamentoDetalhe, setEncaminhamentoDetalhe,
   onChangeAny,
 }) => {
-  const fldStyle = (val, required = true) => ({
-    padding: '12px 0',
-    borderBottom: '1px solid #f3f4f6',
-    borderLeft: (hasError && required && !val) ? '3px solid #ef4444' : '3px solid transparent',
-    paddingLeft: 6,
-  });
+  const fldCls = (val, required = true) =>
+    `py-3 border-b border-line pl-1.5 ${hasError && required && !val ? 'border-l-2 border-l-error' : 'border-l-2 border-l-transparent'}`;
 
   if (readonly && data) {
     const lbl = (key, val) => RADIO_LABELS[key]?.[val] ?? val ?? '—';
+    const rows = [
+      ['Problema autolimitado', lbl('problema_autolimitado', data.problema_autolimitado)],
+      ['Paciente compreendeu as orientações', lbl('paciente_compreendeu', data.paciente_compreendeu)],
+      ['Contraindicação ao medicamento', lbl('contraindicacao', data.contraindicacao)],
+      ...(data.contraindicacao === 'sim' && data.contraindicacao_detalhe ? [['Qual contraindicação', data.contraindicacao_detalhe]] : []),
+      ['Encaminhamento médico', lbl('encaminhamento_medico', data.encaminhamento_medico)],
+      ...(data.encaminhamento_medico === 'sim' && data.encaminhamento_detalhe ? [['Especialidade/motivo', data.encaminhamento_detalhe]] : []),
+    ];
     return (
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '10px 14px', background: '#f0fdf4', borderBottom: '1px solid #e5e7eb' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>📋 Finalização da Consulta</span>
+      <div className="border border-line rounded-xl overflow-hidden">
+        <div className="px-3.5 py-2.5 bg-success-wash border-b border-line flex items-center gap-1.5">
+          <ClipboardCheck className="w-4 h-4 text-success" />
+          <span className="text-[13px] font-bold text-success">Finalização da Consulta</span>
         </div>
-        <div style={{ padding: '12px 14px', background: 'white' }}>
-          <dl style={{ margin: 0 }}>
-            {[
-              ['Problema autolimitado', lbl('problema_autolimitado', data.problema_autolimitado)],
-              ['Paciente compreendeu as orientações', lbl('paciente_compreendeu', data.paciente_compreendeu)],
-              ['Contraindicação ao medicamento', lbl('contraindicacao', data.contraindicacao)],
-              ...(data.contraindicacao === 'sim' && data.contraindicacao_detalhe ? [['Qual contraindicação', data.contraindicacao_detalhe]] : []),
-              ['Encaminhamento médico', lbl('encaminhamento_medico', data.encaminhamento_medico)],
-              ...(data.encaminhamento_medico === 'sim' && data.encaminhamento_detalhe ? [['Especialidade/motivo', data.encaminhamento_detalhe]] : []),
-            ].map(([label, value]) => (
-              <div key={label} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
-                <dt style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0, width: 200 }}>{label}</dt>
-                <dd style={{ fontSize: 13, color: '#111827', margin: 0, flex: 1, fontWeight: 500 }}>{value}</dd>
+        <div className="px-3.5 py-3 bg-surface">
+          <dl className="m-0">
+            {rows.map(([label, value]) => (
+              <div key={label} className="flex gap-2 py-1 border-b border-line/60 last:border-b-0">
+                <dt className="text-xs text-muted shrink-0 w-[200px]">{label}</dt>
+                <dd className="text-[13px] text-ink m-0 flex-1 font-medium">{value}</dd>
               </div>
             ))}
           </dl>
@@ -49,33 +48,41 @@ const FinalizacaoSection = ({
   }
 
   const q = (label, required) => (
-    <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
-      {label}{required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}
+    <span className="text-[13px] font-semibold text-ink">
+      {label}{required && <span className="text-error ml-0.5">*</span>}
     </span>
   );
 
-  return (
-    <div style={{ border: `1px solid ${hasError ? '#fca5a5' : '#e5e7eb'}`, borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '10px 14px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>📋 Finalização da Consulta</span>
-        <span style={{ fontSize: 11, color: '#ef4444' }}>* Obrigatório</span>
-      </div>
-      <div style={{ padding: '4px 14px 8px', background: 'white' }}>
+  const detalheCls = (val) =>
+    `mt-2.5 w-full box-border rounded-lg px-2.5 py-2 text-[13px] resize-y font-inherit outline-none border ${
+      hasError && !val.trim() ? 'border-error bg-error-wash' : 'border-line bg-surface'
+    }`;
 
-        <div style={{ ...fldStyle(problemaAutolimitado) }}>
-          <div style={{ marginBottom: 8 }}>{q('O problema é autolimitado?', true)}</div>
+  return (
+    <div className={`border rounded-xl overflow-hidden ${hasError ? 'border-error/50' : 'border-line'}`}>
+      <div className="px-3.5 py-2.5 bg-surface border-b border-line flex items-center justify-between">
+        <span className="text-[13px] font-bold text-ink inline-flex items-center gap-1.5">
+          <ClipboardCheck className="w-4 h-4" />
+          Finalização da Consulta
+        </span>
+        <span className="text-[11px] text-error">* Obrigatório</span>
+      </div>
+      <div className="px-3.5 pt-1 pb-2 bg-canvas">
+
+        <div className={fldCls(problemaAutolimitado)}>
+          <div className="mb-2">{q('O problema é autolimitado?', true)}</div>
           <RadioGroup name="autolimitado" options={[['sim','Sim'],['nao','Não'],['indeterminado','Indeterminado']]}
             value={problemaAutolimitado} onChange={(v) => { setProblemaAutolimitado(v); onChangeAny?.(); }} error={hasError} />
         </div>
 
-        <div style={{ ...fldStyle(pacienteCompreendeu) }}>
-          <div style={{ marginBottom: 8 }}>{q('O paciente compreendeu as orientações?', true)}</div>
+        <div className={fldCls(pacienteCompreendeu)}>
+          <div className="mb-2">{q('O paciente compreendeu as orientações?', true)}</div>
           <RadioGroup name="compreendeu" options={[['sim','Sim'],['parcialmente','Parcialmente'],['nao','Não']]}
             value={pacienteCompreendeu} onChange={(v) => { setPacienteCompreendeu(v); onChangeAny?.(); }} error={hasError} />
         </div>
 
-        <div style={{ ...fldStyle(contraindicacao) }}>
-          <div style={{ marginBottom: 8 }}>{q('Existe contraindicação ao medicamento?', true)}</div>
+        <div className={fldCls(contraindicacao)}>
+          <div className="mb-2">{q('Existe contraindicação ao medicamento?', true)}</div>
           <RadioGroup name="contraindicacao" options={[['sim','Sim'],['nao','Não'],['nao_se_aplica','Não se aplica']]}
             value={contraindicacao} onChange={(v) => { setContraindicacao(v); onChangeAny?.(); }} error={hasError} />
           {contraindicacao === 'sim' && (
@@ -84,19 +91,13 @@ const FinalizacaoSection = ({
               onChange={(e) => { setContraindicacaoDetalhe(e.target.value); onChangeAny?.(); }}
               placeholder="Qual contraindicação?"
               rows={2}
-              style={{
-                marginTop: 10, width: '100%', boxSizing: 'border-box',
-                border: `1px solid ${hasError && !contraindicacaoDetalhe.trim() ? '#fca5a5' : '#e5e7eb'}`,
-                borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'vertical',
-                fontFamily: 'inherit', outline: 'none',
-                background: hasError && !contraindicacaoDetalhe.trim() ? '#fef2f2' : 'white',
-              }}
+              className={detalheCls(contraindicacaoDetalhe)}
             />
           )}
         </div>
 
-        <div style={{ ...fldStyle(encaminhamentoMedico), borderBottom: 'none' }}>
-          <div style={{ marginBottom: 8 }}>{q('Necessita encaminhamento médico?', true)}</div>
+        <div className={`${fldCls(encaminhamentoMedico)} border-b-0`}>
+          <div className="mb-2">{q('Necessita encaminhamento médico?', true)}</div>
           <RadioGroup name="encaminhamento" options={[['sim','Sim'],['nao','Não']]}
             value={encaminhamentoMedico} onChange={(v) => { setEncaminhamentoMedico(v); onChangeAny?.(); }}
             error={hasError} />
@@ -106,19 +107,13 @@ const FinalizacaoSection = ({
               onChange={(e) => { setEncaminhamentoDetalhe(e.target.value); onChangeAny?.(); }}
               placeholder="Para qual especialidade/motivo?"
               rows={2}
-              style={{
-                marginTop: 10, width: '100%', boxSizing: 'border-box',
-                border: `1px solid ${hasError && !encaminhamentoDetalhe.trim() ? '#fca5a5' : '#e5e7eb'}`,
-                borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'vertical',
-                fontFamily: 'inherit', outline: 'none',
-                background: hasError && !encaminhamentoDetalhe.trim() ? '#fef2f2' : 'white',
-              }}
+              className={detalheCls(encaminhamentoDetalhe)}
             />
           )}
         </div>
 
         {hasError && (
-          <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 500, marginTop: 4 }}>
+          <p className="text-xs text-error font-medium mt-1">
             Preencha todos os campos de finalização antes de concluir.
           </p>
         )}

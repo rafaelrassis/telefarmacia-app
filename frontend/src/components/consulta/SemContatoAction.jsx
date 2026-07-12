@@ -1,4 +1,5 @@
 import React from 'react';
+import { PhoneOff } from 'lucide-react';
 
 const SemContatoAction = ({
   isActive, isVisualizacao, actionLoading, showDevolverConfirm,
@@ -15,34 +16,32 @@ const SemContatoAction = ({
           <button
             onClick={() => setShowSemContatoConfirm(true)}
             disabled={!!actionLoading}
-            className="px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-bold rounded-xl hover:bg-red-50 disabled:opacity-50 transition"
+            className="px-4 py-2 bg-canvas border border-error/30 text-error text-sm font-bold rounded-xl hover:bg-error-wash disabled:opacity-50 transition inline-flex items-center gap-1.5"
           >
-            📵 Não consegui contato
+            <PhoneOff className="w-4 h-4" />
+            Não consegui contato
           </button>
         </div>
       )}
       {showSemContatoConfirm && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-semibold text-red-800">Confirmar: não conseguiu contato com o paciente?</p>
-          <p className="text-xs text-red-600">
+        <div className="bg-error-wash border border-error/30 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-error">Confirmar: não conseguiu contato com o paciente?</p>
+          <p className="text-xs text-error">
             A consulta será cancelada e o crédito devolvido integralmente ao paciente.
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setShowSemContatoConfirm(false)}
-              className="flex-1 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 py-2 text-sm border border-line rounded-lg hover:bg-surface transition"
             >
               Voltar
             </button>
             <button
               onClick={handleSemContato}
               disabled={semContatoLoading}
-              style={{
-                flex: 1, padding: '8px 0', background: '#dc2626', color: 'white',
-                border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700,
-                cursor: semContatoLoading ? 'not-allowed' : 'pointer',
-                opacity: semContatoLoading ? 0.5 : 1,
-              }}
+              className={`flex-1 py-2 bg-error text-white border-0 rounded-lg text-sm font-bold transition-opacity ${
+                semContatoLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+              }`}
             >
               {semContatoLoading ? '...' : 'Sim, confirmar'}
             </button>
