@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronUp, ChevronDown, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { truncate } from '../../utils/consultaFormat';
 import HistoricoDetalheModal from './HistoricoDetalheModal';
@@ -24,19 +25,19 @@ const HistoricoSection = ({ id, tipo }) => {
   };
 
   return (
-    <div className="border-t border-gray-100 pt-4">
+    <div className="border-t border-line pt-4">
       <button
         onClick={() => {
           const next = !showHistory;
           setShowHistory(next);
           if (next && historico.length === 0) loadHistory();
         }}
-        className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-brand-deep transition w-full text-left"
+        className="flex items-center gap-2 text-sm font-semibold text-ink hover:text-brand-deep transition w-full text-left"
       >
-        <span className="text-xs">{showHistory ? '▲' : '▼'}</span>
+        {showHistory ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         Histórico do paciente
         {historico.length > 0 && (
-          <span className="text-xs text-gray-400 font-normal ml-1">({historico.length} registros)</span>
+          <span className="text-xs text-muted font-normal ml-1">({historico.length} registros)</span>
         )}
       </button>
 
@@ -47,62 +48,53 @@ const HistoricoSection = ({ id, tipo }) => {
               <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : historico.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-2">Nenhum histórico encontrado.</p>
+            <p className="text-sm text-muted text-center py-2">Nenhum histórico encontrado.</p>
           ) : (
             historico.map((h) => {
               const isCanceled = String(h.status).toLowerCase().includes('cancel');
               return (
-                <div key={h.id} className="bg-gray-50 rounded-xl p-3 text-xs space-y-2">
+                <div key={h.id} className="bg-surface rounded-xl p-3 text-xs space-y-2">
                   {/* Linha 1: badges + data */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`px-1.5 py-0.5 rounded font-semibold ${
-                      h.tipo === 'urgente'  ? 'bg-red-100 text-red-700' :
+                      h.tipo === 'urgente'  ? 'bg-error-wash text-error' :
                       h.tipo === 'agendada' ? 'bg-brand-wash text-brand-deep' :
-                                              'bg-gray-200 text-gray-600'
+                                              'bg-line text-muted'
                     }`}>
                       {h.tipo === 'urgente' ? 'Urgente' : h.tipo === 'agendada' ? 'Agendada' : 'Consulta'}
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-muted">
                       {new Date(h.dataHora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                     </span>
-                    <span className={`font-medium ${isCanceled ? 'text-red-500' : 'text-green-600'}`}>
+                    <span className={`font-medium ${isCanceled ? 'text-error' : 'text-success'}`}>
                       {isCanceled ? 'Cancelado' : 'Concluído'}
                     </span>
                   </div>
 
                   {/* Farmacêutico */}
                   {h.farmaceuticoNome && (
-                    <p className="text-gray-500">
-                      Farmacêutico(a): <span className="font-semibold text-gray-700">{h.farmaceuticoNome}</span>
+                    <p className="text-muted">
+                      Farmacêutico(a): <span className="font-semibold text-ink">{h.farmaceuticoNome}</span>
                     </p>
                   )}
 
                   {/* Trecho das observações */}
                   {h.observacoes && (
-                    <p className="text-gray-600 italic leading-snug">
+                    <p className="text-muted italic leading-snug">
                       "{truncate(h.observacoes, 80)}"
                     </p>
                   )}
                   {!h.observacoes && !h.motivo && (
-                    <p className="text-gray-400 italic">Sem registros clínicos.</p>
+                    <p className="text-muted italic">Sem registros clínicos.</p>
                   )}
 
                   {/* Botão ver completo */}
                   <button
                     onClick={() => setSelectedHistoricoItem(h)}
-                    style={{
-                      width: '100%',
-                      background: 'white',
-                      color: '#3B9FE0',
-                      border: '1px solid #8ED2F6',
-                      borderRadius: '8px',
-                      padding: '6px 0',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
+                    className="w-full bg-canvas text-brand-deep border border-brand/40 rounded-lg py-1.5 text-xs font-semibold cursor-pointer inline-flex items-center justify-center gap-1"
                   >
-                    Ver atendimento completo →
+                    Ver atendimento completo
+                    <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
               );
