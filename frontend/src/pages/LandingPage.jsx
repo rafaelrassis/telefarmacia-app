@@ -188,7 +188,7 @@ const SpecialtiesSection = () => (
 ───────────────────────────────────────────────────────────── */
 const STEPS = [
   { n: 1, icon: CalendarClock,  color: 'bg-blue-600', shadow: 'shadow-blue-200',   title: 'Escolha data e horário', desc: 'Selecione o dia e horário disponíveis dentro do funcionamento da plataforma.' },
-  { n: 2, icon: QrCode,         color: 'bg-teal-600', shadow: 'shadow-teal-200',   title: 'Agende e pague via PIX', desc: 'Pagamento 100% seguro via PIX. Confirmação instantânea, sem taxas surpresa.' },
+  { n: 2, icon: QrCode,         color: 'bg-teal-600', shadow: 'shadow-teal-200',   title: 'Agende e pague via PIX', desc: 'Pagamento via PIX, sem taxas surpresa.' },
   { n: 3, icon: MessageCircle,  color: 'bg-indigo-600', shadow: 'shadow-indigo-200', title: 'Farmacêutico entra em contato', desc: 'Um farmacêutico disponível aceita sua consulta e fala com você no horário combinado.' },
   { n: 4, icon: FileText,       color: 'bg-emerald-600', shadow: 'shadow-emerald-200', title: 'Receba sua orientação', desc: 'Consulte-se e receba orientações personalizadas registradas por escrito.' },
 ];
@@ -197,9 +197,8 @@ const HowItWorksSection = () => (
   <section id="como-funciona" className="bg-slate-100 border-y border-slate-200 py-16">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-14">
-        <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Passo a passo</p>
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Como funciona?</h2>
-        <p className="text-slate-500 text-sm mt-2">Do primeiro acesso à orientação em menos de 30 minutos.</p>
+        <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Como funciona</p>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Da dúvida à orientação em 4 passos</h2>
       </div>
 
       <div className="relative">
@@ -234,11 +233,11 @@ const HowItWorksSection = () => (
 const TRUST_FACTS = [
   {
     title: 'CRF verificado manualmente',
-    desc: 'Todo farmacêutico passa por verificação manual do registro no Conselho antes de atender.',
+    desc: 'Todo farmacêutico passa por verificação manual do registro no Conselho Regional de Farmácia antes de atender na plataforma.',
   },
   {
     title: 'Orientação por escrito',
-    desc: 'Ao final da consulta você recebe um documento com as orientações, disponível para download.',
+    desc: 'Ao final da consulta você recebe um documento com as orientações, disponível para download quando precisar.',
   },
   {
     title: 'Limites claros',
@@ -255,6 +254,7 @@ const TestimonialsSection = () => (
         <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
           Por que confiar no FarmaConsulta
         </h2>
+        <p className="text-slate-500 text-sm mt-2">Sem estrelas inventadas: só o que podemos provar.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -292,17 +292,17 @@ const CTASection = () => {
         <div className="relative z-10 px-6 py-12 max-w-xl mx-auto">
           <p className="text-brand-wash text-[11px] font-bold uppercase tracking-[0.12em] mb-3">Atendimento online</p>
           <h2 className="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
-            Precisa de orientação agora?
+            Pronto para tirar sua dúvida?
           </h2>
           <p className="text-brand-wash text-sm mb-8 leading-relaxed">
-            Encontre um farmacêutico disponível e agende sua consulta online de forma simples, rápida e segura.
+            Agende com um farmacêutico verificado ou entre na fila urgente.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/entrar"
               className="inline-flex items-center justify-center gap-2 bg-white text-brand-deep hover:bg-slate-50 font-bold px-7 py-3.5 rounded-xl text-sm transition shadow-lg"
             >
-              Encontrar Farmacêutico
+              Agendar consulta
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
