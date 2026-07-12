@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { ShieldCheck, FileText, MessageCircle, Lock } from 'lucide-react';
 
-const STATS = [
-  { value: 'CRF verificado', label: 'Registro checado manualmente antes de atender' },
-  { value: 'Por escrito', label: 'Orientações registradas e disponíveis para baixar' },
-  { value: 'Pelo WhatsApp', label: 'A consulta acontece no seu número, sem app extra' },
-  { value: 'Dados protegidos', label: 'Conexão criptografada e conformidade com a LGPD' },
+const FACTS = [
+  { icon: ShieldCheck,   value: 'CRF verificado',    label: 'Registro checado manualmente antes de atender' },
+  { icon: FileText,      value: 'Por escrito',        label: 'Orientações registradas e disponíveis para baixar' },
+  { icon: MessageCircle, value: 'Pelo WhatsApp',      label: 'A consulta acontece no seu número, sem app extra' },
+  { icon: Lock,          value: 'Dados protegidos',   label: 'Conexão criptografada e conformidade com a LGPD' },
 ];
 
 const HeroSection = () => {
@@ -36,26 +37,21 @@ const HeroSection = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
         <div className="max-w-3xl">
 
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-brand/15 border border-brand/30 text-brand text-xs font-semibold px-4 py-1.5 rounded-full mb-8 backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
-            Orientação Farmacêutica Online · 100% certificado
-          </div>
-
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-heading font-extrabold text-white leading-[1.1] tracking-tight mb-6">
-            Tire suas dúvidas sobre{' '}
+            Dúvida sobre medicamento?{' '}
+            <br className="hidden sm:block" />
+            Fale com um{' '}
             <span
               className="text-transparent bg-clip-text bg-[linear-gradient(135deg,#3B9FE0_0%,#8ED2F6_100%)]"
             >
-              medicamentos
-            </span>{' '}
-            com farmacêuticos certificados
+              farmacêutico de verdade
+            </span>.
           </h1>
 
           {/* Subtitle */}
           <p className="text-lg sm:text-xl text-slate-300 leading-relaxed mb-10 max-w-2xl font-normal">
-            Orientação farmacêutica online para dosagem infantil, sintomas leves, interações medicamentosas e uso correto de medicamentos.
+            Orientação clínica individual, por WhatsApp, com registro por escrito ao final. Agende um horário ou entre na fila urgente.
           </p>
 
           {/* CTAs */}
@@ -64,7 +60,7 @@ const HeroSection = () => {
               to="/entrar"
               className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep active:bg-brand-deep text-white font-bold px-8 py-4 rounded-2xl transition-all duration-150 text-base shadow-[0_8px_24px_-4px_rgba(59,159,224,0.35)]"
             >
-              Encontrar Farmacêutico
+              Agendar consulta
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
@@ -89,12 +85,15 @@ const HeroSection = () => {
             )}
           </div>
 
-          {/* Stats row */}
-          <div className="flex flex-wrap gap-x-10 gap-y-4">
-            {STATS.map(({ value, label }) => (
-              <div key={label} className="min-w-fit">
-                <p className="text-2xl font-black text-white leading-none">{value}</p>
-                <p className="text-xs text-slate-400 mt-1">{label}</p>
+          {/* Fatos verificáveis */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-2xl">
+            {FACTS.map(({ icon: Icon, value, label }) => (
+              <div key={value} className="bg-white/[0.06] border border-white/[0.12] rounded-xl p-3.5">
+                <p className="text-white font-bold text-[13px] flex items-center gap-1.5">
+                  <Icon className="w-4 h-4 text-brand shrink-0" strokeWidth={1.75} />
+                  {value}
+                </p>
+                <p className="text-slate-400 text-[11px] mt-1 leading-snug">{label}</p>
               </div>
             ))}
           </div>

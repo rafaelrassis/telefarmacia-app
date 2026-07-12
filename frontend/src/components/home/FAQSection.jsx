@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 
 const FAQS = [
   {
+    q: 'Como acontece a consulta?',
+    a: 'Pelo WhatsApp, no número que você informar na triagem. No horário agendado (ou em minutos, no atendimento urgente), um farmacêutico verificado inicia a conversa com você. Ao final, você recebe as orientações por escrito na plataforma.',
+    novo: true,
+  },
+  {
     q: 'O que é um farmacêutico clínico?',
     a: 'O farmacêutico clínico é um profissional especializado em orientar o uso correto de medicamentos, avaliar interações, ajustar doses e acompanhar pacientes com doenças crônicas. Diferente do farmacêutico de balcão, ele realiza consultas individualizadas e personalizadas.',
   },
@@ -26,10 +31,6 @@ const FAQS = [
     q: 'Como sei que os farmacêuticos são confiáveis?',
     a: 'Todos os farmacêuticos passam por verificação manual do CRF (Conselho Regional de Farmácia) antes de serem aprovados na plataforma. Apenas profissionais com registro ativo e verificado aparecem para os pacientes.',
   },
-  {
-    q: 'Como acontece a consulta?',
-    a: 'Pelo WhatsApp, no número que você informar na triagem. No horário agendado (ou em minutos, no atendimento urgente), um farmacêutico verificado inicia a conversa com você. Ao final, você recebe as orientações por escrito na plataforma.',
-  },
 ];
 
 const ChevronIcon = ({ open }) => (
@@ -45,7 +46,7 @@ const ChevronIcon = ({ open }) => (
 );
 
 const FAQSection = () => {
-  const [open, setOpen] = useState(null);
+  const [open, setOpen] = useState(0);
 
   return (
     <section id="faq" className="bg-white border-t border-slate-200 py-16">
@@ -70,8 +71,11 @@ const FAQSection = () => {
                   onClick={() => setOpen(isOpen ? null : i)}
                   className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
                 >
-                  <span className={`text-sm font-semibold leading-snug transition-colors ${isOpen ? 'text-brand-deep' : 'text-slate-700'}`}>
+                  <span className={`text-sm font-semibold leading-snug transition-colors inline-flex items-center gap-2 ${isOpen ? 'text-brand-deep' : 'text-slate-700'}`}>
                     {faq.q}
+                    {faq.novo && (
+                      <span className="text-[9px] font-bold bg-brand-wash text-brand-deep px-1.5 py-0.5 rounded-full uppercase tracking-wide">Novo</span>
+                    )}
                   </span>
                   <ChevronIcon open={isOpen} />
                 </button>
