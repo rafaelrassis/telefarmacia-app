@@ -153,28 +153,26 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background-color: #faf5ff;
-  color: #1f2937;
-  min-height: 100vh;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-/* Em @layer base para que as utilities do Tailwind (bg-*, etc.) continuem
-   vencendo — regras fora de qualquer @layer sempre venceriam as utilities
-   independente de especificidade, deixando qualquer <button> com bg-* sólido
-   com o fundo invisível. Ver especificacoes/spec-design-system.md. */
+/* Tudo abaixo vive em @layer base para que as utilities do Tailwind (bg-*,
+   px-*, mx-auto etc.) continuem vencendo — regras fora de qualquer @layer
+   sempre venceriam as utilities independente de especificidade (é assim que
+   a especificação de cascade layers funciona), zerando margin/padding em
+   toda a árvore e deixando qualquer <button> com bg-* sólido com o fundo
+   invisível. Ver especificacoes/spec-design-system.md.
+   O reset de margin/padding/box-sizing do próprio Tailwind (preflight) já
+   cobre `*` dentro do seu @layer base — por isso não é repetido aqui. */
 @layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    min-height: 100vh;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
   button {
     cursor: pointer;
     border: none;
