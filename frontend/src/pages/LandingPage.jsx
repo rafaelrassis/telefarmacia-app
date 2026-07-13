@@ -8,6 +8,9 @@ import Footer from '../components/home/Footer.jsx';
 /* ─────────────────────────────────────────────────────────────
    TRUST BAR
 ───────────────────────────────────────────────────────────── */
+// Cores por ícone (TRUST) e por especialidade/passo (SPECS, STEPS abaixo) são
+// categorização visual, não cor de marca — mantidas fora dos tokens de tema
+// de propósito, conforme decisão da migração de tokens da landing page.
 const TRUST = [
   { icon: ShieldCheck,   color: 'bg-blue-50 text-blue-600',     label: 'CRF Validado',       sub: 'Registro ativo no Conselho' },
   { icon: Lock,          color: 'bg-emerald-50 text-emerald-600', label: 'Dados Seguros',      sub: 'Conexão criptografada e LGPD' },
@@ -17,7 +20,7 @@ const TRUST = [
 ];
 
 const TrustBar = () => (
-  <section className="bg-white border-y border-slate-200">
+  <section className="bg-canvas border-y border-line">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
         {TRUST.map(({ icon: Icon, color, label, sub }) => (
@@ -26,8 +29,8 @@ const TrustBar = () => (
               <Icon className="w-6 h-6" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-800 leading-tight">{label}</p>
-              <p className="text-[10px] text-slate-500 leading-tight mt-0.5 truncate">{sub}</p>
+              <p className="text-xs font-bold text-ink leading-tight">{label}</p>
+              <p className="text-[10px] text-muted leading-tight mt-0.5 truncate">{sub}</p>
             </div>
           </div>
         ))}
@@ -82,17 +85,17 @@ const SearchSection = () => {
   const handleTagClick = (label) => goToTriagem(label);
 
   return (
-    <section className="py-14 bg-[#F8FAFC]">
+    <section className="py-14 bg-surface">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
         <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-2">Busca rápida</p>
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink mb-8 tracking-tight">
           Como podemos ajudar você hoje?
         </h2>
 
         {/* Search box */}
-        <div className="flex gap-2 bg-white border border-slate-200 rounded-2xl p-2 shadow-lg shadow-slate-100/80 hover:shadow-xl hover:border-brand/40 transition-shadow duration-300">
+        <div className="flex gap-2 bg-canvas border border-line rounded-2xl p-2 shadow-lg shadow-slate-100/80 hover:shadow-xl hover:border-brand/40 transition-shadow duration-300">
           <div className="flex-1 relative flex items-center">
-            <svg className="absolute left-4 w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-4 w-5 h-5 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -100,13 +103,13 @@ const SearchSection = () => {
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base text-slate-800 bg-transparent outline-none"
+              className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base text-ink bg-transparent outline-none"
               placeholder=""
               aria-label="Descreva sua dúvida de saúde"
             />
             {!value && (
               <span
-                className="absolute left-12 top-1/2 -translate-y-1/2 text-slate-400 text-sm sm:text-base pointer-events-none select-none whitespace-nowrap overflow-hidden text-ellipsis"
+                className="absolute left-12 top-1/2 -translate-y-1/2 text-muted text-sm sm:text-base pointer-events-none select-none whitespace-nowrap overflow-hidden text-ellipsis"
                 style={{ maxWidth: 'calc(100% - 48px)', transition: 'opacity 0.35s', opacity: visible ? 1 : 0 }}
               >
                 {PLACEHOLDERS[phIdx]}
@@ -129,7 +132,7 @@ const SearchSection = () => {
               key={label}
               type="button"
               onClick={() => handleTagClick(label)}
-              className="text-xs text-slate-600 bg-white border border-slate-200 hover:border-brand/50 hover:text-brand-deep hover:bg-brand-wash px-3.5 py-1.5 rounded-full transition-colors duration-150"
+              className="text-xs text-muted bg-canvas border border-line hover:border-brand/50 hover:text-brand-deep hover:bg-brand-wash px-3.5 py-1.5 rounded-full transition-colors duration-150"
             >
               {label}
             </button>
@@ -156,8 +159,8 @@ const SpecialtiesSection = () => (
   <section id="especialidades" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div className="text-center mb-12">
       <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Especialidades</p>
-      <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">O que você quer resolver?</h2>
-      <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">
+      <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">O que você quer resolver?</h2>
+      <p className="text-muted text-sm mt-2 max-w-md mx-auto">
         Escolha o tema da sua dúvida — um farmacêutico verificado assume sua consulta.
       </p>
     </div>
@@ -167,15 +170,15 @@ const SpecialtiesSection = () => (
         <Link
           key={label}
           to="/entrar"
-          className={`group bg-gradient-to-br ${grad} border border-slate-200 ${border} rounded-2xl p-5 sm:p-6 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg`}
+          className={`group bg-gradient-to-br ${grad} border border-line ${border} rounded-2xl p-5 sm:p-6 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg`}
           style={{ minHeight: '180px' }}
         >
           <div className={`w-14 h-14 ${iconCls} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0`}>
             <Icon className="w-7 h-7" strokeWidth={1.75} />
           </div>
           <div>
-            <h3 className="font-heading font-bold text-slate-900 text-base mb-1.5">{label}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+            <h3 className="font-heading font-bold text-ink text-base mb-1.5">{label}</h3>
+            <p className="text-xs text-muted leading-relaxed">{desc}</p>
           </div>
         </Link>
       ))}
@@ -194,31 +197,31 @@ const STEPS = [
 ];
 
 const HowItWorksSection = () => (
-  <section id="como-funciona" className="bg-slate-100 border-y border-slate-200 py-16">
+  <section id="como-funciona" className="bg-surface border-y border-line py-16">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-14">
         <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Como funciona</p>
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Da dúvida à orientação em 4 passos</h2>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">Da dúvida à orientação em 4 passos</h2>
       </div>
 
       <div className="relative">
         {/* Connecting line — desktop */}
         <div
-          className="hidden lg:block absolute h-0.5 bg-slate-300 z-0"
+          className="hidden lg:block absolute h-0.5 bg-line z-0"
           style={{ top: '28px', left: 'calc(12.5% + 28px)', right: 'calc(12.5% + 28px)' }}
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10">
           {STEPS.map(({ n, icon: Icon, color, shadow, title, desc }) => (
-            <div key={n} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/70 hover:shadow-md transition-shadow duration-200">
+            <div key={n} className="bg-canvas rounded-2xl p-5 shadow-sm border border-line/70 hover:shadow-md transition-shadow duration-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-14 h-14 ${color} text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg ${shadow} shrink-0`}>
                   {n}
                 </div>
-                <Icon className="w-6 h-6 text-slate-700" strokeWidth={1.75} />
+                <Icon className="w-6 h-6 text-muted" strokeWidth={1.75} />
               </div>
-              <h4 className="font-heading font-bold text-slate-900 mb-2 leading-tight">{title}</h4>
-              <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+              <h4 className="font-heading font-bold text-ink mb-2 leading-tight">{title}</h4>
+              <p className="text-sm text-muted leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -246,22 +249,22 @@ const TRUST_FACTS = [
 ];
 
 const TestimonialsSection = () => (
-  <section className="bg-white py-16 border-t border-slate-100">
+  <section className="bg-canvas py-16 border-t border-line">
     {/* TODO Fase futura: substituir por avaliações reais da API quando houver volume */}
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-12">
         <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Confiança</p>
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
           Por que confiar no FarmaConsulta
         </h2>
-        <p className="text-slate-500 text-sm mt-2">Sem estrelas inventadas: só o que podemos provar.</p>
+        <p className="text-muted text-sm mt-2">Sem estrelas inventadas: só o que podemos provar.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {TRUST_FACTS.map(({ title, desc }) => (
-          <div key={title} className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
-            <h3 className="font-heading font-bold text-slate-900 text-base mb-2">{title}</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">{desc}</p>
+          <div key={title} className="bg-surface border border-line rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
+            <h3 className="font-heading font-bold text-ink text-base mb-2">{title}</h3>
+            <p className="text-sm text-muted leading-relaxed">{desc}</p>
           </div>
         ))}
       </div>
@@ -327,7 +330,7 @@ const CTASection = () => {
    PAGE
 ───────────────────────────────────────────────────────────── */
 const LandingPage = () => (
-  <div className="bg-[#F8FAFC]">
+  <div className="bg-surface">
     <HeroSection />
     <TrustBar />
     <SearchSection />
