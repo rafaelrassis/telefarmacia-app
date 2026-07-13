@@ -35,7 +35,7 @@ const FAQS = [
 
 const ChevronIcon = ({ open }) => (
   <svg
-    className="w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300"
+    className="w-5 h-5 text-muted shrink-0 transition-transform duration-300"
     style={{ transform: open ? 'rotate(180deg)' : 'none' }}
     fill="none"
     stroke="currentColor"
@@ -49,14 +49,14 @@ const FAQSection = () => {
   const [open, setOpen] = useState(0);
 
   return (
-    <section id="faq" className="bg-white border-t border-slate-200 py-16">
+    <section id="faq" className="bg-canvas border-t border-line py-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
           <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">FAQ</p>
-          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
             Ainda tem dúvidas?
           </h2>
-          <p className="text-slate-500 text-sm mt-2">Encontre respostas para as perguntas mais comuns.</p>
+          <p className="text-muted text-sm mt-2">Encontre respostas para as perguntas mais comuns.</p>
         </div>
 
         <div className="space-y-2">
@@ -65,13 +65,13 @@ const FAQSection = () => {
             return (
               <div
                 key={i}
-                className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${isOpen ? 'border-brand/40 bg-brand-wash/60' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                className={`border rounded-2xl overflow-hidden transition-colors duration-200 ${isOpen ? 'border-brand/40 bg-brand-wash/60' : 'border-line bg-canvas hover:border-muted/40'}`}
               >
                 <button
                   onClick={() => setOpen(isOpen ? null : i)}
                   className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
                 >
-                  <span className={`text-sm font-semibold leading-snug transition-colors inline-flex items-center gap-2 ${isOpen ? 'text-brand-deep' : 'text-slate-700'}`}>
+                  <span className={`text-sm font-semibold leading-snug transition-colors inline-flex items-center gap-2 ${isOpen ? 'text-brand-deep' : 'text-muted'}`}>
                     {faq.q}
                     {faq.novo && (
                       <span className="text-[9px] font-bold bg-brand-wash text-brand-deep px-1.5 py-0.5 rounded-full uppercase tracking-wide">Novo</span>
@@ -84,7 +84,7 @@ const FAQSection = () => {
                   className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[300px]' : 'max-h-0'}`}
                 >
                   <div className="px-5 pb-5">
-                    <p className="text-sm text-slate-600 leading-relaxed">{faq.a}</p>
+                    <p className="text-sm text-muted leading-relaxed">{faq.a}</p>
                   </div>
                 </div>
               </div>
@@ -94,7 +94,7 @@ const FAQSection = () => {
 
         {/* Bottom CTA */}
         <div className="mt-10 text-center">
-          <p className="text-sm text-slate-500 mb-3">Não encontrou o que procurava?</p>
+          <p className="text-sm text-muted mb-3">Não encontrou o que procurava?</p>
           <Link
             to="/entrar"
             className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-white font-semibold px-6 py-3 rounded-xl text-sm transition shadow-sm shadow-brand-wash"
