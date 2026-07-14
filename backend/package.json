@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
+    "start": "node server.js",
+    "build": "prisma generate && prisma migrate deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

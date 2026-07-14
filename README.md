@@ -160,5 +160,6 @@ A tag `v0.1-testado-2x2` marca a versão validada pelo roteiro de testes 2×2 (2
 ## Documentação
 
 - [Documentação Técnica Completa](docs/TECHNICAL.md)
+- [Deploy gratuito (Render + Vercel + Neon)](docs/DEPLOY_GRATUITO.md)
 - [Especificações por módulo](especificacoes/)
 - [Casos de uso](casos-de-uso/)
