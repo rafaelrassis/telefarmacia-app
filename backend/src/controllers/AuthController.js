@@ -36,6 +36,10 @@ export const googleLogin = async (req, res) => {
     let user = await prisma.user.findUnique({ where: { email: payload.email } });
     let isNewUser = false;
 
+    if (!user && isAdminEmail(payload.email)) {
+      return res.status(403).json({ error: 'Este e-mail é reservado. Peça a um administrador para criar o acesso.' });
+    }
+
     if (!user) {
       isNewUser = true;
       user = await prisma.user.create({
@@ -75,6 +79,10 @@ export const register = async (req, res) => {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return res.status(400).json({ error: 'E-mail já cadastrado.' });
+    }
+
+    if (isAdminEmail(email)) {
+      return res.status(403).json({ error: 'Este e-mail é reservado. Peça a um administrador para criar o acesso.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

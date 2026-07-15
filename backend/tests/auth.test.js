@@ -45,6 +45,13 @@ describe('auth — registro e login', () => {
     const res = await request(app).get('/api/auth/me').set('Authorization', 'Bearer token-invalido');
     expect(res.status).toBe(403);
   });
+
+  it('registro público com e-mail admin → 403', async () => {
+    const registro = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'admin.teste@telefarmacia.test', password: 'senha123', nome: 'Fulano' });
+    expect(registro.status).toBe(403);
+  });
 });
 
 describe('auth — exclusão de conta (LGPD)', () => {
