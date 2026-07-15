@@ -2,6 +2,7 @@ import 'dotenv/config';
 import './monitoring/instrument.js';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import multer from 'multer';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -133,6 +134,16 @@ Sentry.setupExpressErrorHandler(app);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const msg = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Arquivo muito grande. O limite é 5MB.'
+      : 'Falha no envio do arquivo.';
+    return res.status(400).json({ error: msg });
+  }
+  if (err.statusCode === 400) {
+    return res.status(400).json({ error: err.message });
+  }
+
   logger.error('Erro não tratado', {
     requestId: req.id,
     method: req.method,

@@ -25,7 +25,9 @@ const fileFilter = (_req, file, cb) => {
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Formato não suportado. Use JPG, PNG ou PDF.'), false);
+    const err = new Error('Formato não suportado. Use JPG, PNG ou PDF.');
+    err.statusCode = 400;
+    cb(err, false);
   }
 };
 
