@@ -57,6 +57,7 @@
    redefinida dentro do media query / [data-theme], permitindo que bg-brand,
    text-ink etc. troquem de valor conforme o tema sem exigir nenhum plugin. */
 :root {
+  color-scheme: light;
   --ds-brand:          #3B9FE0;
   --ds-brand-deep:     #1D74B8;
   --ds-brand-wash:     #EAF6FE;
@@ -75,6 +76,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --ds-brand:          #5CB6EC;
     --ds-brand-deep:     #8ED2F6;
     --ds-brand-wash:     #14293A;
@@ -95,6 +97,7 @@
 /* Troca manual de tema (nenhum toggle usa isto ainda — pronto para quando
    um for adicionado), sempre vencendo a preferência do sistema operacional. */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --ds-brand:          #5CB6EC;
   --ds-brand-deep:     #8ED2F6;
   --ds-brand-wash:     #14293A;
@@ -111,6 +114,7 @@
   --ds-alert-wash:     #3A2C14;
 }
 :root[data-theme="light"] {
+  color-scheme: light;
   --ds-brand:          #3B9FE0;
   --ds-brand-deep:     #1D74B8;
   --ds-brand-wash:     #EAF6FE;

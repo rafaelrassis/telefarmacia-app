@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import PharmacistSignupWizard from './pharmacist/PharmacistSignupWizard.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const PROFILE_OPTIONS = [
+  { key: 'paciente', label: 'Paciente', description: 'Tirar dúvidas sobre medicamentos' },
+  { key: 'farmaceutico', label: 'Farmacêutico(a)', description: 'Atender pacientes na plataforma' },
+];
 
 // ── Formulário de e-mail/senha ───────────────────────────────────────────────
 const EmailForm = ({ mode, setMode, onSuccess }) => {
@@ -56,7 +62,7 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               autoComplete="name"
-              className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+              className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm bg-canvas text-ink placeholder:text-muted caret-brand focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
             />
           </div>
         </div>
@@ -74,7 +80,7 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+            className="w-full pl-10 pr-3 py-2.5 border border-line rounded-lg text-sm bg-canvas text-ink placeholder:text-muted caret-brand focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
           />
         </div>
       </div>
@@ -92,7 +98,7 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
             required
             minLength={mode === 'register' ? 6 : undefined}
             autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-            className="w-full pl-10 pr-10 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+            className="w-full pl-10 pr-10 py-2.5 border border-line rounded-lg text-sm bg-canvas text-ink placeholder:text-muted caret-brand focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
           />
           <button
             type="button"
@@ -138,6 +144,7 @@ const Login = ({ onModeChange }) => {
   const { login } = useAuth();
   const [authMethod, setAuthMethod] = useState('google'); // 'google' | 'email'
   const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [profile, setProfile] = useState('paciente'); // 'paciente' | 'farmaceutico'
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -169,51 +176,88 @@ const Login = ({ onModeChange }) => {
 
   return (
     <div>
-      {/* Tab switcher */}
-      <div className="flex rounded-xl border border-line p-1 mb-6 bg-surface">
-        {[
-          { key: 'google', label: 'Google' },
-          { key: 'email',  label: 'E-mail e senha' },
-        ].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => { setAuthMethod(key); setError(''); }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-              authMethod === key
-                ? 'bg-canvas text-brand-deep shadow-sm'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {authMethod === 'google' ? (
-        <div className="text-center">
-          <p className="text-sm text-muted mb-5">
-            Entre ou crie uma conta usando sua conta Google.
-          </p>
-          <div className="flex justify-center mb-4">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Falha na autenticação com o Google.')}
-              theme="outline"
-              size="large"
-              text="continue_with"
-              shape="rectangular"
-              locale="pt_BR"
-            />
+      {mode === 'register' && (
+        <div className="mb-6">
+          <p className="text-xs font-bold text-muted uppercase mb-2">Quero me cadastrar como</p>
+          <div className="grid grid-cols-2 gap-3">
+            {PROFILE_OPTIONS.map(({ key, label, description }) => {
+              const selected = profile === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setProfile(key)}
+                  className={`text-left px-4 py-3 rounded-xl border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                    selected ? 'border-brand bg-brand-wash text-brand-deep' : 'border-line bg-canvas text-ink'
+                  }`}
+                >
+                  <span className="block text-sm font-bold">{label}</span>
+                  <span className={`block text-xs mt-0.5 ${selected ? 'text-brand-deep' : 'text-muted'}`}>
+                    {description}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <p className="text-xs text-muted mt-2">
-            Se for seu primeiro acesso, sua conta é criada automaticamente.
+        </div>
+      )}
+
+      {mode === 'register' && profile === 'farmaceutico' ? (
+        <div>
+          <p className="text-xs bg-brand-wash text-brand-deep rounded-lg px-3 py-2.5 mb-5 leading-relaxed">
+            Seu cadastro passa por verificação do CRF antes de você começar a atender. Você pode salvar e continuar depois.
           </p>
-          {error && (
-            <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg mt-2" role="alert">{error}</p>
-          )}
+          <PharmacistSignupWizard embedded />
         </div>
       ) : (
-        <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
+        <>
+          {/* Tab switcher */}
+          <div className="flex rounded-xl border border-line p-1 mb-6 bg-surface">
+            {[
+              { key: 'google', label: 'Google' },
+              { key: 'email',  label: 'E-mail e senha' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => { setAuthMethod(key); setError(''); }}
+                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                  authMethod === key
+                    ? 'bg-canvas text-brand-deep shadow-sm'
+                    : 'text-muted hover:text-ink'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {authMethod === 'google' ? (
+            <div className="text-center">
+              <p className="text-sm text-muted mb-5">
+                Entre ou crie uma conta usando sua conta Google.
+              </p>
+              <div className="flex justify-center mb-4">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Falha na autenticação com o Google.')}
+                  theme="outline"
+                  size="large"
+                  text="continue_with"
+                  shape="rectangular"
+                  locale="pt_BR"
+                />
+              </div>
+              <p className="text-xs text-muted mt-2">
+                Se for seu primeiro acesso, sua conta é criada automaticamente.
+              </p>
+              {error && (
+                <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg mt-2" role="alert">{error}</p>
+              )}
+            </div>
+          ) : (
+            <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
+          )}
+        </>
       )}
     </div>
   );
