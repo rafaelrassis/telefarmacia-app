@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RedefinirSenhaPage from './pages/RedefinirSenhaPage.jsx';
+import ConfirmarEmailPage from './pages/ConfirmarEmailPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SelecionarPerfilPage from './pages/SelecionarPerfilPage.jsx';
 import InviteRegistro from './components/InviteRegistro.jsx';
@@ -23,6 +24,7 @@ function App() {
           <Route index element={<LandingPage />} />
           <Route path="entrar" element={<LoginPage />} />
           <Route path="redefinir-senha" element={<RedefinirSenhaPage />} />
+          <Route path="confirmar-email" element={<ConfirmarEmailPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="selecionar-perfil" element={<SelecionarPerfilPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

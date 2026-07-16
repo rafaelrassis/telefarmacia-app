@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
+import { prisma } from './db.js';
 import { registerPaciente } from './helpers.js';
 
 describe('auth — registro e login', () => {
@@ -22,6 +23,9 @@ describe('auth — registro e login', () => {
   it('login retorna JWT válido', async () => {
     const email = `paciente_auth2_${Date.now()}@teste.com`;
     await request(app).post('/api/auth/register').send({ email, password: 'senha123', nome: 'Fulano' });
+    // Login com credenciais exige e-mail confirmado (ver confirmacao-email.test.js
+    // para o fluxo de confirmação em si) — este teste cobre só o login em si.
+    await prisma.user.update({ where: { email }, data: { emailVerified: new Date() } });
 
     const login = await request(app).post('/api/auth/login').send({ email, password: 'senha123' });
     expect(login.status).toBe(200);

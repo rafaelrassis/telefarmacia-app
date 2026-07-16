@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 import { validateCrf } from '../utils/crfValidation.js';
+import { generateVerificationToken, verificationExpiresAt } from '../utils/emailVerificationToken.js';
+import { sendVerificationEmail } from '../services/emailService.js';
 
 const prisma = new PrismaClient();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -27,6 +29,22 @@ export const signToken = (user) =>
 export const sanitizeUser = (user) => {
   const { password, ...safe } = user;
   return { ...safe, hasPassword: Boolean(password) };
+};
+
+// Gera e envia o token de confirmação de e-mail para uma conta recém-criada
+// via credenciais (também usado pelo cadastro por convite de farmacêutico —
+// o convite não substitui a confirmação, ver especificacoes/spec-confirmacao-email.md).
+// Falha de envio nunca derruba o cadastro (fire-and-forget).
+export const sendConfirmationEmail = async (user) => {
+  const { token, tokenHash } = generateVerificationToken();
+  await prisma.verificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt: verificationExpiresAt(user.createdAt),
+    },
+  });
+  sendVerificationEmail({ to: user.email, token }).catch(() => {});
 };
 
 // ── Google OAuth ────────────────────────────────────────────────────────────
@@ -55,7 +73,17 @@ export const googleLogin = async (req, res) => {
           name: payload.name,
           googleId: payload.sub,
           role: 'PACIENTE',
+          // Google já verificou a posse do e-mail — não exige o fluxo de
+          // confirmação por link usado pelo cadastro via credenciais.
+          emailVerified: new Date(),
         },
+      });
+    } else if (!user.emailVerified) {
+      // Conta criada antes por credenciais e ainda não confirmada: o login
+      // com Google prova a posse do mesmo e-mail, então vale como confirmação.
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
       });
     }
 
@@ -99,9 +127,11 @@ export const register = async (req, res) => {
       data: { email, name, password: hashedPassword, role: 'PACIENTE' },
     });
 
+    await sendConfirmationEmail(user);
+
     return res.status(201).json({
       success: true,
-      message: 'Usuário registrado com sucesso.',
+      message: 'Usuário registrado com sucesso. Enviamos um link de confirmação para seu e-mail — você tem 24 horas para confirmar, ou o cadastro será excluído.',
       token: signToken(user),
       user: { ...sanitizeUser(user), isAdmin: false },
       isNewUser: true,
@@ -132,6 +162,13 @@ export const login = async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(401).json({ error: 'Credenciais inválidas.' });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        error: 'Confirme seu email antes de entrar.',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
     }
 
     return res.status(200).json({

@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { logAction } from './utils/logAction.js';
 import { criarNotificacao } from './controllers/NotificacaoController.js';
 import { notifyEstorno, notifyLembreteConsulta } from './services/pushService.js';
+import { logger } from './utils/logger.js';
+import { VERIFICATION_TOKEN_TTL_MS } from './utils/emailVerificationToken.js';
 
 const prisma = new PrismaClient();
 
@@ -321,6 +323,63 @@ export async function jobLembreteConsulta() {
   }
 }
 
+// ── Job 6: cadastros por credenciais não confirmados há mais de 24h (hora em hora) ──
+// Google já vem com emailVerified preenchido (ver AuthController.googleLogin)
+// e nunca cai neste filtro. Proteção crítica: qualquer movimento financeiro
+// ou consulta (como paciente OU como farmacêutico) tira a conta da exclusão
+// automática e é sinalizado em log para revisão manual — ver
+// especificacoes/spec-confirmacao-email.md.
+
+export async function jobExcluirCadastrosNaoConfirmados() {
+  try {
+    const limite = new Date(Date.now() - VERIFICATION_TOKEN_TTL_MS);
+
+    const candidatos = await prisma.user.findMany({
+      where: {
+        emailVerified: null,
+        password: { not: null },
+        googleId: null,
+        createdAt: { lt: limite },
+      },
+      select: { id: true, email: true },
+    });
+
+    let excluidos = 0;
+    for (const u of candidatos) {
+      const temMovimento = await prisma.user.findFirst({
+        where: {
+          id: u.id,
+          OR: [
+            { pagamentos: { some: {} } },
+            { filaAgendadaComoPaciente: { some: {} } },
+            { filaUrgenteComoPaciente: { some: {} } },
+            { filaAgendadaComoFarmaceutico: { some: {} } },
+            { filaUrgenteComoFarmaceutico: { some: {} } },
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (temMovimento) {
+        logger.warn('cadastro-nao-confirmado-com-movimento', { userId: u.id });
+        continue;
+      }
+
+      try {
+        await prisma.user.delete({ where: { id: u.id } });
+        excluidos += 1;
+        logger.info('cadastro-nao-confirmado-excluido', { userId: u.id });
+      } catch (err) {
+        logger.error('cadastro-nao-confirmado-falha-exclusao', { userId: u.id, message: err.message });
+      }
+    }
+    if (excluidos > 0)
+      console.log(`[cron] ${excluidos} cadastro(s) não confirmado(s) excluído(s).`);
+  } catch (err) {
+    console.error('[cron] Erro no job de exclusão de cadastros não confirmados:', err.message);
+  }
+}
+
 export const initCronJobs = () => {
   if (process.env.NODE_ENV === 'test') {
     console.log('[cron] NODE_ENV=test — jobs não agendados (invocar as funções diretamente nos testes).');
@@ -332,6 +391,7 @@ export const initCronJobs = () => {
   cron.schedule('*/30 * * * *', jobAlertarAtendimentosLongos);
   cron.schedule('*/15 * * * *', jobExpirarAgendadasOrfas);
   cron.schedule('*/15 * * * *', jobLembreteConsulta);
+  cron.schedule('0 * * * *',    jobExcluirCadastrosNaoConfirmados);
 
-  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min).');
+  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min) | cadastros não confirmados (hora em hora).');
 };

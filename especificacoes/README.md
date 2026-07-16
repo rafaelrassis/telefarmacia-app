@@ -10,6 +10,7 @@ Documentação gerada por engenharia reversa do código em Jun/2026, atualizada 
 |---|---|---|
 | Auth e Onboarding | `AuthController` · `authRoutes` · `authMiddleware` · login e-mail/senha · Google OAuth | [spec-auth.md](spec-auth.md) |
 | Alterar e Recuperar Senha | `PasswordController` · `contaRoutes` · `passwordResetLimiter` · alterar/definir senha · esqueci minha senha | [spec-alterar-recuperar-senha.md](spec-alterar-recuperar-senha.md) |
+| Confirmação de E-mail no Cadastro | `EmailConfirmationController` · `emailConfirmationLimiter` · `cronJobs.jobExcluirCadastrosNaoConfirmados` · confirmação/reenvio/exclusão automática | [spec-confirmacao-email.md](spec-confirmacao-email.md) |
 | Farmacêutico: Perfil, Agenda e Disponibilidade | `PharmacistController` · `pharmacistRoutes` · `BloqueioController` · agenda semanal/slots/bloqueios | [spec-farmaceutico.md](spec-farmaceutico.md) |
 | Painel Administrativo | `AdminController` · `adminRoutes` · `adminMiddleware` · métricas · órfãs | [spec-admin.md](spec-admin.md) |
 

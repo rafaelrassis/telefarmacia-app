@@ -20,6 +20,7 @@ model User {
   googleId                    String?            @unique
   password                    String?
   passwordChangedAt           DateTime?
+  emailVerified               DateTime?
   phone                       String?
   photoUrl                    String?
   createdAt                   DateTime           @default(now())
@@ -45,6 +46,18 @@ model User {
   adminAudits                  AdminAuditLog[] @relation("AdminAudits")
   pushSubscriptions            PushSubscription[] @relation("UserPushSubs")
   passwordResets               PasswordReset[]
+  verificationTokens           VerificationToken[]
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model PasswordReset {

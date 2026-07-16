@@ -27,6 +27,7 @@
    - 5.5 [Emissão e distribuição de receita](#55-emissão-e-distribuição-de-receita)
    - 5.6 [Pagamentos e carteira](#56-pagamentos-e-carteira)
    - 5.7 [Alterar e recuperar senha](#57-alterar-e-recuperar-senha)
+   - 5.8 [Confirmação de e-mail no cadastro](#58-confirmação-de-e-mail-no-cadastro)
 6. [Modelo de segurança](#6-modelo-de-segurança)
    - 6.1 [Isolamento de dados entre usuários](#61-isolamento-de-dados-entre-usuários)
    - 6.2 [Rate limiting](#62-rate-limiting)
@@ -121,7 +122,11 @@ Não existe tabela de sessões — a invalidação de tokens antigos após troca
 
 #### Google OAuth
 
-O fluxo usa `google-auth-library` para verificar o `id_token` enviado pelo frontend (obtido via `@react-oauth/google`). Se o usuário não existir, é criado automaticamente. Se existir com e-mail/senha, o `googleId` é vinculado ao cadastro existente.
+O fluxo usa `google-auth-library` para verificar o `id_token` enviado pelo frontend (obtido via `@react-oauth/google`). Se o usuário não existir, é criado automaticamente. Se existir com e-mail/senha, o `googleId` é vinculado ao cadastro existente. Em qualquer um dos dois casos, `User.emailVerified` é marcado (Google já provou a posse do e-mail) — ver §5.8.
+
+#### Confirmação de e-mail
+
+Contas criadas por e-mail/senha nascem com `User.emailVerified = null` e não conseguem usar `POST /auth/login` até confirmar o e-mail (`403 { code: 'EMAIL_NOT_VERIFIED' }`). Contas Google já nascem confirmadas. Detalhes completos, incluindo o job de exclusão automática de cadastros não confirmados, em §5.8 e em `especificacoes/spec-confirmacao-email.md`.
 
 #### Guarda de roles
 
@@ -157,8 +162,10 @@ if (!req.user || !emails.includes(req.user.email.toLowerCase())) {
 | PUT | `/auth/onboarding` | Marca `onboardingConcluido` no perfil |
 | POST | `/auth/esqueci-senha` | Gera token de reset e envia e-mail (sempre 200, mensagem genérica) |
 | POST | `/auth/redefinir-senha` | Consome o token e define nova senha |
+| POST | `/auth/confirmar-email` | Confirma o e-mail via token de 24h (idempotente) |
+| POST | `/auth/reenviar-confirmacao` | Reenvia o link de confirmação (sempre 200, mensagem genérica) |
 
-Rate limiter: 20 tentativas por IP a cada 15 min (todo `/api/auth/*`) + limite dedicado de `/auth/esqueci-senha` (ver §6.2).
+Rate limiter: 20 tentativas por IP a cada 15 min (todo `/api/auth/*`) + limites dedicados de `/auth/esqueci-senha` e `/auth/reenviar-confirmacao` (ver §6.2).
 
 ---
 
@@ -288,6 +295,7 @@ Rate limiter: 20 tentativas por IP a cada 15 min (todo `/api/auth/*`) + limite d
 Usa Nodemailer com transporte SMTP configurável. Se `SMTP_HOST` não estiver definido, as funções registram aviso e retornam silenciosamente (não lançam exceção). Eventos disparados:
 
 - `notifyAdminNewPharmacist` — novo farmacêutico enviou documentos para aprovação
+- `sendVerificationEmail` — link de confirmação de e-mail no cadastro por credenciais, válido por 24h (ver §5.8)
 
 #### PDFKit
 
@@ -316,9 +324,12 @@ O recibo (`POST /consulta/:id/recibo/pdf`) segue um padrão diferente: é gerado
 // A cada 30 min: atendimentos (fila) em andamento há mais de 4h → alerta
 // A cada 15 min: agendadas aguardando cujo horário + tolerância já passou → cancela com estorno
 // A cada 15 min: agendadas aceitas entre 45–75 min no futuro sem lembrete enviado → push de lembrete
+// De hora em hora: cadastros por credenciais não confirmados há mais de 24h → excluídos (ver §5.8)
 ```
 
 Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado pelos jobs acima, que rodam sobre os próprios status da fila (`aguardando`, `aceito`, `em_atendimento`). O job de expiração de agendadas reaproveita `status: 'cancelado'` + `motivo_cancelamento` (não introduz um status novo) e usa `SystemConfig.tolerancia_expiracao_agendada_min` (default 30 min) como janela de tolerância após o horário marcado. Deliberadamente não duplica a expiração de `FilaUrgente` aguardando, que já é coberta pelo primeiro job.
+
+O job de cadastros não confirmados (`jobExcluirCadastrosNaoConfirmados`) é o único que não mexe em `FilaAgendada`/`FilaUrgente` — opera sobre `User`/`VerificationToken` e nunca exclui uma conta com qualquer pagamento ou consulta associada (paciente ou farmacêutico), nem contas Google. Ver §5.8.
 
 ---
 
@@ -327,15 +338,18 @@ Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado
 ### 3.1 Schema Prisma
 
 #### `User`
-Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` não existe no schema — é derivada do campo `adminEmails` em `SystemConfig` ou verificada por lista de e-mails no `adminMiddleware`. `password` é opcional (`null` para contas só-Google); `passwordChangedAt` é gravado a cada troca/reset de senha e usado por `authMiddleware` para invalidar tokens emitidos antes dessa data (§5.7).
+Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` não existe no schema — é derivada do campo `adminEmails` em `SystemConfig` ou verificada por lista de e-mails no `adminMiddleware`. `password` é opcional (`null` para contas só-Google); `passwordChangedAt` é gravado a cada troca/reset de senha e usado por `authMiddleware` para invalidar tokens emitidos antes dessa data (§5.7). `emailVerified` (`DateTime?`) é preenchido automaticamente para contas Google e, para contas por credenciais, só após a confirmação por link (§5.8) — usuários existentes antes dessa feature foram retroativamente marcados como verificados (`emailVerified = createdAt`) na migration, para não puni-los.
 
 Relações:
 - `1:1` com `PacienteProfile` ou `PharmacistProfile`
 - `1:1` com `Carteira`
-- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`, `PushSubscription` (Web Push), `AdminAuditLog`, `PasswordReset`
+- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`, `PushSubscription` (Web Push), `AdminAuditLog`, `PasswordReset`, `VerificationToken`
 
 #### `PasswordReset`
 Token de redefinição de senha (Fluxo "esqueci minha senha"). Só o hash SHA-256 do token é persistido em `tokenHash` (`@unique`); o token em claro só existe em memória e no e-mail enviado. `expiresAt` é 30 min após a criação; `usedAt` marca uso único — ao gerar um novo token para o mesmo usuário, quaisquer tokens anteriores ainda ativos (`usedAt: null`) são marcados como usados antes da criação.
+
+#### `VerificationToken`
+Token de confirmação de e-mail no cadastro (§5.8). Mesmo padrão de hash SHA-256 do `PasswordReset`, mas `expiresAt` é sempre `User.createdAt + 24h` (nunca `now() + 24h`) — inclusive em reenvios, para não estender o prazo do job de exclusão automática. Sem campo `usedAt`: a idempotência da confirmação é resolvida checando `User.emailVerified` antes de checar o token (ver spec dedicada para o porquê).
 
 #### `PacienteProfile`
 Dados clínicos e pessoais do paciente. Campos de endereço são opcionais (preenchidos no onboarding). `onboardingConcluido` é `false` até o paciente completar o wizard de 3 etapas.
@@ -450,6 +464,7 @@ User ─────────────────────────
  ├─ 1:N ─ BloqueioAgenda (bloqueios de agenda)
  ├─ 1:N ─ Pagamento (legado)
  ├─ 1:N ─ Notificacao
+ ├─ 1:N ─ VerificationToken (confirmação de e-mail, §5.8)
  └─ 1:N ─ ConsentRecord
 
 Tabelas independentes:
@@ -475,6 +490,7 @@ Tabelas independentes:
 | `20260706172558_remove_legacy_agendamento_flow` | Remove `Appointment`, enum `AppointmentStatus` e `PharmacistProfile.calendarEmbedUrl` — o fluxo de agendamento com pagamento Stripe-like e Google Meet foi descontinuado. `Availability`/`WeeklySchedule` seguem em uso pela agenda própria do farmacêutico (bloqueios, geração de slots) |
 | `20260715180000_baseline` | Squash do histórico de migrations acima num único baseline (schema completo até essa data) |
 | `20260716033645_password_reset` | Modelo `PasswordReset` e `User.passwordChangedAt` (alterar/recuperar senha) |
+| `20260716121847_confirmacao_email` | Modelo `VerificationToken` e `User.emailVerified`, com backfill (`emailVerified = createdAt` para contas já existentes) |
 
 Scripts manuais em `backend/scripts/` adicionam as colunas raw (`triagem`, `observacoes`, `receita`, `receita_pdf_url`, `motivo`, `finalizacao`) com `ALTER TABLE … ADD COLUMN IF NOT EXISTS`.
 
@@ -487,6 +503,8 @@ Scripts manuais em `backend/scripts/` adicionam as colunas raw (`triagem`, `obse
 ```
 /                    LandingPage        (pública)
 /entrar              LoginPage          (pública)
+/redefinir-senha     RedefinirSenhaPage (pública, ?token=...)
+/confirmar-email     ConfirmarEmailPage (pública, ?token=..., §5.8)
 /selecionar-perfil   SelecionarPerfilPage  (pós-login, múltiplos ambientes)
 /dashboard           DashboardPage      (autenticada)
 *                    → redirect para /
@@ -608,7 +626,8 @@ Configurado via `vite-plugin-pwa`. Manifesto com:
 [Frontend]                        [Backend]
    │
    ├─ POST /auth/login             ──►  Verifica bcrypt
-   │   { email, password }              Gera JWT
+   │   { email, password }              emailVerified nulo? → 403 EMAIL_NOT_VERIFIED
+   │                                    Gera JWT
    │                               ◄──  { token, user }
    │
    ├─ POST /auth/google            ──►  Verifica id_token (google-auth-library)
@@ -806,6 +825,53 @@ Fluxo 2 — Esqueci minha senha (deslogado)
 
 ---
 
+### 5.8 Confirmação de e-mail no cadastro
+
+Detalhes completos em `especificacoes/spec-confirmacao-email.md`. Resumo:
+
+```
+Fluxo 1 — Cadastro por credenciais
+[Frontend — Login "Criar conta"]
+    │
+    └─ POST /auth/register { email, password, nome }
+           │
+           ├─ User.emailVerified = null
+           ├─ VerificationToken { tokenHash: sha256(token), expiresAt: User.createdAt + 24h }
+           ├─ e-mail de confirmação (assíncrono, não bloqueia a resposta)
+           └─ 201 { user, token }  ← token já funciona nas demais rotas; só /auth/login exige confirmação
+
+Fluxo 2 — Confirmar e-mail
+[Frontend — /confirmar-email?token=...]
+    │
+    └─ POST /auth/confirmar-email { token }
+           │
+           ├─ User já verificado?  → 200 idempotente, sem tocar no token
+           ├─ token inexistente/expirado (e ainda não verificado) → 400
+           └─ User.emailVerified = now()  → 200
+
+Fluxo 3 — Login bloqueado + reenvio
+[Frontend — Login]
+    │
+    ├─ POST /auth/login { email, password }
+    │      └─ emailVerified nulo → 403 { code: 'EMAIL_NOT_VERIFIED' }
+    │
+    └─ POST /auth/reenviar-confirmacao { email }
+           │  (rate limit: 1/min e 5/hora por e-mail, ver §6.2)
+           ├─ apaga VerificationToken anteriores do usuário
+           ├─ cria novo { expiresAt: User.createdAt + 24h }  ← não estende o prazo de exclusão
+           └─ 200 { mensagem genérica }  ← sempre, exista ou não a conta
+
+Fluxo 4 — Exclusão automática (cron, de hora em hora)
+  emailVerified: null AND password IS NOT NULL AND googleId IS NULL AND createdAt < now()-24h
+  AND sem Pagamento/FilaAgendada/FilaUrgente (paciente ou farmacêutico)
+  → User.delete() (cascade em VerificationToken e demais relações filhas)
+  → logger estruturado: cadastro-nao-confirmado-excluido | cadastro-nao-confirmado-com-movimento
+```
+
+Login Google nunca passa pelo bloqueio do Fluxo 3 (contas sem `password` caem no branch de credenciais inválidas antes da checagem de `emailVerified`) e sempre marca `emailVerified` na hora — inclusive vinculando a uma conta pré-existente criada por credenciais e ainda não confirmada com o mesmo e-mail.
+
+---
+
 ## 6. Modelo de segurança
 
 ### 6.1 Isolamento de dados entre usuários
@@ -846,9 +912,10 @@ Isso impede que um farmacêutico acesse a triagem (dados de saúde) ou receita d
 |-------|--------|--------|
 | `/api/auth/*` | 20 req/IP | 15 min |
 | `/api/auth/esqueci-senha` | 3 req/IP **e** 3 req/e-mail (camadas independentes, a mais restritiva vale) | 1 hora |
+| `/api/auth/reenviar-confirmacao` | 1 req/e-mail **e** 5 req/e-mail (camadas independentes em série) | 1 min **e** 1 hora |
 | Demais | Sem limite (implícito) | — |
 
-Acima do limite de `/esqueci-senha`, a resposta continua `200` com a mesma mensagem genérica do fluxo normal — o rate limit nunca é revelado ao cliente (`handler` customizado em `src/middlewares/passwordResetLimiter.js`, ver §5.7).
+Acima do limite de `/esqueci-senha` ou `/reenviar-confirmacao`, a resposta continua `200` com a mesma mensagem genérica do fluxo normal — o rate limit nunca é revelado ao cliente (`handler` customizado em `src/middlewares/passwordResetLimiter.js`/`emailConfirmationLimiter.js`, ver §5.7/§5.8).
 
 ---
 
@@ -871,6 +938,8 @@ A exclusão de conta:
 4. Preserva registros financeiros para obrigações legais (art. 16 LGPD)
 
 **Trilha de auditoria de senha:** toda troca/reset/definição de senha grava um evento em `log_acoes` (`usuario_id`, `role`, `ip`, timestamp) com `acao` igual a `PASSWORD_CHANGED` (Fluxo 1), `PASSWORD_RESET` (Fluxo 2) ou `PASSWORD_SET` (Fluxo 3 — primeira senha de uma conta só-Google). Ver `PasswordController.js` e §5.7.
+
+**Exclusão automática de cadastros não confirmados:** diferente da eliminação sob pedido (`POST /lgpd/excluir-conta`, que pseudonimiza e preserva registros financeiros), o job de §5.8 faz `DELETE` físico — a conta nunca teve atividade real (é bloqueada por não ter confirmado o e-mail em 24h) e a proteção contra apagar quem já tem pagamento/consulta associado é uma checagem no próprio job, não pseudonimização. Cada exclusão é registrada via `logger.info('cadastro-nao-confirmado-excluido', { userId })` (`backend/src/utils/logger.js`, JSON estruturado) para a mesma trilha de auditoria.
 
 ---
 
