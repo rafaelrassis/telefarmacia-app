@@ -4,6 +4,7 @@ import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PharmacistSignupWizard from './pharmacist/PharmacistSignupWizard.jsx';
 import EsqueciSenhaForm from './EsqueciSenhaForm.jsx';
+import ConfirmacaoPendenteAviso from './ConfirmacaoPendenteAviso.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -13,13 +14,22 @@ const PROFILE_OPTIONS = [
 ];
 
 // ── Formulário de e-mail/senha ───────────────────────────────────────────────
-const EmailForm = ({ mode, setMode, onSuccess }) => {
+const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // E-mail pendente de confirmação — preenchido tanto após um cadastro por
+  // credenciais (Fluxo 1) quanto após um login recusado por falta de
+  // confirmação (Fluxo 3, código EMAIL_NOT_VERIFIED). Não vazio → mostra a
+  // tela de aviso/reenvio no lugar do formulário.
+  const [pendingEmail, setPendingEmail] = useState('');
+
+  useEffect(() => {
+    onPendingChange?.(Boolean(pendingEmail));
+  }, [pendingEmail, onPendingChange]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +47,19 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.code === 'EMAIL_NOT_VERIFIED') {
+          setPendingEmail(email);
+          return;
+        }
         setError(data.error || 'Erro ao processar requisição.');
+        return;
+      }
+
+      // Conta de credenciais recém-criada ainda não confirmada: mostra a
+      // tela de aviso em vez de entrar direto (Google já vem verificado e
+      // nunca cai aqui).
+      if (mode === 'register' && !data.user?.emailVerified) {
+        setPendingEmail(email);
         return;
       }
 
@@ -48,6 +70,10 @@ const EmailForm = ({ mode, setMode, onSuccess }) => {
       setLoading(false);
     }
   };
+
+  if (pendingEmail) {
+    return <ConfirmacaoPendenteAviso email={pendingEmail} onVoltar={() => setPendingEmail('')} />;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -148,6 +174,7 @@ const Login = ({ onModeChange }) => {
   const [profile, setProfile] = useState('paciente'); // 'paciente' | 'farmaceutico'
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [emailPending, setEmailPending] = useState(false);
 
   useEffect(() => {
     onModeChange?.(mode);
@@ -260,8 +287,8 @@ const Login = ({ onModeChange }) => {
             </div>
           ) : (
             <>
-              <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
-              {mode === 'login' && (
+              <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} onPendingChange={setEmailPending} />
+              {mode === 'login' && !emailPending && (
                 <p className="text-center text-xs mt-3">
                   <button
                     type="button"

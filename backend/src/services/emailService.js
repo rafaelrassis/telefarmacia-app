@@ -95,6 +95,50 @@ export const sendPasswordChangedEmail = async ({ to }) => {
   }
 };
 
+// E-mail de confirmação de cadastro (credenciais) — o link expira em 24h,
+// ancorado em User.createdAt (ver utils/emailVerificationToken.js). Passado
+// esse prazo, o job horário de limpeza exclui a conta não confirmada.
+export const sendVerificationEmail = async ({ to, token }) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn('[email] SMTP não configurado — e-mail de confirmação não enviado.');
+    return;
+  }
+  const confirmUrl = `${getAppUrl()}/confirmar-email?token=${token}`;
+  try {
+    await transporter.sendMail({
+      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      to,
+      subject: 'Confirme seu email — FarmaConsulta',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+          <h2 style="color:#0E4F45;">Confirme seu e-mail</h2>
+          <p style="color:#374151;font-size:14px;line-height:1.6;">
+            Falta pouco para ativar sua conta na FarmaConsulta. Clique no botão abaixo para confirmar seu e-mail.
+          </p>
+          <p style="color:#374151;font-size:14px;line-height:1.6;">
+            O link expira em <strong>24 horas</strong>. Cadastros não confirmados nesse prazo são excluídos automaticamente.
+          </p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${confirmUrl}" style="background:#0E4F45;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block;">
+              Confirmar e-mail
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:12px;">
+            Se o botão não funcionar, copie e cole este link no navegador:<br>
+            <a href="${confirmUrl}" style="color:#0E4F45;">${confirmUrl}</a>
+          </p>
+          <p style="color:#6b7280;font-size:12px;">
+            Se você não se cadastrou na FarmaConsulta, ignore este e-mail.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('[email] Falha ao enviar e-mail de confirmação:', err.message);
+  }
+};
+
 export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
   const to = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!to) {

@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { validateCrf } from '../utils/crfValidation.js';
+import { sendConfirmationEmail } from './AuthController.js';
 
 const prisma = new PrismaClient();
 
@@ -80,13 +81,18 @@ export const registrarViaConvite = async (req, res) => {
       return u;
     });
 
+    // O convite valida que o admin confiava neste e-mail, mas não prova que
+    // o farmacêutico tem acesso à caixa de entrada — a confirmação por link
+    // continua obrigatória (ver especificacoes/spec-confirmacao-email.md).
+    await sendConfirmationEmail(user);
+
     const jwtToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role, isAdmin: false },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    return res.status(201).json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    return res.status(201).json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: user.emailVerified } });
   } catch (err) {
     console.error('registrarViaConvite error:', err);
     return res.status(500).json({ error: 'Erro ao registrar farmacêutico.' });

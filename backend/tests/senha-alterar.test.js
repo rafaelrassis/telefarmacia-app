@@ -127,7 +127,13 @@ describe('definir senha — Fluxo 3 (usuário OAuth sem senha local)', () => {
   it('usuário só-Google não exige senha atual e passa a logar por e-mail/senha', async () => {
     const email = `oauth_${Date.now()}@teste.com`;
     const user = await prisma.user.create({
-      data: { email, name: 'Usuário Google', role: 'PACIENTE', googleId: 'google-sub-123', password: null },
+      data: {
+        email, name: 'Usuário Google', role: 'PACIENTE', googleId: 'google-sub-123', password: null,
+        // Google já verifica a posse do e-mail no login real (ver googleLogin) —
+        // a fixture reproduz isso para não confundir com o fluxo de
+        // confirmação por credenciais, que este teste não cobre.
+        emailVerified: new Date(),
+      },
     });
     const token = signToken(user);
 

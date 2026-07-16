@@ -286,6 +286,13 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
                 — assim que aprovado, você recebe um aviso aqui na plataforma e sua conta é liberada
                 automaticamente, sem precisar checar nada manualmente.
               </p>
+              {accountMethod === 'email' && (
+                <p className="text-xs text-gray-400 leading-relaxed mt-3">
+                  Não esqueça de confirmar seu e-mail — enviamos um link de confirmação para{' '}
+                  <strong>{email}</strong>. Sem essa confirmação em até 24 horas, o cadastro é excluído
+                  automaticamente.
+                </p>
+              )}
             </div>
           )}
 

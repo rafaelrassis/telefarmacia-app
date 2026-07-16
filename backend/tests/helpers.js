@@ -16,7 +16,14 @@ export async function registerPaciente(app, overrides = {}) {
   if (res.status !== 201) {
     throw new Error(`registerPaciente falhou (${res.status}): ${JSON.stringify(res.body)}`);
   }
-  return { token: res.body.token, user: res.body.user, email, password };
+  // Testes fora do domínio de confirmação de e-mail assumem login liberado
+  // logo após o cadastro — confirma direto no banco. O fluxo de confirmação
+  // em si (bloqueio, reenvio, exclusão) é testado isoladamente em
+  // confirmacao-email.test.js, que não usa este helper para os casos ainda
+  // não confirmados.
+  const emailVerified = new Date();
+  await prisma.user.update({ where: { id: res.body.user.id }, data: { emailVerified } });
+  return { token: res.body.token, user: { ...res.body.user, emailVerified }, email, password };
 }
 
 export async function loginPaciente(app, { email, password }) {
@@ -65,7 +72,7 @@ export async function getAdminToken(app) {
   if (!existing) {
     const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
     await prisma.user.create({
-      data: { email, name: 'Admin Teste', password: hashedPassword, role: 'PACIENTE' },
+      data: { email, name: 'Admin Teste', password: hashedPassword, role: 'PACIENTE', emailVerified: new Date() },
     });
   }
 
