@@ -1,37 +1,49 @@
-import nodemailer from 'nodemailer';
-
-const getTransporter = () => {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: parseInt(SMTP_PORT || '587'),
-    secure: parseInt(SMTP_PORT || '587') === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
-};
+// Envio via API HTTP do Brevo (não SMTP) — a Render bloqueia conexões SMTP de
+// saída (porta 587/465/25), então o relay SMTP trava com "Connection timeout"
+// em produção. A API roda sobre HTTPS (porta 443), que não é bloqueada.
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 const getAppUrl = () =>
   (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
 
-// O login SMTP (SMTP_USER) costuma ser um usuário técnico só de autenticação
-// (ex.: relays como o da Brevo geram algo como "xxxxx@smtp-brevo.com"), não
-// necessariamente um endereço verificado como remetente. SMTP_FROM_EMAIL é
-// opcional e permite configurar separadamente o e-mail que aparece pro
-// destinatário — cai de volta em SMTP_USER se não for definido (compatível
-// com provedores onde os dois já são o mesmo endereço).
-const getFromAddress = () =>
-  `"FarmaConsulta" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`;
+// O remetente técnico (BREVO_API_KEY) é só a credencial de autenticação da API;
+// o "from" que aparece pro destinatário precisa ser um e-mail/domínio verificado
+// no Brevo — configurado separadamente em SMTP_FROM_EMAIL.
+const getSender = () => ({
+  name: 'FarmaConsulta',
+  email: process.env.SMTP_FROM_EMAIL,
+});
+
+const sendEmail = async ({ to, subject, html }) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    console.warn('[email] BREVO_API_KEY não configurado — e-mail não enviado.');
+    return;
+  }
+  const res = await fetch(BREVO_API_URL, {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: getSender(),
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brevo API respondeu ${res.status}: ${body}`);
+  }
+};
 
 // E-mail de redefinição de senha (Fluxo 2/3) — enviado tanto para usuários
 // com senha local quanto para usuários só-Google (o link permite os dois
 // casos: redefinir senha existente ou definir a primeira senha local).
 export const sendPasswordResetEmail = async ({ to, token, hasPassword }) => {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('[email] SMTP não configurado — e-mail de redefinição não enviado.');
-    return;
-  }
   const resetUrl = `${getAppUrl()}/redefinir-senha?token=${token}`;
   const googleNotice = hasPassword ? '' : `
     <p style="color:#374151;font-size:14px;line-height:1.6;">
@@ -40,8 +52,7 @@ export const sendPasswordResetEmail = async ({ to, token, hasPassword }) => {
     </p>
   `;
   try {
-    await transporter.sendMail({
-      from: getFromAddress(),
+    await sendEmail({
       to,
       subject: 'Redefinição de senha — FarmaConsulta',
       html: `
@@ -71,15 +82,9 @@ export const sendPasswordResetEmail = async ({ to, token, hasPassword }) => {
 // Notificação enviada após qualquer alteração de senha bem-sucedida
 // (Fluxo 1, 2 ou 3) — permite ao usuário identificar uma troca não autorizada.
 export const sendPasswordChangedEmail = async ({ to }) => {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('[email] SMTP não configurado — notificação de troca de senha não enviada.');
-    return;
-  }
   const appUrl = getAppUrl();
   try {
-    await transporter.sendMail({
-      from: getFromAddress(),
+    await sendEmail({
       to,
       subject: 'Sua senha foi alterada — FarmaConsulta',
       html: `
@@ -108,15 +113,9 @@ export const sendPasswordChangedEmail = async ({ to }) => {
 // ancorado em User.createdAt (ver utils/emailVerificationToken.js). Passado
 // esse prazo, o job horário de limpeza exclui a conta não confirmada.
 export const sendVerificationEmail = async ({ to, token }) => {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('[email] SMTP não configurado — e-mail de confirmação não enviado.');
-    return;
-  }
   const confirmUrl = `${getAppUrl()}/confirmar-email?token=${token}`;
   try {
-    await transporter.sendMail({
-      from: getFromAddress(),
+    await sendEmail({
       to,
       subject: 'Confirme seu email — FarmaConsulta',
       html: `
@@ -154,15 +153,9 @@ export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
     console.warn('[email] ADMIN_NOTIFICATION_EMAIL não configurado — notificação não enviada.');
     return;
   }
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('[email] SMTP não configurado — notificação não enviada.');
-    return;
-  }
   const appUrl = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
   try {
-    await transporter.sendMail({
-      from: getFromAddress(),
+    await sendEmail({
       to,
       subject: `Novo farmacêutico aguardando aprovação: ${nome}`,
       html: `
