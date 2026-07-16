@@ -56,7 +56,7 @@ const LoginPage = () => {
       </div>
 
       {/* Formulário */}
-      <div className="flex items-center justify-center bg-gradient-to-br from-brand-wash via-white to-brand-wash px-4 py-12">
+      <div className="flex items-center justify-center bg-gradient-to-br from-brand-wash via-canvas to-brand-wash px-4 py-12">
         <div className="w-full max-w-md">
           {/* Marca compacta — mobile */}
           <div className="flex lg:hidden items-center justify-center gap-2 mb-6">
@@ -82,13 +82,13 @@ const LoginPage = () => {
             </h1>
             <p className="text-muted mt-2 text-sm">
               {isRegister
-                ? 'Leva menos de um minuto. Depois é só descrever sua dúvida.'
+                ? 'Escolha como você quer usar a FarmaConsulta.'
                 : 'Entre com Google ou e-mail para acessar suas consultas.'}
             </p>
           </div>
 
           {/* Card de login */}
-          <div className="bg-white rounded-2xl shadow-xl shadow-brand-wash border border-brand/20 p-8">
+          <div className="bg-surface rounded-2xl shadow-xl shadow-brand-wash border border-brand/20 p-8">
             <Login onModeChange={setMode} />
           </div>
 

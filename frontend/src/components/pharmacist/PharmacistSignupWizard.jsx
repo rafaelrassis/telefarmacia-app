@@ -71,7 +71,7 @@ const FileField = ({ label, file, onChange }) => {
   );
 };
 
-const PharmacistSignupWizard = ({ onClose }) => {
+const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
   const { user, token, login } = useAuth();
   const navigate = useNavigate();
   const draft = loadDraft();
@@ -248,44 +248,23 @@ const PharmacistSignupWizard = ({ onClose }) => {
 
   const currentKey = STEPS[stepIndex].key;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget && !terminal) onClose?.(); }}
-    >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <div>
-            <h2 className="font-heading text-lg font-bold text-gray-900">Cadastro de Farmacêutico</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Junte-se à nossa plataforma</p>
-          </div>
-          {!terminal && (
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
-            >
-              ✕
-            </button>
-          )}
+  const body = (
+    <>
+      {!terminal && (
+        <div className="flex items-center gap-1.5 px-6 pt-4">
+          {STEPS.map((s, i) => (
+            <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
+              <div className={`h-1.5 w-full rounded-full ${i <= stepIndex ? 'bg-brand' : 'bg-gray-150'}`} />
+              <span className={`text-[10px] font-semibold ${i === stepIndex ? 'text-brand-deep' : 'text-gray-400'}`}>
+                {s.label}
+              </span>
+            </div>
+          ))}
         </div>
+      )}
 
-        {!terminal && (
-          <div className="flex items-center gap-1.5 px-6 pt-4">
-            {STEPS.map((s, i) => (
-              <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
-                <div className={`h-1.5 w-full rounded-full ${i <= stepIndex ? 'bg-brand' : 'bg-gray-150'}`} />
-                <span className={`text-[10px] font-semibold ${i === stepIndex ? 'text-brand-deep' : 'text-gray-400'}`}>
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="px-6 py-6">
-          {terminal === 'exists' && (
+      <div className="px-6 py-6">
+        {terminal === 'exists' && (
             <div className="text-center py-4">
               <span className="text-4xl block mb-4">⚠️</span>
               <h3 className="font-bold text-gray-800 mb-2">Conta já cadastrada como paciente</h3>
@@ -499,6 +478,37 @@ const PharmacistSignupWizard = ({ onClose }) => {
             </div>
           )}
         </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="w-full">{body}</div>;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget && !terminal) onClose?.(); }}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div>
+            <h2 className="font-heading text-lg font-bold text-gray-900">Cadastro de Farmacêutico</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Junte-se à nossa plataforma</p>
+          </div>
+          {!terminal && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {body}
       </div>
     </div>
   );
