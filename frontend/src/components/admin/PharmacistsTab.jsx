@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, CheckCircle2, RotateCcw, Ban, UserX, Trash2, TriangleAlert } from 'lucide-react';
 import Modal from '../ui/Modal';
 import OcorrenciasModal from './OcorrenciasModal';
+import DocumentoViewerModal from './DocumentoViewerModal';
 import { fmt } from '../../utils/adminFormat';
 import { getPharmacistStatus } from '../../utils/pharmacistFormat';
 
@@ -11,8 +12,6 @@ const STATUS_BADGE_CLS = {
   pendente: 'bg-alert-wash text-alert',
 };
 const STATUS_BADGE_LABEL = { suspenso: 'Suspenso', ativo: 'Ativo', pendente: 'Pendente' };
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Diálogo de confirmação compartilhado pelas 3 ações destrutivas desta aba
 // (suspender / inativar / descadastrar) — mesmo conteúdo/ações de antes, só
@@ -61,6 +60,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
   const [confirmSuspend, setConfirmSuspend] = useState(null);
   const [suspendLoading, setSuspendLoading] = useState(false);
   const [viewingOcorrencias, setViewingOcorrencias] = useState(null);
+  const [viewingDocs, setViewingDocs] = useState(null);
 
   const setBtnLoading = (key, v) => setActionLoading((prev) => ({ ...prev, [key]: v }));
 
@@ -179,7 +179,6 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                 {pharmacists.map((p) => {
                   const prof       = p.pharmacistProfile;
                   const status     = getPharmacistStatus(prof);
-                  const docBase    = API_URL;
                   return (
                     <tr key={p.id} className="hover:bg-surface transition">
                       <td className="px-4 py-3">
@@ -191,16 +190,12 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                       </td>
                       <td className="px-4 py-3">
                         {prof?.urlDocIdentidade ? (
-                          <div className="flex flex-col gap-1">
-                            <a href={`${docBase}${prof.urlDocIdentidade}`} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-brand-deep hover:underline">
-                              <FileText className="w-3.5 h-3.5" /> RG/CNH
-                            </a>
-                            <a href={`${docBase}${prof.urlDocCrf}`} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-brand-deep hover:underline">
-                              <FileText className="w-3.5 h-3.5" /> CRF
-                            </a>
-                          </div>
+                          <button
+                            onClick={() => setViewingDocs(p)}
+                            className="inline-flex items-center gap-1 text-xs text-brand-deep hover:underline"
+                          >
+                            <FileText className="w-3.5 h-3.5" /> Ver documentos
+                          </button>
                         ) : (
                           <span className="text-xs text-muted">Não enviado</span>
                         )}
@@ -341,6 +336,13 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
           api={api}
           farmaceutico={viewingOcorrencias}
           onClose={() => setViewingOcorrencias(null)}
+        />
+      )}
+
+      {viewingDocs && (
+        <DocumentoViewerModal
+          farmaceutico={viewingDocs}
+          onClose={() => setViewingDocs(null)}
         />
       )}
     </>
