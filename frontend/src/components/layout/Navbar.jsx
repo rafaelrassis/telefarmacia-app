@@ -38,26 +38,30 @@ const Navbar = () => {
 
   // ── Instalar app ─────────────────────────────────────────────────────────
   const { isIOS, isStandalone, canInstall, promptInstall } = useInstallPrompt();
-  const [showIOSTip, setShowIOSTip] = useState(false);
-  const iosTipRef = useRef(null);
-  const showInstallButton = !isStandalone && (canInstall || isIOS);
+  const [showInstallTip, setShowInstallTip] = useState(false);
+  const installTipRef = useRef(null);
+  const showInstallButton = !isStandalone;
+
+  const installTipText = isIOS
+    ? 'Toque em Compartilhar (ícone de quadrado com seta) e depois em "Adicionar à Tela de Início".'
+    : 'Abra o menu ⋮ do navegador e toque em "Instalar aplicativo" ou "Adicionar à tela inicial".';
 
   const handleInstallClick = async () => {
     if (canInstall) {
       await promptInstall();
-    } else if (isIOS) {
-      setShowIOSTip((v) => !v);
+      return;
     }
+    setShowInstallTip((v) => !v);
   };
 
   useEffect(() => {
-    if (!showIOSTip) return;
+    if (!showInstallTip) return;
     const handler = (e) => {
-      if (iosTipRef.current && !iosTipRef.current.contains(e.target)) setShowIOSTip(false);
+      if (installTipRef.current && !installTipRef.current.contains(e.target)) setShowInstallTip(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [showIOSTip]);
+  }, [showInstallTip]);
 
   // ── Notificações ─────────────────────────────────────────────────────────
   const [notifOpen,    setNotifOpen]    = useState(false);
@@ -153,7 +157,7 @@ const Navbar = () => {
 
             {/* Instalar app */}
             {showInstallButton && (
-              <div className="relative" ref={iosTipRef}>
+              <div className="relative" ref={installTipRef}>
                 <button
                   onClick={handleInstallClick}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-deep border border-brand/30 bg-brand-wash px-2.5 py-1.5 rounded-lg hover:bg-brand/10 transition"
@@ -163,12 +167,11 @@ const Navbar = () => {
                   <span className="hidden sm:inline">Instalar</span>
                 </button>
 
-                {showIOSTip && (
+                {showInstallTip && (
                   <div className="absolute left-0 top-full mt-2 w-64 bg-canvas border border-line rounded-xl shadow-lg p-3 z-50 text-xs text-ink">
-                    Toque em <strong>Compartilhar</strong> (ícone de quadrado com seta) e depois em{' '}
-                    <strong>&quot;Adicionar à Tela de Início&quot;</strong>.
+                    {installTipText}
                     <button
-                      onClick={() => setShowIOSTip(false)}
+                      onClick={() => setShowInstallTip(false)}
                       className="mt-2 block text-brand-deep font-semibold"
                     >
                       Fechar
