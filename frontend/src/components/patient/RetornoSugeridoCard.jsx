@@ -105,7 +105,7 @@ const RetornoSugeridoCard = ({ token, onAgendar, onVisibleChange }) => {
       <button
         onClick={handleAgendarRetorno}
         disabled={agendandoRetorno}
-        className="bg-success hover:opacity-90 disabled:opacity-60 text-white text-xs font-bold px-3 py-2 rounded-lg transition"
+        className="bg-success hover:opacity-90 disabled:opacity-60 text-success-contrast text-xs font-bold px-3 py-2 rounded-lg transition"
       >
         {agendandoRetorno ? 'Verificando...' : 'Agendar retorno'}
       </button>

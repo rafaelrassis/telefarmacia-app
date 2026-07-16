@@ -33,7 +33,7 @@ export const ResultadoSucesso = ({ agResult, onFechar }) => (
         )}
       </div>
     )}
-    <button onClick={onFechar} className="w-full py-2.5 text-sm font-bold bg-brand text-white rounded-xl">
+    <button onClick={onFechar} className="w-full py-2.5 text-sm font-bold bg-brand text-brand-contrast rounded-xl">
       Fechar
     </button>
   </div>
@@ -48,7 +48,7 @@ export const ResultadoErro = ({ agInsuficiente, agErrorMsg, onAddCredits, onTent
     <p className="text-sm text-muted mb-5">{agErrorMsg}</p>
     <div className="flex gap-3">
       {agInsuficiente && (
-        <button onClick={onAddCredits} className="flex-1 py-2.5 text-sm font-bold bg-brand text-white rounded-xl">
+        <button onClick={onAddCredits} className="flex-1 py-2.5 text-sm font-bold bg-brand text-brand-contrast rounded-xl">
           Adicionar créditos
         </button>
       )}

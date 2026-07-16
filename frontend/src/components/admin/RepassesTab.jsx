@@ -50,7 +50,7 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
         <button
           onClick={handlePreviewRepasse}
           disabled={repasseLoading}
-          className="bg-brand hover:bg-brand-deep text-white text-sm font-bold px-5 py-2 rounded-xl transition disabled:opacity-50"
+          className="bg-brand hover:bg-brand-deep text-brand-contrast text-sm font-bold px-5 py-2 rounded-xl transition disabled:opacity-50"
         >
           {repasseLoading ? 'Carregando...' : 'Pré-visualizar'}
         </button>
@@ -104,7 +104,7 @@ const RepassesTab = ({ api, showToast, pharmacists, downloadCsv }) => {
               <button
                 onClick={handleConfirmarRepasse}
                 disabled={repasseConfirming}
-                className="inline-flex items-center gap-1.5 bg-success hover:bg-success/90 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50 shrink-0"
+                className="inline-flex items-center gap-1.5 bg-success hover:bg-success/90 text-success-contrast text-sm font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50 shrink-0"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {repasseConfirming ? 'Registrando...' : 'Confirmar repasse'}

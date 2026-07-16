@@ -51,42 +51,42 @@ const PharmacistProfileEditor = () => {
   return (
     <div className="max-w-lg space-y-5">
       {/* Dados do CRF */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Dados do CRF</p>
-        <p className="text-sm text-gray-700">CRF: <strong>{profile?.crfNumber}/{profile?.crfUF}</strong></p>
-        <p className="text-xs text-gray-400 mt-1">Para alterar o CRF, entre em contato com o suporte.</p>
+      <div className="bg-surface border border-line rounded-xl p-4">
+        <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Dados do CRF</p>
+        <p className="text-sm text-ink">CRF: <strong>{profile?.crfNumber}/{profile?.crfUF}</strong></p>
+        <p className="text-xs text-muted mt-1">Para alterar o CRF, entre em contato com o suporte.</p>
       </div>
 
       {/* Chave PIX */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chave PIX para repasses</label>
+        <label className="block text-sm font-semibold text-ink mb-1.5">Chave PIX para repasses</label>
         <input
           type="text"
           value={chavePix}
           onChange={(e) => setChavePix(e.target.value)}
           placeholder="CPF, e-mail, telefone ou chave aleatória"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+          className="w-full border border-line rounded-lg px-3 py-2.5 text-sm text-ink bg-canvas focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
         />
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-muted mt-1">
           Usada pelo administrador para processar pagamentos de comissões.
         </p>
       </div>
 
       {/* Bio */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Apresentação</label>
+        <label className="block text-sm font-semibold text-ink mb-1.5">Apresentação</label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="Descreva sua especialização e como pode ajudar os pacientes..."
           rows={3}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
+          className="w-full border border-line rounded-lg px-3 py-2.5 text-sm text-ink bg-canvas focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
         />
       </div>
 
       {/* Tags */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Áreas de atendimento</label>
+        <label className="block text-sm font-semibold text-ink mb-2">Áreas de atendimento</label>
         <div className="flex flex-wrap gap-2">
           {ALL_TAGS.map((tag) => (
             <button
@@ -95,8 +95,8 @@ const PharmacistProfileEditor = () => {
               onClick={() => toggleTag(tag)}
               className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
                 tags.includes(tag)
-                  ? 'bg-brand text-white border-brand'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-brand/60'
+                  ? 'bg-brand text-brand-contrast border-brand'
+                  : 'bg-canvas text-muted border-line hover:border-brand/60'
               }`}
             >
               {tag}
@@ -107,7 +107,7 @@ const PharmacistProfileEditor = () => {
 
       {message && (
         <div className={`text-sm px-4 py-2.5 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+          message.type === 'success' ? 'bg-success-wash text-success' : 'bg-error-wash text-error'
         }`}>
           {message.text}
         </div>
@@ -116,7 +116,7 @@ const PharmacistProfileEditor = () => {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition disabled:opacity-50 text-sm"
+        className="w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-2.5 rounded-xl transition disabled:opacity-50 text-sm"
       >
         {saving ? 'Salvando...' : 'Salvar alterações'}
       </button>

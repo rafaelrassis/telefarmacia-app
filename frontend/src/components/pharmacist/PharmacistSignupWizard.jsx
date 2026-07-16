@@ -45,19 +45,19 @@ const FileField = ({ label, file, onChange }) => {
   const ref = useRef();
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label} <span className="text-red-500">*</span></label>
+      <label className="block text-xs font-semibold text-muted mb-1.5">{label} <span className="text-error">*</span></label>
       <div
         onClick={() => ref.current?.click()}
         className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition ${
-          file ? 'border-brand bg-brand-wash' : 'border-gray-200 hover:border-brand/60 bg-gray-50'
+          file ? 'border-brand bg-brand-wash' : 'border-line hover:border-brand/60 bg-surface'
         }`}
       >
         <span className="text-xl">{file ? '📄' : '⬆️'}</span>
         <div className="min-w-0">
-          <p className={`text-sm font-medium truncate ${file ? 'text-brand-deep' : 'text-gray-500'}`}>
+          <p className={`text-sm font-medium truncate ${file ? 'text-brand-deep' : 'text-muted'}`}>
             {file ? file.name : 'Clique para selecionar'}
           </p>
-          <p className="text-xs text-gray-400">JPG, PNG ou PDF · máx. 5MB</p>
+          <p className="text-xs text-muted">JPG, PNG ou PDF · máx. 5MB</p>
         </div>
       </div>
       <input
@@ -254,8 +254,8 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
         <div className="flex items-center gap-1.5 px-6 pt-4">
           {STEPS.map((s, i) => (
             <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
-              <div className={`h-1.5 w-full rounded-full ${i <= stepIndex ? 'bg-brand' : 'bg-gray-150'}`} />
-              <span className={`text-[10px] font-semibold ${i === stepIndex ? 'text-brand-deep' : 'text-gray-400'}`}>
+              <div className={`h-1.5 w-full rounded-full ${i <= stepIndex ? 'bg-brand' : 'bg-line'}`} />
+              <span className={`text-[10px] font-semibold ${i === stepIndex ? 'text-brand-deep' : 'text-muted'}`}>
                 {s.label}
               </span>
             </div>
@@ -267,8 +267,8 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
         {terminal === 'exists' && (
             <div className="text-center py-4">
               <span className="text-4xl block mb-4">⚠️</span>
-              <h3 className="font-bold text-gray-800 mb-2">Conta já cadastrada como paciente</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-6">
+              <h3 className="font-bold text-ink mb-2">Conta já cadastrada como paciente</h3>
+              <p className="text-sm text-muted leading-relaxed mb-6">
                 Este e-mail já está associado a uma conta de paciente. Para se cadastrar como farmacêutico, use outro e-mail.
               </p>
               <button onClick={() => setTerminal(null)} className="text-sm text-brand-deep hover:underline">
@@ -280,14 +280,14 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
           {terminal === 'pending' && (
             <div className="text-center py-4">
               <span className="text-5xl block mb-4">🕐</span>
-              <h3 className="font-bold text-gray-800 mb-2">Cadastro enviado — Em análise</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
+              <h3 className="font-bold text-ink mb-2">Cadastro enviado — Em análise</h3>
+              <p className="text-sm text-muted leading-relaxed">
                 Seus dados e documentos foram enviados. Um administrador vai revisar seu CRF e seus documentos
                 — assim que aprovado, você recebe um aviso aqui na plataforma e sua conta é liberada
                 automaticamente, sem precisar checar nada manualmente.
               </p>
               {accountMethod === 'email' && (
-                <p className="text-xs text-gray-400 leading-relaxed mt-3">
+                <p className="text-xs text-muted leading-relaxed mt-3">
                   Não esqueça de confirmar seu e-mail — enviamos um link de confirmação para{' '}
                   <strong>{email}</strong>. Sem essa confirmação em até 24 horas, o cadastro é excluído
                   automaticamente.
@@ -298,13 +298,13 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
           {!terminal && currentKey === 'account' && (
             <div>
-              <div className="flex rounded-xl border border-gray-200 p-1 mb-5 bg-gray-50">
+              <div className="flex rounded-xl border border-line p-1 mb-5 bg-surface">
                 {[{ key: 'google', label: 'Google' }, { key: 'email', label: 'E-mail e senha' }].map(({ key, label }) => (
                   <button
                     key={key}
                     onClick={() => { setAccountMethod(key); setError(''); }}
                     className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
-                      accountMethod === key ? 'bg-white text-brand-deep shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                      accountMethod === key ? 'bg-canvas text-brand-deep shadow-sm' : 'text-muted hover:text-ink'
                     }`}
                   >
                     {label}
@@ -314,10 +314,10 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
               {accountMethod === 'google' ? (
                 <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-5">Entre com sua conta Google para começar.</p>
+                  <p className="text-sm text-muted mb-5">Entre com sua conta Google para começar.</p>
                   <div className="flex justify-center mb-4">
                     {loading ? (
-                      <div className="h-10 flex items-center text-sm text-gray-400">Aguardando...</div>
+                      <div className="h-10 flex items-center text-sm text-muted">Aguardando...</div>
                     ) : (
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
@@ -343,14 +343,14 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
                 </form>
               )}
 
-              <div className="mt-6 pt-4 border-t border-gray-100">
+              <div className="mt-6 pt-4 border-t border-line">
                 <div className="grid grid-cols-3 gap-3 text-center">
                   {[
                     { icon: '🔒', label: 'CRF verificado' },
                     { icon: '💰', label: 'Ganhe por consulta' },
                     { icon: '🕐', label: 'Horários flexíveis' },
                   ].map((item) => (
-                    <div key={item.label} className="text-xs text-gray-500">
+                    <div key={item.label} className="text-xs text-muted">
                       <span className="block text-lg mb-1">{item.icon}</span>
                       {item.label}
                     </div>
@@ -362,7 +362,7 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
           {!terminal && currentKey === 'professional' && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">Dados pessoais e profissionais.</p>
+              <p className="text-sm text-muted">Dados pessoais e profissionais.</p>
               <Input label="Telefone/WhatsApp (opcional)" placeholder="(11) 99999-8888"
                 value={telefone} onChange={(e) => setTelefone(e.target.value)} />
               <div className="flex gap-3">
@@ -378,19 +378,19 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Biografia <span className="font-normal text-gray-400">(opcional)</span>
+                <label className="block text-xs font-semibold text-muted mb-1">
+                  Biografia <span className="font-normal text-muted">(opcional)</span>
                 </label>
                 <textarea
                   placeholder="Conte brevemente sua especialidade e experiência..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
+                  className="w-full px-3 py-2.5 border border-line rounded-lg text-sm text-ink bg-canvas focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none resize-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-2">Áreas de atuação</label>
+                <label className="block text-xs font-semibold text-muted mb-2">Áreas de atuação</label>
                 <div className="flex flex-wrap gap-2">
                   {ALL_TAGS.map((tag) => (
                     <button
@@ -399,8 +399,8 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
                       onClick={() => toggleTag(tag)}
                       className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
                         selectedTags.includes(tag)
-                          ? 'bg-brand text-white border-brand'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand/60'
+                          ? 'bg-brand text-brand-contrast border-brand'
+                          : 'bg-canvas text-muted border-line hover:border-brand/60'
                       }`}
                     >
                       {tag}
@@ -413,7 +413,7 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
           {!terminal && currentKey === 'documents' && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Precisamos verificar sua identidade e seu registro no CRF.
               </p>
               <FileField label="RG ou CNH (frente)" file={rgFile} onChange={setRgFile} />
@@ -423,27 +423,27 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
           {!terminal && currentKey === 'review' && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">Confira seus dados antes de enviar.</p>
-              <dl className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+              <p className="text-sm text-muted">Confira seus dados antes de enviar.</p>
+              <dl className="bg-surface rounded-xl p-4 space-y-2 text-sm">
                 {telefone && (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500">Telefone</dt>
-                    <dd className="font-semibold text-gray-800">{telefone}</dd>
+                    <dt className="text-muted">Telefone</dt>
+                    <dd className="font-semibold text-ink">{telefone}</dd>
                   </div>
                 )}
                 <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500">CRF</dt>
-                  <dd className="font-semibold text-gray-800">{crfNumber}/{crfUF}</dd>
+                  <dt className="text-muted">CRF</dt>
+                  <dd className="font-semibold text-ink">{crfNumber}/{crfUF}</dd>
                 </div>
                 {bio && (
                   <div>
-                    <dt className="text-gray-500 mb-0.5">Biografia</dt>
-                    <dd className="text-gray-800">{bio}</dd>
+                    <dt className="text-muted mb-0.5">Biografia</dt>
+                    <dd className="text-ink">{bio}</dd>
                   </div>
                 )}
                 {selectedTags.length > 0 && (
                   <div>
-                    <dt className="text-gray-500 mb-1">Áreas de atuação</dt>
+                    <dt className="text-muted mb-1">Áreas de atuação</dt>
                     <dd className="flex flex-wrap gap-1.5">
                       {selectedTags.map((t) => (
                         <span key={t} className="text-xs bg-brand-wash text-brand-deep px-2 py-0.5 rounded-full">{t}</span>
@@ -452,18 +452,18 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
                   </div>
                 )}
                 <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500">Documentos</dt>
-                  <dd className="font-semibold text-gray-800">{rgFile?.name} · {crfFile?.name}</dd>
+                  <dt className="text-muted">Documentos</dt>
+                  <dd className="font-semibold text-ink">{rgFile?.name} · {crfFile?.name}</dd>
                 </div>
               </dl>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 Sua conta será revisada por um administrador antes de ficar ativa para receber consultas.
               </p>
             </div>
           )}
 
           {error && !terminal && (
-            <p className="mt-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+            <p className="mt-4 text-sm text-error bg-error-wash px-3 py-2 rounded-lg">{error}</p>
           )}
 
           {!terminal && currentKey !== 'account' && (
@@ -497,18 +497,18 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget && !terminal) onClose?.(); }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" />
 
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <div className="relative bg-canvas border border-line rounded-2xl shadow-md w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-line">
           <div>
-            <h2 className="font-heading text-lg font-bold text-gray-900">Cadastro de Farmacêutico</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Junte-se à nossa plataforma</p>
+            <h2 className="font-heading text-lg font-bold text-ink">Cadastro de Farmacêutico</h2>
+            <p className="text-sm text-muted mt-0.5">Junte-se à nossa plataforma</p>
           </div>
           {!terminal && (
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
+              className="w-8 h-8 rounded-full bg-surface hover:bg-line flex items-center justify-center text-muted transition"
             >
               ✕
             </button>

@@ -57,7 +57,7 @@ const FinanceiroTab = ({
             <button
               onClick={() => loadVisaoFinanceira(finPeriodoDe, finPeriodoAte)}
               disabled={finVisaoLoading}
-              className="text-sm font-medium bg-brand hover:bg-brand-deep text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
+              className="text-sm font-medium bg-brand hover:bg-brand-deep text-brand-contrast px-4 py-1.5 rounded-lg transition disabled:opacity-50"
             >
               {finVisaoLoading ? '…' : 'Filtrar'}
             </button>
@@ -304,7 +304,7 @@ const FinanceiroTab = ({
                           <button
                             disabled={isSaving || current.trim() === ''}
                             onClick={() => handleSalvarComissao(f.id, f.name, current)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-brand hover:bg-brand-deep text-white rounded-lg disabled:opacity-40 transition"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-brand hover:bg-brand-deep text-brand-contrast rounded-lg disabled:opacity-40 transition"
                           >
                             <Save className="w-3 h-3" />
                             {isSaving ? '…' : 'Salvar'}

@@ -97,7 +97,7 @@ const FAQSection = () => {
           <p className="text-sm text-muted mb-3">Não encontrou o que procurava?</p>
           <Link
             to="/entrar"
-            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-white font-semibold px-6 py-3 rounded-xl text-sm transition shadow-sm shadow-brand-wash"
+            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-brand-contrast font-semibold px-6 py-3 rounded-xl text-sm transition shadow-sm shadow-brand-wash"
           >
             Falar com um farmacêutico agora
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

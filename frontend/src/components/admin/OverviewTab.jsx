@@ -66,7 +66,7 @@ const OverviewTab = ({ api, showToast }) => {
       }`}>
         <div className="flex items-center gap-3">
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold shrink-0 ${
-            sistemaAberto ? 'bg-success text-white' : sistemaAberto === false ? 'bg-error text-white' : 'bg-line text-muted'
+            sistemaAberto ? 'bg-success text-success-contrast' : sistemaAberto === false ? 'bg-error text-error-contrast' : 'bg-line text-muted'
           }`}>
             {sistemaAberto !== null && <SistemaIcon className="w-4 h-4" strokeWidth={2} />}
             {togglingSistema ? 'Atualizando...' : sistemaAberto === null ? 'Carregando' : sistemaAberto ? 'Aberto' : 'Fechado'}
@@ -91,7 +91,7 @@ const OverviewTab = ({ api, showToast }) => {
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+            className={`inline-block h-5 w-5 transform rounded-full bg-canvas shadow transition-transform duration-200 ${
               sistemaAberto ? 'translate-x-8' : 'translate-x-1'
             }`}
           />

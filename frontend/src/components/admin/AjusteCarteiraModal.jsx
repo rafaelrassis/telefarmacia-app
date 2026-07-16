@@ -49,7 +49,7 @@ const AjusteCarteiraModal = ({ api, paciente, onClose, onSuccess, showToast }) =
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-white rounded-xl hover:bg-brand-deep disabled:opacity-60 transition">
+            className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-brand-contrast rounded-xl hover:bg-brand-deep disabled:opacity-60 transition">
             {saving ? 'Salvando...' : 'Confirmar'}
           </button>
         </div>

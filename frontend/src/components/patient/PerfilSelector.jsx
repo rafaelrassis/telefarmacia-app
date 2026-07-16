@@ -52,7 +52,7 @@ const PerfilSelector = ({
                 </button>
                 <button
                   onClick={() => handleDeleteDependente(dep.id)}
-                  className="text-xs font-bold text-white px-2 py-1 rounded-full bg-error"
+                  className="text-xs font-bold text-error-contrast px-2 py-1 rounded-full bg-error"
                 >
                   Excluir
                 </button>

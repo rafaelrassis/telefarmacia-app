@@ -70,7 +70,7 @@ const HorariosTab = ({ api, showToast }) => {
                       h.ativo ? 'bg-success' : 'bg-line'
                     }`}
                   >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-canvas shadow transition-transform duration-200 ${
                       h.ativo ? 'translate-x-4' : 'translate-x-0.5'
                     }`} />
                   </div>
@@ -107,7 +107,7 @@ const HorariosTab = ({ api, showToast }) => {
           <button
             onClick={handleSaveHorarios}
             disabled={savingHorarios}
-            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-white text-sm font-bold px-6 py-2.5 rounded-xl transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-brand-contrast text-sm font-bold px-6 py-2.5 rounded-xl transition disabled:opacity-50"
           >
             <Save className="w-4 h-4" strokeWidth={2} />
             {savingHorarios ? 'Salvando...' : 'Salvar e Publicar Horários'}

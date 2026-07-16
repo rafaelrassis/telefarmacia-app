@@ -119,7 +119,7 @@ const SearchSection = () => {
           <button
             type="button"
             onClick={handleSubmit}
-            className="shrink-0 bg-brand hover:bg-brand-deep text-white font-bold px-5 py-3 rounded-xl transition text-sm"
+            className="shrink-0 bg-brand hover:bg-brand-deep text-brand-contrast font-bold px-5 py-3 rounded-xl transition text-sm"
           >
             Agendar Consulta
           </button>

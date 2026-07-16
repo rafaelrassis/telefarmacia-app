@@ -115,7 +115,7 @@ const DocUploadForm = ({ onSuccess }) => {
       <button
         type="submit"
         disabled={loading || !rgFile || !crfFile}
-        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition text-sm"
+        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-40 text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
       >
         {loading ? 'Enviando...' : 'Enviar documentos'}
       </button>

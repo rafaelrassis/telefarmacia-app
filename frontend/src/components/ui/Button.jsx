@@ -1,10 +1,10 @@
 import React from 'react';
 
 const VARIANTS = {
-  primary:   'bg-brand text-white hover:bg-brand-deep disabled:bg-line disabled:text-muted',
+  primary:   'bg-brand text-brand-contrast hover:bg-brand-deep disabled:bg-line disabled:text-muted',
   secondary: 'bg-canvas text-brand-deep border border-brand hover:bg-brand-wash disabled:border-line disabled:text-muted disabled:bg-canvas',
   ghost:     'bg-transparent text-brand-deep hover:bg-brand-wash disabled:text-muted',
-  danger:    'bg-error text-white hover:opacity-90 disabled:bg-line disabled:text-muted',
+  danger:    'bg-error text-error-contrast hover:opacity-90 disabled:bg-line disabled:text-muted',
 };
 
 const SIZES = {

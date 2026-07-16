@@ -137,7 +137,7 @@ const OnboardingSlider = ({ onConcluido }) => {
           ) : (
             <button
               onClick={() => setSlide((s) => s + 1)}
-              className="w-full py-3.5 bg-brand hover:bg-brand-deep text-white border-none rounded-xl text-[15px] font-bold cursor-pointer transition-colors"
+              className="w-full py-3.5 bg-brand hover:bg-brand-deep text-brand-contrast border-none rounded-xl text-[15px] font-bold cursor-pointer transition-colors"
             >
               Próximo →
             </button>

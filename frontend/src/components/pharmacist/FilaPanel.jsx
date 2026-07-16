@@ -94,7 +94,7 @@ const FilaPanel = ({ onAccepted, onCardClick, hasEmAtendimento }) => {
                 onClick={(e) => { e.stopPropagation(); aceitar(f.id, f.paciente?.name); }}
                 disabled={accepting[f.id] || hasEmAtendimento}
                 title={hasEmAtendimento ? 'Finalize o atendimento atual primeiro' : undefined}
-                className="shrink-0 bg-brand hover:bg-brand-deep disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                className="shrink-0 bg-brand hover:bg-brand-deep disabled:opacity-50 disabled:cursor-not-allowed text-brand-contrast text-xs font-bold px-3 py-1.5 rounded-lg transition"
               >
                 {accepting[f.id] ? '...' : 'Aceitar'}
               </button>

@@ -8,9 +8,6 @@ const toLocalDateStr = (date = new Date()) => {
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
 };
 
-const lbl = { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 };
-const inp = { width: '100%', border: '1px solid #e5e7eb', fontSize: 14, boxSizing: 'border-box' };
-
 const RemarcarModal = ({ consulta, onClose, onRemarcado }) => {
   const { token } = useAuth();
   const today = toLocalDateStr();
@@ -60,75 +57,72 @@ const RemarcarModal = ({ consulta, onClose, onRemarcado }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
-        style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}
-      >
-        <div style={{ padding: '24px 24px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h2 style={{ fontWeight: 700, color: '#111827', fontSize: 18, margin: 0 }}>Remarcar consulta</h2>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1, width: 32, height: 32, borderRadius: '50%' }}>×</button>
+      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-canvas border border-line rounded-2xl shadow-md w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="px-6 pt-6">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-bold text-ink text-lg m-0">Remarcar consulta</h2>
+            <button onClick={onClose} className="bg-transparent border-none text-[22px] cursor-pointer text-muted hover:text-ink leading-none w-8 h-8 rounded-full">×</button>
           </div>
           {remarcacoesRestantes != null && (
-            <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 16px' }}>
+            <p className="text-xs text-muted mb-4">
               {remarcacoesRestantes > 0
                 ? `${remarcacoesRestantes} remarcação${remarcacoesRestantes !== 1 ? 'ões' : ''} restante${remarcacoesRestantes !== 1 ? 's' : ''}.`
                 : 'Este é o limite de remarcações para esta consulta.'}
             </p>
           )}
-          <div style={{ marginBottom: 16 }}>
-            <label style={lbl}>Nova data</label>
+          <div className="mb-4">
+            <label className="block text-[13px] font-semibold text-ink mb-1.5">Nova data</label>
             <input type="date" value={selectedDate} min={today} onChange={(e) => setSelectedDate(e.target.value)}
-              style={{ ...inp, borderRadius: 12, padding: '10px 12px' }} />
+              className="w-full box-border border border-line rounded-xl px-3 py-2.5 text-sm text-ink bg-canvas" />
           </div>
-          <label style={lbl}>Novo horário</label>
+          <label className="block text-[13px] font-semibold text-ink mb-1.5">Novo horário</label>
         </div>
-        <div style={{ overflowY: 'auto', flex: 1, maxHeight: 260, padding: '0 24px 8px' }}>
+        <div className="overflow-y-auto flex-1 max-h-[260px] px-6 pb-2">
           {loadingSlots ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-              <div style={{ width: 20, height: 20, border: '2px solid #3B9FE0', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : slots.length === 0 ? (
-            <div style={{ background: '#f9fafb', borderRadius: 12, padding: '20px 0', textAlign: 'center' }}>
-              <p style={{ color: '#9ca3af', fontSize: 14, margin: 0 }}>Sem horários disponíveis nesta data.</p>
-              <p style={{ color: '#d1d5db', fontSize: 12, margin: '4px 0 0' }}>Tente outra data.</p>
+            <div className="bg-surface rounded-xl py-5 text-center">
+              <p className="text-muted text-sm m-0">Sem horários disponíveis nesta data.</p>
+              <p className="text-muted text-xs mt-1 mb-0">Tente outra data.</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <div className="grid grid-cols-3 gap-2">
               {slots.map((hora) => (
-                <button key={hora} onClick={() => setSelectedSlot(hora)} style={selectedSlot === hora ? {
-                  background: '#2563eb', color: '#fff', border: 'none', borderRadius: 12,
-                  padding: '10px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                } : {
-                  background: '#fff', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 12,
-                  padding: '10px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                }}>{hora}</button>
+                <button
+                  key={hora}
+                  onClick={() => setSelectedSlot(hora)}
+                  className={`rounded-xl py-2.5 text-sm font-semibold cursor-pointer transition ${
+                    selectedSlot === hora
+                      ? 'bg-brand text-brand-contrast border-none'
+                      : 'bg-canvas text-ink border border-line hover:border-brand/60'
+                  }`}
+                >
+                  {hora}
+                </button>
               ))}
             </div>
           )}
         </div>
-        <div style={{ borderTop: '1px solid #e5e7eb', padding: 16, background: 'white' }}>
+        <div className="border-t border-line p-4 bg-canvas">
           {error && (
-            <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
+            <p className="text-[13px] text-error bg-error-wash border border-error/30 rounded-lg px-3 py-2 mb-3">
               {error}
             </p>
           )}
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="flex gap-3">
             <button
               onClick={onClose}
-              style={{ flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 600, color: '#6b7280', background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, cursor: 'pointer' }}
+              className="flex-1 py-2.5 text-sm font-semibold text-muted bg-canvas border border-line rounded-xl cursor-pointer hover:bg-surface transition"
             >
               Cancelar
             </button>
             <button
               onClick={handleConfirmar}
               disabled={!selectedSlot || saving}
-              style={{
-                flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 700, color: 'white',
-                background: !selectedSlot || saving ? '#a5b4fc' : '#4f46e5', border: 'none',
-                borderRadius: 12, cursor: !selectedSlot || saving ? 'not-allowed' : 'pointer',
-              }}
+              className="flex-1 py-2.5 text-sm font-bold text-brand-contrast bg-brand hover:bg-brand-deep disabled:opacity-50 disabled:cursor-not-allowed border-none rounded-xl transition"
             >
               {saving ? 'Remarcando...' : 'Confirmar'}
             </button>

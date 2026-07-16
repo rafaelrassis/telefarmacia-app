@@ -75,7 +75,7 @@ const EsqueciSenhaForm = ({ onVoltar }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         {loading ? 'Enviando...' : 'Enviar link de redefinição'}
       </button>

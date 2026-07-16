@@ -103,7 +103,7 @@ const TermoConsentimento = ({ onAceito, onFechar }) => {
             <button
               onClick={handleConfirmar}
               disabled={loading || !aceito}
-              className={`flex-[2] py-2.5 rounded-xl text-[13px] font-bold text-white ${aceito ? 'bg-brand' : 'bg-line'} ${
+              className={`flex-[2] py-2.5 rounded-xl text-[13px] font-bold ${aceito ? 'bg-brand text-brand-contrast' : 'bg-line text-white'} ${
                 aceito && !loading ? '' : 'cursor-not-allowed'
               } disabled:opacity-70`}
             >

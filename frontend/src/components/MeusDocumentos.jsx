@@ -68,49 +68,31 @@ const MeusDocumentos = ({ onClose }) => {
     <>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
           onClick={onClose}
         />
 
-        <div
-          className="relative bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-lg"
-          style={{
-            maxHeight: '92vh',
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: '16px 16px 0 0',
-          }}
-        >
+        <div className="relative bg-canvas border border-line w-full rounded-t-2xl shadow-md sm:max-w-lg flex flex-col max-h-[92vh]">
           {/* Header */}
-          <div style={{
-            padding: '18px 20px 0',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexShrink: 0,
-          }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
+          <div className="px-5 pt-[18px] flex justify-between items-center shrink-0">
+            <h2 className="text-base font-bold text-ink m-0">
               📄 Meus documentos
             </h2>
             <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1, padding: 4 }}
+              className="bg-transparent border-none text-[22px] cursor-pointer text-muted hover:text-ink leading-none p-1"
             >
               ×
             </button>
           </div>
 
           {/* Filters */}
-          <div style={{ padding: '14px 20px 0', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="px-5 pt-3.5 shrink-0 flex flex-col gap-2">
             {hasMultiplePessoas && (
               <select
                 value={pessoaFiltro}
                 onChange={(e) => setPessoaFiltro(e.target.value)}
-                style={{
-                  width: '100%', padding: '8px 10px', borderRadius: 8,
-                  border: '1.5px solid #e5e7eb', fontSize: 13, color: '#374151',
-                  background: 'white', cursor: 'pointer',
-                }}
+                className="w-full px-2.5 py-2 rounded-lg border border-line text-[13px] text-ink bg-canvas cursor-pointer"
               >
                 <option value="todos">Todos</option>
                 <option value="titular">Titular</option>
@@ -125,30 +107,26 @@ const MeusDocumentos = ({ onClose }) => {
               placeholder="Buscar por farmacêutico, motivo, orientação..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%', padding: '8px 10px', borderRadius: 8,
-                border: '1.5px solid #e5e7eb', fontSize: 13, color: '#374151',
-                boxSizing: 'border-box',
-              }}
+              className="w-full box-border px-2.5 py-2 rounded-lg border border-line text-[13px] text-ink bg-canvas"
             />
           </div>
 
           {/* List */}
-          <div style={{ overflowY: 'auto', flex: 1, padding: '12px 20px 28px' }}>
+          <div className="overflow-y-auto flex-1 px-5 pt-3 pb-7">
             {loading && (
-              <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', marginTop: 32 }}>
+              <p className="text-muted text-sm text-center mt-8">
                 Carregando...
               </p>
             )}
 
             {!loading && error && (
-              <p style={{ color: '#dc2626', fontSize: 13, textAlign: 'center', marginTop: 32 }}>
+              <p className="text-error text-[13px] text-center mt-8">
                 {error}
               </p>
             )}
 
             {!loading && !error && filtered.length === 0 && (
-              <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', marginTop: 32 }}>
+              <p className="text-muted text-sm text-center mt-8">
                 {docs.length === 0
                   ? 'Nenhum documento disponível.'
                   : 'Nenhum documento encontrado para essa busca.'}
@@ -156,97 +134,71 @@ const MeusDocumentos = ({ onClose }) => {
             )}
 
             {!loading && !error && filtered.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 {filtered.map((doc) => {
                   const hasOrientacoes = Boolean(doc.observacoes?.trim());
                   const dateStr = fmtData(doc.dataHora);
                   const tipoLabel = doc.tipo === 'urgente' ? 'Urgente' : 'Agendada';
-                  const tipoBg    = doc.tipo === 'urgente' ? '#fef2f2' : '#eff6ff';
-                  const tipoColor = doc.tipo === 'urgente' ? '#dc2626' : '#3B9FE0';
+                  const tipoCls   = doc.tipo === 'urgente' ? 'bg-error-wash text-error' : 'bg-brand-wash text-brand-deep';
 
                   return (
                     <button
                       key={`${doc.tipo}-${doc.id}`}
                       onClick={() => setViewer(doc)}
-                      style={{
-                        display: 'flex', flexDirection: 'column', gap: 6,
-                        background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 10,
-                        padding: '12px 14px', cursor: 'pointer', textAlign: 'left',
-                        transition: 'border-color 0.15s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#3B9FE0'}
-                      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                      className="flex flex-col gap-1.5 bg-canvas border border-line hover:border-brand/60 rounded-[10px] px-3.5 py-3 cursor-pointer text-left transition-colors"
                     >
                       {/* Row 1: date + tipo badge + arrow */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#6b7280', flexShrink: 0 }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted shrink-0">
                           {dateStr}
                         </span>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                          background: tipoBg, color: tipoColor, flexShrink: 0,
-                        }}>
+                        <span className={`text-[10px] font-bold px-[7px] py-0.5 rounded-full shrink-0 ${tipoCls}`}>
                           {tipoLabel}
                         </span>
-                        <span style={{ flex: 1 }} />
-                        <span style={{ fontSize: 14, color: '#9ca3af' }}>›</span>
+                        <span className="flex-1" />
+                        <span className="text-sm text-muted">›</span>
                       </div>
 
                       {/* Row 2: pharmacist */}
                       {doc.farmaceuticoNome && (
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111827' }}>
+                        <p className="m-0 text-[13px] font-semibold text-ink">
                           {doc.farmaceuticoNome}
                         </p>
                       )}
 
                       {/* Row 3: person (only when filter is "todos" with multiple pessoas) */}
                       {hasMultiplePessoas && pessoaFiltro === 'todos' && doc.pessoaNome && (
-                        <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>
+                        <p className="m-0 text-xs text-muted">
                           Para: {doc.pessoaNome}
                         </p>
                       )}
 
                       {/* Row 4: motivo */}
                       {doc.motivo && (
-                        <p style={{
-                          margin: 0, fontSize: 12, color: '#9ca3af',
-                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        }}>
+                        <p className="m-0 text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">
                           {doc.motivo}
                         </p>
                       )}
 
                       {/* Row 5: doc type badges */}
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <div className="flex gap-1.5 flex-wrap">
                         {doc.hasReceita && (
-                          <span style={{
-                            fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                            background: '#fdf2f8', color: '#be185d', fontWeight: 600,
-                          }}>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-pink-50 text-pink-700">
                             💊 Receita
                           </span>
                         )}
                         {doc.encaminhamentoPdfUrl && (
-                          <span style={{
-                            fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                            background: '#f0fdfa', color: '#0d9488', fontWeight: 600,
-                          }}>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-teal-50 text-teal-700">
                             📋 Encaminhamento
                           </span>
                         )}
                         {hasOrientacoes && (
-                          <span style={{
-                            fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                            background: '#f0fdf4', color: '#16a34a', fontWeight: 600,
-                          }}>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-success-wash text-success">
                             📝 Orientações
                           </span>
                         )}
                         {!doc.hasReceita && !doc.encaminhamentoPdfUrl && !hasOrientacoes && (
-                          <span style={{
-                            fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                            background: '#f9fafb', color: '#9ca3af', fontWeight: 500,
-                          }}>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-surface text-muted">
                             Sem documentos
                           </span>
                         )}

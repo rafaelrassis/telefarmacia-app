@@ -259,7 +259,7 @@ const InviteRegistro = () => {
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-brand hover:bg-brand-deep text-white font-bold py-3 rounded-xl transition disabled:opacity-50 text-sm"
+              className="w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-3 rounded-xl transition disabled:opacity-50 text-sm"
             >
               {saving ? 'Criando conta...' : 'Criar minha conta'}
             </button>

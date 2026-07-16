@@ -82,7 +82,7 @@ const UrgentesAceitasPanel = ({ onCardClick, refreshTrigger }) => {
 
                 <button
                   onClick={() => onCardClick?.({ id: item.id, tipo: 'urgente' })}
-                  className="w-full bg-brand hover:bg-brand-deep text-white text-sm font-semibold rounded-lg py-2 transition"
+                  className="w-full bg-brand hover:bg-brand-deep text-brand-contrast text-sm font-semibold rounded-lg py-2 transition"
                 >
                   Abrir atendimento
                 </button>

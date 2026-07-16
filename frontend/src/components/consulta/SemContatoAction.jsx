@@ -39,7 +39,7 @@ const SemContatoAction = ({
             <button
               onClick={handleSemContato}
               disabled={semContatoLoading}
-              className={`flex-1 py-2 bg-error text-white border-0 rounded-lg text-sm font-bold transition-opacity ${
+              className={`flex-1 py-2 bg-error text-error-contrast border-0 rounded-lg text-sm font-bold transition-opacity ${
                 semContatoLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               }`}
             >

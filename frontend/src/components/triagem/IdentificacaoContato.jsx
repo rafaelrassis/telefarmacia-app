@@ -144,7 +144,7 @@ const IdentificacaoContato = ({
           type="button"
           onClick={handleSalvarNasc}
           disabled={nascSaving}
-          className="w-full py-2.5 rounded-lg border-none bg-alert text-white text-[13px] font-bold disabled:opacity-60"
+          className="w-full py-2.5 rounded-lg border-none bg-alert text-alert-contrast text-[13px] font-bold disabled:opacity-60"
         >
           {nascSaving ? 'Salvando...' : 'Salvar e continuar'}
         </button>

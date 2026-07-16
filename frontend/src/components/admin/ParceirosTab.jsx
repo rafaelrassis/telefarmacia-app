@@ -76,7 +76,7 @@ const ParceirosTab = ({ api, showToast }) => {
         </p>
         <button
           onClick={() => { setParceirosForm({ nome: '', logoUrl: '', baseUrl: '', affiliateCode: '', linkTemplate: '', ativo: true, ordem: parceiros.length }); setParceirosFormErr(''); }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand hover:bg-brand-deep text-white rounded-lg text-xs font-bold transition"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand hover:bg-brand-deep text-brand-contrast rounded-lg text-xs font-bold transition"
         >
           <Plus className="w-3.5 h-3.5" />
           Novo parceiro
@@ -138,7 +138,7 @@ const ParceirosTab = ({ api, showToast }) => {
             <button
               onClick={handleSaveParceiro}
               disabled={savingParceiro}
-              className="px-4 py-1.5 bg-brand hover:bg-brand-deep text-white rounded-lg text-sm font-bold disabled:opacity-60 transition"
+              className="px-4 py-1.5 bg-brand hover:bg-brand-deep text-brand-contrast rounded-lg text-sm font-bold disabled:opacity-60 transition"
             >
               {savingParceiro ? 'Salvando...' : 'Salvar'}
             </button>
@@ -208,7 +208,7 @@ const ParceirosTab = ({ api, showToast }) => {
                 Cancelar
               </button>
               <button onClick={() => handleDeleteParceiro(confirmDelParceiro.id)}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:bg-error/90 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-error-contrast rounded-xl hover:bg-error/90 transition">
                 Excluir
               </button>
             </div>

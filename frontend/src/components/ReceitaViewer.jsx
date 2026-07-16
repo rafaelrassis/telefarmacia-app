@@ -52,8 +52,8 @@ const PdfViewer = ({ consultaId, tipo, token }) => {
 
   if (state === 'loading') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-        <p style={{ color: '#9ca3af', fontSize: 14 }}>Carregando PDF...</p>
+      <div className="flex items-center justify-center" style={{ height: 200 }}>
+        <p className="text-muted text-sm">Carregando PDF...</p>
       </div>
     );
   }
@@ -89,50 +89,50 @@ const ReceitaHtml = ({ receita, farmaceuticoNome, dataHora }) => {
     : null;
 
   return (
-    <div style={{ padding: '0 4px' }}>
+    <div className="px-1">
       {/* Cabeçalho estilizado (imita o PDF) */}
-      <div style={{ background: '#3B9FE0', borderRadius: 10, padding: '14px 18px', marginBottom: 16, textAlign: 'center' }}>
-        <p style={{ color: 'white', fontWeight: 800, fontSize: 18, margin: 0 }}>FarmaConsulta</p>
-        <p style={{ color: '#EAF6FE', fontSize: 12, margin: '3px 0 0' }}>Receita Farmacêutica</p>
+      <div className="bg-brand rounded-[10px] px-[18px] py-3.5 mb-4 text-center">
+        <p className="text-brand-contrast font-extrabold text-lg m-0">FarmaConsulta</p>
+        <p className="text-brand-contrast/80 text-xs mt-[3px] mb-0">Receita Farmacêutica</p>
       </div>
 
       {/* Dados */}
       {(farmaceuticoNome || dateStr) && (
-        <div style={{ background: '#f9fafb', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 13, color: '#374151', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="bg-surface rounded-lg px-3 py-2.5 mb-3.5 text-[13px] text-ink flex flex-col gap-1">
           {farmaceuticoNome && <span><strong>Farmacêutico(a):</strong> {farmaceuticoNome}</span>}
           {dateStr && <span><strong>Data:</strong> {dateStr}</span>}
         </div>
       )}
 
       {/* Prescrição */}
-      <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+      <p className="text-[11px] font-bold text-muted uppercase tracking-wide mb-2">
         Prescrição
       </p>
       {Array.isArray(receita) && receita.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {receita.map((item, i) => (
-            <div key={i} style={{ background: '#f9fafb', borderRadius: 8, padding: '8px 12px' }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', margin: 0 }}>
+            <div key={i} className="bg-surface rounded-lg px-3 py-2">
+              <p className="text-[13px] font-bold text-ink m-0">
                 {i + 1}. {item.medicamento}
-                {item.dosagem && <span style={{ fontWeight: 400, color: '#6b7280' }}> — {item.dosagem}</span>}
+                {item.dosagem && <span className="font-normal text-muted"> — {item.dosagem}</span>}
               </p>
               {item.posologia && (
-                <p style={{ fontSize: 12, color: '#6b7280', margin: '3px 0 0' }}>Posologia: {item.posologia}</p>
+                <p className="text-xs text-muted mt-[3px] mb-0">Posologia: {item.posologia}</p>
               )}
               {item.duracao && (
-                <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>Duração: {item.duracao}</p>
+                <p className="text-xs text-muted mt-0.5 mb-0">Duração: {item.duracao}</p>
               )}
               {item.instrucoes && (
-                <p style={{ fontSize: 12, color: '#9ca3af', margin: '2px 0 0' }}>{item.instrucoes}</p>
+                <p className="text-xs text-muted mt-0.5 mb-0">{item.instrucoes}</p>
               )}
             </div>
           ))}
         </div>
       ) : (
-        <p style={{ fontSize: 13, color: '#9ca3af' }}>Nenhum medicamento prescrito.</p>
+        <p className="text-[13px] text-muted">Nenhum medicamento prescrito.</p>
       )}
 
-      <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 20, fontStyle: 'italic' }}>
+      <p className="text-[11px] text-muted text-center mt-5 italic">
         Orientação farmacêutica — não substitui prescrição médica
       </p>
     </div>
@@ -277,40 +277,27 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
     }
   };
 
-  const MODAL_STYLE = isMobile
-    ? { position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', background: 'white' }
-    : {
-        position: 'fixed', inset: 0, zIndex: 60,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-        padding: 16,
-      };
+  const modalClassName = isMobile
+    ? 'fixed inset-0 z-[60] flex flex-col bg-canvas'
+    : 'fixed inset-0 z-[60] flex items-center justify-center bg-ink/60 backdrop-blur-sm p-4';
 
-  const CARD_STYLE = isMobile
-    ? { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
-    : {
-        background: 'white', borderRadius: 16, boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
-        width: '100%', maxWidth: 720, maxHeight: '92vh',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      };
+  const cardClassName = isMobile
+    ? 'flex-1 flex flex-col overflow-hidden'
+    : 'bg-canvas border border-line rounded-2xl shadow-md w-full max-w-[720px] max-h-[92vh] flex flex-col overflow-hidden';
 
   return (
-    <div style={MODAL_STYLE} onClick={isMobile ? undefined : (e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={CARD_STYLE}>
+    <div className={modalClassName} onClick={isMobile ? undefined : (e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={cardClassName}>
 
         {/* Header */}
-        <div style={{
-          padding: '14px 16px', borderBottom: '1px solid #f3f4f6',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0, gap: 10,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>
+        <div className="px-4 py-3.5 border-b border-line flex items-center justify-between shrink-0 gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+            <span className="text-[15px] font-bold text-ink whitespace-nowrap">
               📄 Visualizar receita
             </span>
             {/* Abas */}
             {showTabs && (
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <div className="flex gap-1 flex-wrap">
                 {[
                   { key: 'receita', label: 'Receita' },
                   ...(hasOrientacoes ? [{ key: 'orientacoes', label: 'Orientações' }] : []),
@@ -319,12 +306,9 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
                   <button
                     key={key}
                     onClick={() => setActiveTab(key)}
-                    style={{
-                      padding: '4px 10px', border: 'none', borderRadius: 20, fontSize: 12,
-                      fontWeight: 600, cursor: 'pointer',
-                      background: activeTab === key ? '#3B9FE0' : '#f3f4f6',
-                      color:      activeTab === key ? 'white'    : '#6b7280',
-                    }}
+                    className={`px-2.5 py-1 border-none rounded-full text-xs font-semibold cursor-pointer ${
+                      activeTab === key ? 'bg-brand text-brand-contrast' : 'bg-surface text-muted'
+                    }`}
                   >
                     {label}
                   </button>
@@ -333,30 +317,22 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
+          <div className="flex gap-2 shrink-0 items-center">
             {hasReceitaPdf && (
               <>
                 <button
                   onClick={handleShare}
                   disabled={sharing}
-                  style={{
-                    padding: '6px 12px', background: 'white', color: '#3B9FE0',
-                    border: '1.5px solid #3B9FE0', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                    cursor: sharing ? 'wait' : 'pointer', opacity: sharing ? 0.7 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="px-3 py-1.5 bg-canvas text-brand border-[1.5px] border-brand rounded-lg text-xs font-bold whitespace-nowrap disabled:opacity-70"
+                  style={{ cursor: sharing ? 'wait' : 'pointer' }}
                 >
                   {sharing ? '...' : '↗ Compartilhar'}
                 </button>
                 <button
                   onClick={handleDownload}
                   disabled={downloading}
-                  style={{
-                    padding: '6px 12px', background: '#3B9FE0', color: 'white',
-                    border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                    cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="px-3 py-1.5 bg-brand text-brand-contrast border-none rounded-lg text-xs font-bold whitespace-nowrap disabled:opacity-70"
+                  style={{ cursor: downloading ? 'wait' : 'pointer' }}
                 >
                   {downloading ? 'Baixando...' : '⬇ Baixar PDF'}
                 </button>
@@ -364,7 +340,7 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
             )}
             <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1, padding: 4 }}
+              className="bg-transparent border-none text-[22px] cursor-pointer text-muted hover:text-ink leading-none p-1"
             >
               ×
             </button>
@@ -373,24 +349,21 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
 
         {/* Share fallback toast */}
         {shareToast && (
-          <div style={{
-            padding: '8px 16px', background: '#fef3c7', borderBottom: '1px solid #fde68a',
-            fontSize: 12, color: '#92400e', flexShrink: 0,
-          }}>
+          <div className="px-4 py-2 bg-alert-wash border-b border-alert/30 text-xs text-alert shrink-0">
             {shareToast}
           </div>
         )}
 
         {/* Corpo */}
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
 
           {/* ── Aba Receita ─────────────────────────────────────────────────── */}
           {activeTab === 'receita' && (
             <>
               {/* Viewer PDF ou fallback HTML */}
               {hasReceitaPdf && pdfState === 'loading' && (
-                <div style={{ padding: 32, textAlign: 'center' }}>
-                  <p style={{ color: '#9ca3af', fontSize: 14 }}>Carregando receita...</p>
+                <div className="p-8 text-center">
+                  <p className="text-muted text-sm">Carregando receita...</p>
                 </div>
               )}
 
@@ -413,7 +386,7 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
 
               {/* Fallback HTML (PDF indisponível ou erro no iframe) */}
               {(pdfState === 'fallback' || !hasReceitaPdf) && (
-                <div style={{ padding: '16px 20px' }}>
+                <div className="px-5 py-4">
                   <ReceitaHtml
                     receita={data?.receita}
                     farmaceuticoNome={data?.farmaceuticoNome ?? data?.farmaceutico?.nome}
@@ -424,7 +397,7 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
 
               {/* Onde Comprar */}
               {ondeComprarAtivo && parceiros.length > 0 && (
-                <div style={{ padding: '0 20px 24px' }}>
+                <div className="px-5 pb-6">
                   <OndeComprar
                     parceiros={parceiros}
                     consultaId={consultaId}
@@ -438,12 +411,12 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
 
           {/* ── Aba Orientações ─────────────────────────────────────────────── */}
           {activeTab === 'orientacoes' && (
-            <div style={{ padding: '16px 20px 24px' }}>
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 16px' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="px-5 pt-4 pb-6">
+              <div className="bg-success-wash border border-success/30 rounded-[10px] px-4 py-3.5">
+                <p className="text-[11px] font-bold text-success mb-2 uppercase tracking-wide">
                   Orientações do farmacêutico
                 </p>
-                <p style={{ fontSize: 14, color: '#15803d', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
+                <p className="text-sm text-success leading-[1.7] m-0 whitespace-pre-wrap">
                   {data?.observacoes}
                 </p>
               </div>
@@ -451,24 +424,20 @@ const ReceitaViewer = ({ consultaId, tipo, data, onClose }) => {
           )}
 
           {activeTab === 'encaminhamento' && hasEncaminhamentoPdf && (
-            <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 12, padding: '20px 24px', textAlign: 'center', maxWidth: 360, width: '100%' }}>
-                <p style={{ fontSize: 32, margin: '0 0 8px' }}>📋</p>
-                <p style={{ fontSize: 15, fontWeight: 700, color: '#0f766e', margin: '0 0 4px' }}>
+            <div className="py-6 px-5 flex flex-col items-center gap-4">
+              <div className="bg-brand-wash border border-brand/30 rounded-xl px-6 py-5 text-center max-w-[360px] w-full">
+                <p className="text-[32px] mb-2">📋</p>
+                <p className="text-[15px] font-bold text-brand-deep mb-1">
                   Documento de Encaminhamento
                 </p>
-                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>
+                <p className="text-[13px] text-muted mb-5">
                   Clique abaixo para baixar o PDF do encaminhamento gerado pelo farmacêutico.
                 </p>
                 <a
                   href={`${API_URL}/api/paciente/consulta/${consultaId}/pdf?tipo=${tipo}&doc=encaminhamento`}
                   target="_blank"
                   rel="noreferrer"
-                  style={{
-                    display: 'inline-block', padding: '10px 24px',
-                    background: '#0d9488', color: 'white', borderRadius: 10,
-                    fontSize: 14, fontWeight: 700, textDecoration: 'none',
-                  }}
+                  className="inline-block px-6 py-2.5 bg-brand text-brand-contrast rounded-[10px] text-sm font-bold no-underline"
                 >
                   ⬇ Baixar encaminhamento
                 </a>
