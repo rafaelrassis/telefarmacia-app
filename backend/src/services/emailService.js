@@ -14,6 +14,15 @@ const getTransporter = () => {
 const getAppUrl = () =>
   (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
 
+// O login SMTP (SMTP_USER) costuma ser um usuário técnico só de autenticação
+// (ex.: relays como o da Brevo geram algo como "xxxxx@smtp-brevo.com"), não
+// necessariamente um endereço verificado como remetente. SMTP_FROM_EMAIL é
+// opcional e permite configurar separadamente o e-mail que aparece pro
+// destinatário — cai de volta em SMTP_USER se não for definido (compatível
+// com provedores onde os dois já são o mesmo endereço).
+const getFromAddress = () =>
+  `"FarmaConsulta" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`;
+
 // E-mail de redefinição de senha (Fluxo 2/3) — enviado tanto para usuários
 // com senha local quanto para usuários só-Google (o link permite os dois
 // casos: redefinir senha existente ou definir a primeira senha local).
@@ -32,7 +41,7 @@ export const sendPasswordResetEmail = async ({ to, token, hasPassword }) => {
   `;
   try {
     await transporter.sendMail({
-      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      from: getFromAddress(),
       to,
       subject: 'Redefinição de senha — FarmaConsulta',
       html: `
@@ -70,7 +79,7 @@ export const sendPasswordChangedEmail = async ({ to }) => {
   const appUrl = getAppUrl();
   try {
     await transporter.sendMail({
-      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      from: getFromAddress(),
       to,
       subject: 'Sua senha foi alterada — FarmaConsulta',
       html: `
@@ -107,7 +116,7 @@ export const sendVerificationEmail = async ({ to, token }) => {
   const confirmUrl = `${getAppUrl()}/confirmar-email?token=${token}`;
   try {
     await transporter.sendMail({
-      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      from: getFromAddress(),
       to,
       subject: 'Confirme seu email — FarmaConsulta',
       html: `
@@ -153,7 +162,7 @@ export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
   const appUrl = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
   try {
     await transporter.sendMail({
-      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      from: getFromAddress(),
       to,
       subject: `Novo farmacêutico aguardando aprovação: ${nome}`,
       html: `

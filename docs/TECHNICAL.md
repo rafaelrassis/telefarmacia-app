@@ -969,8 +969,9 @@ Ver também `backend/.env.example` e `frontend/.env.example` (arquivos versionad
 | `GOOGLE_CLIENT_ID` | Para OAuth | ID do app no Google Cloud |
 | `SMTP_HOST` | Para e-mail | Host SMTP |
 | `SMTP_PORT` | Para e-mail | Porta (padrão 587) |
-| `SMTP_USER` | Para e-mail | Usuário SMTP |
-| `SMTP_PASS` | Para e-mail | Senha SMTP |
+| `SMTP_USER` | Para e-mail | Login de autenticação SMTP — em alguns provedores (ex.: Brevo) é um usuário técnico, não um e-mail de verdade |
+| `SMTP_PASS` | Para e-mail | Senha/chave SMTP |
+| `SMTP_FROM_EMAIL` | Opcional | Endereço remetente mostrado ao destinatário (precisa ser verificado no provedor); sem essa variável, cai de volta em `SMTP_USER` |
 | `ADMIN_NOTIFICATION_EMAIL` | Para e-mail | Destinatário de alertas (novo cadastro de farmacêutico) |
 | `UPLOAD_DIR` | Não (calculado) | Diretório de arquivos enviados |
 | `VAPID_PUBLIC_KEY` | Para Web Push | Chave pública VAPID (gerar com `npx web-push generate-vapid-keys`) |
