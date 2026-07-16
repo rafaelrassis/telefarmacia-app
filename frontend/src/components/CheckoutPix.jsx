@@ -93,16 +93,16 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
 
   if (step === 'done') {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl max-w-sm mx-auto p-8 text-center">
+      <div className="bg-canvas border border-line rounded-xl max-w-sm mx-auto p-8 text-center">
         <p className="text-4xl mb-3">✅</p>
-        <p className="font-bold text-gray-900 text-lg mb-1">Créditos adicionados!</p>
-        <p className="text-sm text-gray-500 mb-1">Seu novo saldo é:</p>
+        <p className="font-bold text-ink text-lg mb-1">Créditos adicionados!</p>
+        <p className="text-sm text-muted mb-1">Seu novo saldo é:</p>
         <p className="text-3xl font-bold text-brand-deep mb-5">
           R$ {novoSaldo?.toFixed(2).replace('.', ',')}
         </p>
         <button
           onClick={onSuccess}
-          className="w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition text-sm"
+          className="w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
         >
           Continuar
         </button>
@@ -112,45 +112,45 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
 
   if (step === 'qr') {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl max-w-sm mx-auto overflow-hidden">
-        <div className="bg-brand px-6 py-5 text-white text-center">
+      <div className="bg-canvas border border-line rounded-xl max-w-sm mx-auto overflow-hidden">
+        <div className="bg-brand px-6 py-5 text-brand-contrast text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-brand-wash mb-1">Recarga via PIX</p>
           <p className="text-2xl font-bold">R$ {valor.toFixed(2).replace('.', ',')}</p>
           <p className="text-xs text-brand-wash mt-1">Créditos para consultas</p>
         </div>
         <div className="p-6">
           <div className="flex justify-center mb-4">
-            <div className="border-2 border-gray-100 rounded-xl p-3 inline-block">
+            <div className="border-2 border-line rounded-xl p-3 inline-block bg-white">
               <MockQRCode />
             </div>
           </div>
-          <p className="text-xs text-center text-gray-400 mb-4">
+          <p className="text-xs text-center text-muted mb-4">
             Escaneie pelo app do banco ou copie o código
           </p>
           <button
             onClick={copy}
             className={`w-full py-2.5 rounded-lg text-sm font-semibold border transition mb-3 ${
               copied
-                ? 'bg-green-50 border-green-200 text-green-700'
-                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                ? 'bg-success-wash border-success/30 text-success'
+                : 'bg-surface border-line text-ink hover:bg-line/60'
             }`}
           >
             {copied ? '✓ Código copiado!' : 'Copiar código PIX'}
           </button>
 
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{error}</p>}
+          {error && <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg mb-3">{error}</p>}
 
           <button
             onClick={confirmar}
             disabled={loading}
-            className="w-full py-2.5 rounded-lg text-sm font-bold bg-green-600 hover:bg-green-700 text-white transition disabled:opacity-60 mb-2"
+            className="w-full py-2.5 rounded-lg text-sm font-bold bg-success hover:opacity-90 text-success-contrast transition disabled:opacity-60 mb-2"
           >
             {loading ? 'Confirmando...' : '✓ Confirmar pagamento'}
           </button>
 
           <button
             onClick={onCancel}
-            className="w-full text-sm text-gray-400 hover:text-gray-600 transition py-1"
+            className="w-full text-sm text-muted hover:text-ink transition py-1"
           >
             Cancelar e voltar
           </button>
@@ -161,8 +161,8 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
 
   // step === 'select'
   return (
-    <div className="bg-white border border-gray-200 rounded-xl max-w-sm mx-auto overflow-hidden">
-      <div className="bg-brand px-6 py-5 text-white text-center">
+    <div className="bg-canvas border border-line rounded-xl max-w-sm mx-auto overflow-hidden">
+      <div className="bg-brand px-6 py-5 text-brand-contrast text-center">
         <p className="text-xs font-semibold uppercase tracking-widest text-brand-wash mb-1">Adicionar créditos</p>
         <p className="text-sm text-brand-wash">Escolha o valor para recarregar sua carteira</p>
       </div>
@@ -175,7 +175,7 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
               className={`py-3 rounded-xl border-2 font-bold text-sm transition ${
                 valor === v
                   ? 'border-brand bg-brand-wash text-brand-deep'
-                  : 'border-gray-200 text-gray-600 hover:border-brand/60'
+                  : 'border-line text-muted hover:border-brand/60'
               }`}
             >
               R$ {v},00
@@ -183,29 +183,29 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
           ))}
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Outro valor</label>
+          <label className="block text-xs font-semibold text-muted mb-1">Outro valor</label>
           <input
             type="number"
             min="10"
             step="10"
             value={valor}
             onChange={(e) => setValor(parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand outline-none"
+            className="w-full px-3 py-2.5 border border-line rounded-lg text-sm text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
           />
         </div>
 
-        {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        {error && <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg">{error}</p>}
 
         <button
           onClick={gerarCobranca}
           disabled={loading || valor < 10}
-          className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm"
+          className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
         >
           {loading ? 'Gerando...' : `Gerar PIX de R$ ${valor.toFixed(2).replace('.', ',')}`}
         </button>
         <button
           onClick={onCancel}
-          className="w-full text-sm text-gray-400 hover:text-gray-600 transition"
+          className="w-full text-sm text-muted hover:text-ink transition"
         >
           Cancelar
         </button>

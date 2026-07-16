@@ -17,9 +17,15 @@ const STATUS_LABEL = {
 };
 
 const STATUS_DOT = {
-  aguardando: '#9ca3af', aceito: '#3B9FE0', em_atendimento: '#16a34a',
-  concluido: '#0d9488', cancelado: '#dc2626', expirado: '#9ca3af',
-  remarcacao_pendente: '#d97706',
+  aguardando: 'var(--color-muted)', aceito: 'var(--color-brand)', em_atendimento: 'var(--color-success)',
+  concluido: 'var(--color-success)', cancelado: 'var(--color-error)', expirado: 'var(--color-muted)',
+  remarcacao_pendente: 'var(--color-alert)',
+};
+
+const STATUS_WASH = {
+  aguardando: 'var(--color-line)', aceito: 'var(--color-brand-wash)', em_atendimento: 'var(--color-success-wash)',
+  concluido: 'var(--color-success-wash)', cancelado: 'var(--color-error-wash)', expirado: 'var(--color-line)',
+  remarcacao_pendente: 'var(--color-alert-wash)',
 };
 
 const TIPO_LABEL = { urgente: 'Urgente', agendada: 'Agendada' };
@@ -31,9 +37,9 @@ const fmtMoney = (n) =>
   n != null ? `R$ ${Number(n).toFixed(2).replace('.', ',')}` : null;
 
 const InfoRow = ({ label, value }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-    <span style={{ color: '#6b7280', flexShrink: 0 }}>{label}</span>
-    <span style={{ color: '#111827', fontWeight: 500, textAlign: 'right' }}>{value}</span>
+  <div className="flex justify-between gap-3 text-[13px]">
+    <span className="text-muted shrink-0">{label}</span>
+    <span className="text-ink font-medium text-right">{value}</span>
   </div>
 );
 
@@ -210,7 +216,8 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
   const isConcluded = data && data.status === 'concluido';
   const isCancelled = data && ['cancelado', 'expirado'].includes(data.status);
   const canCancel   = isFuture;
-  const dotColor    = STATUS_DOT[data?.status] ?? '#9ca3af';
+  const dotColor    = STATUS_DOT[data?.status] ?? 'var(--color-muted)';
+  const washColor   = STATUS_WASH[data?.status] ?? 'var(--color-line)';
   const hasReceita  = data && (Array.isArray(data.receita) && data.receita.length > 0);
 
   return (
@@ -224,58 +231,52 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
       />
     )}
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-md"
-        style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '16px 16px 0 0' }}
-      >
+      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-canvas border border-line w-full rounded-t-2xl shadow-md sm:max-w-md flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div style={{ padding: '18px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>Detalhes da consulta</h2>
+        <div className="px-5 pt-[18px] flex justify-between items-center shrink-0">
+          <h2 className="text-base font-bold text-ink m-0">Detalhes da consulta</h2>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1, padding: 4 }}
+            className="bg-transparent border-none text-[22px] cursor-pointer text-muted hover:text-ink leading-none p-1"
           >
             ×
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px 28px' }}>
+        <div className="overflow-y-auto flex-1 px-5 pt-4 pb-7">
           {cancelToast && (
-            <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-              <p style={{ fontSize: 13, color: '#15803d', fontWeight: 600, margin: 0 }}>✓ {cancelToast}</p>
+            <div className="bg-success-wash border border-success/40 rounded-[10px] px-3.5 py-3 mb-3">
+              <p className="text-[13px] text-success font-semibold m-0">✓ {cancelToast}</p>
             </div>
           )}
           {loading && (
-            <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', marginTop: 32 }}>Carregando...</p>
+            <p className="text-muted text-sm text-center mt-8">Carregando...</p>
           )}
           {fetchError && (
-            <p style={{ color: '#dc2626', fontSize: 14, textAlign: 'center', marginTop: 32 }}>{fetchError}</p>
+            <p className="text-error text-sm text-center mt-8">{fetchError}</p>
           )}
 
           {data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="flex flex-col gap-4">
 
               {/* Status + tipo */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  fontSize: 13, fontWeight: 600,
-                  color: dotColor,
-                  background: dotColor + '18',
-                  padding: '4px 10px', borderRadius: 20,
-                }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-2.5 py-1 rounded-full"
+                  style={{ color: dotColor, background: washColor }}
+                >
+                  <span className="w-[7px] h-[7px] rounded-full inline-block" style={{ background: dotColor }} />
                   {STATUS_LABEL[data.status] ?? data.status}
                 </span>
-                <span style={{ fontSize: 12, color: '#6b7280', background: '#f3f4f6', padding: '3px 8px', borderRadius: 12 }}>
+                <span className="text-xs text-muted bg-surface px-2 py-[3px] rounded-xl">
                   {TIPO_LABEL[data.tipo] ?? data.tipo}
                 </span>
               </div>
 
               {/* Info */}
-              <div style={{ background: '#f9fafb', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="bg-surface rounded-[10px] px-3.5 py-3 flex flex-col gap-2">
                 <InfoRow label="Data / hora"     value={fmtDateTime(data.dataHora)} />
                 {data.pessoaNome && <InfoRow label="Para"       value={data.pessoaNome} />}
                 {data.farmaceutico?.nome && <InfoRow label="Farmacêutico(a)" value={data.farmaceutico.nome} />}
@@ -296,71 +297,71 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                       : null;
                     const min2h = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
                     return (
-                      <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 10, padding: '14px' }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', margin: '0 0 6px' }}>
+                      <div className="bg-alert-wash border border-alert/40 rounded-[10px] p-3.5">
+                        <p className="text-[13px] font-bold text-alert mb-1.5">
                           📅 Farmacêutico propôs remarcar
                         </p>
                         {novaData && (
-                          <p style={{ fontSize: 13, color: '#78350f', margin: '0 0 4px' }}>
+                          <p className="text-[13px] text-alert mb-1">
                             Nova data: <strong>{novaData}</strong>
                           </p>
                         )}
                         {p.motivo && (
-                          <p style={{ fontSize: 12, color: '#a16207', margin: '0 0 4px', fontStyle: 'italic' }}>
+                          <p className="text-xs text-alert mb-1 italic">
                             Motivo: "{p.motivo}"
                           </p>
                         )}
                         {expira && (
-                          <p style={{ fontSize: 11, color: '#b45309', margin: '0 0 12px' }}>
+                          <p className="text-[11px] text-alert mb-3">
                             Válido até: {expira}
                           </p>
                         )}
                         {respostaError && (
-                          <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 8px' }}>{respostaError}</p>
+                          <p className="text-xs text-error mb-2">{respostaError}</p>
                         )}
                         {!showOutroHorario ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleResponderRemarcacao('aceitar')}
                               disabled={respondendoLoading}
-                              style={{ padding: '9px 0', background: '#16a34a', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: respondendoLoading ? 'not-allowed' : 'pointer', opacity: respondendoLoading ? 0.6 : 1 }}
+                              className="py-2.5 bg-success text-success-contrast border-none rounded-lg text-[13px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               {respondendoLoading ? '...' : '✓ Aceitar nova data'}
                             </button>
                             <button
                               onClick={() => setShowOutroHorario(true)}
                               disabled={respondendoLoading}
-                              style={{ padding: '9px 0', background: 'white', color: '#d97706', border: '1.5px solid #fde68a', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                              className="py-2.5 bg-canvas text-alert border border-alert/40 rounded-lg text-[13px] font-bold cursor-pointer"
                             >
                               📅 Escolher outro horário
                             </button>
                             <button
                               onClick={() => handleResponderRemarcacao('cancelar')}
                               disabled={respondendoLoading}
-                              style={{ padding: '9px 0', background: 'white', color: '#dc2626', border: '1.5px solid #fca5a5', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: respondendoLoading ? 'not-allowed' : 'pointer', opacity: respondendoLoading ? 0.6 : 1 }}
+                              className="py-2.5 bg-canvas text-error border border-error/40 rounded-lg text-[13px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               Cancelar com reembolso
                             </button>
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: '#78350f' }}>Nova data e hora:</label>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-semibold text-alert">Nova data e hora:</label>
                             <input
                               type="datetime-local"
                               value={outroHorario}
                               min={min2h}
                               onChange={(e) => setOutroHorario(e.target.value)}
-                              style={{ border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white' }}
+                              className="border border-alert/40 rounded-lg px-2.5 py-2 text-[13px] text-ink bg-canvas outline-none"
                             />
-                            <div style={{ display: 'flex', gap: 8 }}>
+                            <div className="flex gap-2">
                               <button onClick={() => { setShowOutroHorario(false); setOutroHorario(''); }}
-                                style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                                className="flex-1 py-2.5 bg-canvas border border-line rounded-lg text-[13px] text-ink cursor-pointer">
                                 Voltar
                               </button>
                               <button
                                 onClick={() => handleResponderRemarcacao('outro', outroHorario)}
                                 disabled={!outroHorario || respondendoLoading}
-                                style={{ flex: 2, padding: '9px 0', background: '#d97706', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: (!outroHorario || respondendoLoading) ? 'not-allowed' : 'pointer', opacity: (!outroHorario || respondendoLoading) ? 0.6 : 1 }}>
+                                className="flex-[2] py-2.5 bg-alert text-alert-contrast border-none rounded-lg text-[13px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
                                 {respondendoLoading ? '...' : 'Confirmar horário'}
                               </button>
                             </div>
@@ -373,7 +374,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                   {/* Ações normais (exceto quando remarcacao_pendente) */}
                   {data.status !== 'remarcacao_pendente' && (
                     <>
-                      <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', padding: '4px 0' }}>
+                      <p className="text-[13px] text-muted text-center py-1">
                         {data.status === 'em_atendimento'
                           ? 'O farmacêutico está com você. Fique atento ao contato.'
                           : 'O farmacêutico entrará em contato no horário da consulta.'}
@@ -383,15 +384,15 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                       {data.status === 'aceito' && tipo === 'agendada' && (data.remarcacoes ?? 0) < 2 && !showRemarcarForm && (
                         <button
                           onClick={() => setShowRemarcarForm(true)}
-                          style={{ padding: '11px 0', background: 'white', border: '1.5px solid #3B9FE0', borderRadius: 10, color: '#3B9FE0', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                          className="py-2.5 bg-canvas border-[1.5px] border-brand rounded-[10px] text-brand text-sm font-semibold cursor-pointer"
                         >
                           📅 Remarcar consulta
                         </button>
                       )}
                       {showRemarcarForm && (
-                        <div style={{ background: '#EAF6FE', border: '1px solid #8ED2F6', borderRadius: 10, padding: '14px' }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: '#1D74B8', margin: '0 0 10px' }}>Remarcar consulta</p>
-                          <p style={{ fontSize: 12, color: '#3B9FE0', margin: '0 0 10px' }}>
+                        <div className="bg-brand-wash border border-brand/40 rounded-[10px] p-3.5">
+                          <p className="text-[13px] font-bold text-brand-deep mb-2.5">Remarcar consulta</p>
+                          <p className="text-xs text-brand-deep mb-2.5">
                             Restam {2 - (data.remarcacoes ?? 0)} remarcação(ões). Selecione a nova data com pelo menos 2h de antecedência.
                           </p>
                           <input
@@ -399,18 +400,18 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                             value={novaDataHora}
                             min={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                             onChange={(e) => setNovaDataHora(e.target.value)}
-                            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #8ED2F6', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: 10 }}
+                            className="w-full box-border border border-brand/40 rounded-lg px-2.5 py-2 text-[13px] text-ink bg-canvas outline-none mb-2.5"
                           />
-                          {remarcandoError && <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 8px' }}>{remarcandoError}</p>}
-                          <div style={{ display: 'flex', gap: 8 }}>
+                          {remarcandoError && <p className="text-xs text-error mb-2">{remarcandoError}</p>}
+                          <div className="flex gap-2">
                             <button onClick={() => { setShowRemarcarForm(false); setNovaDataHora(''); setRemarcandoError(''); }}
-                              style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                              className="flex-1 py-2.5 bg-canvas border border-line rounded-lg text-[13px] text-ink cursor-pointer">
                               Cancelar
                             </button>
                             <button
                               onClick={handleRemarcar}
                               disabled={remarcandoLoading || !novaDataHora}
-                              style={{ flex: 2, padding: '9px 0', background: '#3B9FE0', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: (remarcandoLoading || !novaDataHora) ? 'not-allowed' : 'pointer', opacity: (remarcandoLoading || !novaDataHora) ? 0.6 : 1 }}>
+                              className="flex-[2] py-2.5 bg-brand text-brand-contrast border-none rounded-lg text-[13px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
                               {remarcandoLoading ? 'Salvando...' : 'Confirmar remarcação'}
                             </button>
                           </div>
@@ -420,37 +421,33 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                       {canCancel && !confirmCancel && (
                         <button
                           onClick={() => setConfirmCancel(true)}
-                          style={{
-                            padding: '11px 0', background: 'white',
-                            border: '1.5px solid #fca5a5', borderRadius: 10,
-                            color: '#dc2626', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                          }}
+                          className="py-2.5 bg-canvas border-[1.5px] border-error/40 rounded-[10px] text-error text-sm font-semibold cursor-pointer"
                         >
                           Cancelar consulta
                         </button>
                       )}
 
                       {canCancel && confirmCancel && (
-                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '14px' }}>
-                          <p style={{ fontSize: 13, color: '#991b1b', fontWeight: 600, margin: '0 0 12px' }}>
+                        <div className="bg-error-wash border border-error/30 rounded-[10px] p-3.5">
+                          <p className="text-[13px] text-error font-semibold mb-3">
                             Confirma o cancelamento?{data?.creditoDebitado > 0
                               ? ` Você receberá R$ ${Number(data.creditoDebitado).toFixed(2).replace('.', ',')} de volta na sua carteira.`
                               : ' A consulta será cancelada.'}
                           </p>
                           {cancelError && (
-                            <p style={{ fontSize: 12, color: '#dc2626', margin: '0 0 10px' }}>{cancelError}</p>
+                            <p className="text-xs text-error mb-2.5">{cancelError}</p>
                           )}
-                          <div style={{ display: 'flex', gap: 8 }}>
+                          <div className="flex gap-2">
                             <button
                               onClick={() => { setConfirmCancel(false); setCancelError(''); }}
-                              style={{ flex: 1, padding: '9px 0', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                              className="flex-1 py-2.5 bg-canvas border border-line rounded-lg text-[13px] text-ink cursor-pointer"
                             >
                               Voltar
                             </button>
                             <button
                               onClick={handleCancelar}
                               disabled={cancelling}
-                              style={{ flex: 1, padding: '9px 0', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1 }}
+                              className="flex-1 py-2.5 bg-error text-error-contrast border-none rounded-lg text-[13px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               {cancelling ? 'Cancelando...' : 'Sim, cancelar'}
                             </button>
@@ -466,35 +463,35 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
               {isConcluded && (
                 <>
                   {data.observacoes && (
-                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px 14px' }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div className="bg-success-wash border border-success/30 rounded-[10px] px-3.5 py-3">
+                      <p className="text-[11px] font-bold text-success mb-1.5 uppercase tracking-wide">
                         Orientações do farmacêutico
                       </p>
-                      <p style={{ fontSize: 14, color: '#15803d', lineHeight: 1.6, margin: 0 }}>{data.observacoes}</p>
+                      <p className="text-sm text-success leading-relaxed m-0">{data.observacoes}</p>
                     </div>
                   )}
 
                   {data.motivo && (
-                    <div style={{ background: '#f9fafb', borderRadius: 10, padding: '12px 14px' }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div className="bg-surface rounded-[10px] px-3.5 py-3">
+                      <p className="text-[11px] font-bold text-muted mb-1 uppercase tracking-wide">
                         Motivo da consulta
                       </p>
-                      <p style={{ fontSize: 14, color: '#374151', margin: 0 }}>{data.motivo}</p>
+                      <p className="text-sm text-ink m-0">{data.motivo}</p>
                     </div>
                   )}
 
                   {Array.isArray(data.receita) && data.receita.length > 0 && (
                     <div>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <p className="text-[11px] font-bold text-muted mb-2 uppercase tracking-wide">
                         Receita
                       </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div className="flex flex-col gap-1.5">
                         {data.receita.map((item, i) => (
-                          <div key={i} style={{ background: '#f9fafb', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#374151' }}>
-                            <span style={{ fontWeight: 600 }}>{item.medicamento}</span>
-                            {item.dosagem && <span style={{ color: '#6b7280' }}> — {item.dosagem}</span>}
+                          <div key={i} className="bg-surface rounded-lg px-3 py-2 text-[13px] text-ink">
+                            <span className="font-semibold">{item.medicamento}</span>
+                            {item.dosagem && <span className="text-muted"> — {item.dosagem}</span>}
                             {item.instrucoes && (
-                              <p style={{ margin: '3px 0 0', color: '#9ca3af', fontSize: 12 }}>{item.instrucoes}</p>
+                              <p className="mt-0.5 mb-0 text-muted text-xs">{item.instrucoes}</p>
                             )}
                           </div>
                         ))}
@@ -506,11 +503,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                   {hasReceita && (
                     <button
                       onClick={() => setShowReceita(true)}
-                      style={{
-                        padding: '11px 0', background: '#3B9FE0', color: 'white',
-                        border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
+                      className="py-2.5 bg-brand text-brand-contrast border-none rounded-[10px] text-sm font-bold cursor-pointer"
                     >
                       📄 Ver receita
                     </button>
@@ -521,11 +514,8 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                     <button
                       onClick={handleDownloadPdf}
                       disabled={downloading}
-                      style={{
-                        padding: '11px 0', background: 'white', color: '#3B9FE0',
-                        border: '1.5px solid #8ED2F6', borderRadius: 10, fontSize: 14, fontWeight: 700,
-                        cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1,
-                      }}
+                      className="py-2.5 bg-canvas text-brand border-[1.5px] border-brand/40 rounded-[10px] text-sm font-bold cursor-pointer disabled:opacity-70"
+                      style={{ cursor: downloading ? 'wait' : 'pointer' }}
                     >
                       {downloading ? 'Baixando...' : '⬇ Baixar PDF'}
                     </button>
@@ -538,11 +528,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                         try { await abrirDocumentoAutenticado(`${API_URL}${data.anexoReceitaUrl}`, token); }
                         catch { /* falha silenciosa — usuário pode tentar novamente */ }
                       }}
-                      style={{
-                        padding: '11px 0', background: 'white', color: '#3B9FE0',
-                        border: '1.5px solid #8ED2F6', borderRadius: 10, fontSize: 14, fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
+                      className="py-2.5 bg-canvas text-brand border-[1.5px] border-brand/40 rounded-[10px] text-sm font-bold cursor-pointer"
                     >
                       📎 Ver anexo enviado
                     </button>
@@ -561,11 +547,7 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
                   {onAgendar && (
                     <button
                       onClick={() => { onClose(); onAgendar(); }}
-                      style={{
-                        padding: '11px 0', background: 'white',
-                        border: '1.5px solid #3B9FE0', borderRadius: 10,
-                        color: '#3B9FE0', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                      }}
+                      className="py-2.5 bg-canvas border-[1.5px] border-brand rounded-[10px] text-brand text-sm font-bold cursor-pointer"
                     >
                       📅 Agendar nova consulta
                     </button>
@@ -575,19 +557,19 @@ const ConsultaDetalhesPaciente = ({ id, tipo, onClose, onCancelled, onAgendar, i
 
               {/* ── CANCELADA / EXPIRADA ───────────────────────── */}
               {isCancelled && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="bg-error-wash border border-error/30 rounded-[10px] px-3.5 py-3 flex flex-col gap-1.5">
                   {data.creditoDebitado > 0 && (
-                    <p style={{ fontSize: 14, color: '#991b1b', margin: 0, fontWeight: 600 }}>
+                    <p className="text-sm text-error m-0 font-semibold">
                       {fmtMoney(data.creditoDebitado)} devolvidos ao seu saldo.
                     </p>
                   )}
                   {data.motivoCancelamento && (
-                    <p style={{ fontSize: 13, color: '#b91c1c', margin: 0 }}>
+                    <p className="text-[13px] text-error m-0">
                       Motivo: {data.motivoCancelamento}
                     </p>
                   )}
                   {!data.motivoCancelamento && !data.creditoDebitado && (
-                    <p style={{ fontSize: 14, color: '#991b1b', margin: 0 }}>Consulta cancelada.</p>
+                    <p className="text-sm text-error m-0">Consulta cancelada.</p>
                   )}
                 </div>
               )}

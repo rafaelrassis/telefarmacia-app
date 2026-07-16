@@ -69,7 +69,7 @@ const RedefinirSenhaPage = () => {
               </p>
               <Link
                 to="/entrar"
-                className="inline-block w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition text-sm"
+                className="inline-block w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
               >
                 Ir para o login
               </Link>
@@ -80,7 +80,7 @@ const RedefinirSenhaPage = () => {
               <p className="text-sm text-ink mb-4">{error}</p>
               <Link
                 to="/entrar"
-                className="inline-block w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition text-sm"
+                className="inline-block w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
               >
                 Voltar ao login e solicitar novo link
               </Link>
@@ -120,7 +120,7 @@ const RedefinirSenhaPage = () => {
               <button
                 type="submit"
                 disabled={loading || !novaSenha || !confirmarSenha}
-                className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition text-sm inline-flex items-center justify-center gap-2"
+                className="w-full bg-brand hover:bg-brand-deep disabled:opacity-50 text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm inline-flex items-center justify-center gap-2"
               >
                 <KeyRound className="w-4 h-4" />
                 {loading ? 'Salvando...' : 'Redefinir senha'}

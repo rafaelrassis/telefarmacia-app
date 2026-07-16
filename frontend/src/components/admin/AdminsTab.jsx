@@ -74,7 +74,7 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
           <button
             onClick={handleAdd}
             disabled={adding || !newEmail.trim()}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold bg-brand hover:bg-brand-deep text-white px-4 py-2 rounded-lg disabled:opacity-40 transition"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold bg-brand hover:bg-brand-deep text-brand-contrast px-4 py-2 rounded-lg disabled:opacity-40 transition"
           >
             <UserPlus className="w-4 h-4" />
             {adding ? 'Adicionando...' : 'Adicionar'}
@@ -148,7 +148,7 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
               <button
                 onClick={() => handleRemove(confirmRemove)}
                 disabled={removing[confirmRemove]}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:bg-error/90 disabled:opacity-60 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-error-contrast rounded-xl hover:bg-error/90 disabled:opacity-60 transition">
                 {removing[confirmRemove] ? 'Removendo...' : 'Remover'}
               </button>
             </div>

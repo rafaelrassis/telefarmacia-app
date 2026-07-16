@@ -52,7 +52,7 @@ const ConsultaFooterActions = ({
             onClick={handleCancelar}
             disabled={actionLoading === 'cancelar' || !motivoCancelamento.trim()}
             className={`flex-1 py-2 text-sm font-bold rounded-lg border-0 transition-colors ${
-              motivoCancelamento.trim() ? 'bg-error text-white' : 'bg-surface text-muted'
+              motivoCancelamento.trim() ? 'bg-error text-error-contrast' : 'bg-surface text-muted'
             } ${(actionLoading === 'cancelar' || !motivoCancelamento.trim()) ? 'cursor-not-allowed' : 'cursor-pointer'} ${
               actionLoading === 'cancelar' ? 'opacity-50' : ''
             }`}
@@ -105,7 +105,7 @@ const ConsultaFooterActions = ({
             <button
               onClick={handleIniciar}
               disabled={!!actionLoading}
-              className={`bg-brand text-white border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`bg-brand text-brand-contrast border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
                 actionLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               }`}
             >
@@ -116,7 +116,7 @@ const ConsultaFooterActions = ({
             <button
               onClick={handleConcluir}
               disabled={!!actionLoading}
-              className={`bg-success text-white border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`bg-success text-success-contrast border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
                 actionLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               }`}
             >

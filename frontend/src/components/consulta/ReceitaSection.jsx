@@ -113,7 +113,7 @@ const ReceitaSection = ({
                 <button
                   onClick={handleGerarPdf}
                   disabled={actionLoading === 'pdf'}
-                  className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-white rounded-xl hover:bg-brand-deep disabled:opacity-50 transition inline-flex items-center justify-center gap-1.5"
+                  className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-brand-contrast rounded-xl hover:bg-brand-deep disabled:opacity-50 transition inline-flex items-center justify-center gap-1.5"
                 >
                   {actionLoading === 'pdf' ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />Gerando...</>

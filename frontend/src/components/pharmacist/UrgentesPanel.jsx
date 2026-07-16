@@ -178,7 +178,7 @@ const UrgentesPanel = ({ onAccepted, onCardClick, hasEmAtendimento, disponivelUr
                     bloqueado         ? 'Ative "Disponível para urgências" para aceitar' :
                     hasEmAtendimento  ? 'Finalize o atendimento atual primeiro' : undefined
                   }
-                  className="w-full bg-error hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl text-sm transition"
+                  className="w-full bg-error hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-error-contrast font-bold py-2.5 rounded-xl text-sm transition"
                 >
                   {accepting[f.id] ? 'Aceitando...' : 'Atender agora'}
                 </button>

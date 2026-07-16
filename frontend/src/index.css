@@ -58,39 +58,47 @@
    text-ink etc. troquem de valor conforme o tema sem exigir nenhum plugin. */
 :root {
   color-scheme: light;
-  --ds-brand:          #3B9FE0;
-  --ds-brand-deep:     #1D74B8;
-  --ds-brand-wash:     #EAF6FE;
-  --ds-ink:            #1C2B3A;
-  --ds-muted:          #5B6B7C;
-  --ds-line:           #D8E6F2;
-  --ds-canvas:         #FFFFFF;
-  --ds-surface:        #F7FBFE;
-  --ds-success:        #1E9E6C;
-  --ds-success-wash:   #E4F7EF;
-  --ds-error:          #D6455A;
-  --ds-error-wash:     #FCEAED;
-  --ds-alert:          #B9791E;
-  --ds-alert-wash:     #FBF1DF;
+  --ds-brand:            #3B9FE0;
+  --ds-brand-deep:       #1D74B8;
+  --ds-brand-wash:       #EAF6FE;
+  --ds-brand-contrast:   #FFFFFF;
+  --ds-ink:              #1C2B3A;
+  --ds-muted:            #5B6B7C;
+  --ds-line:             #D8E6F2;
+  --ds-canvas:           #FFFFFF;
+  --ds-surface:          #F7FBFE;
+  --ds-success:          #1E9E6C;
+  --ds-success-wash:     #E4F7EF;
+  --ds-success-contrast: #FFFFFF;
+  --ds-error:            #D6455A;
+  --ds-error-wash:       #FCEAED;
+  --ds-error-contrast:   #FFFFFF;
+  --ds-alert:            #B9791E;
+  --ds-alert-wash:       #FBF1DF;
+  --ds-alert-contrast:   #FFFFFF;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --ds-brand:          #5CB6EC;
-    --ds-brand-deep:     #8ED2F6;
-    --ds-brand-wash:     #14293A;
-    --ds-ink:            #E9F2FA;
-    --ds-muted:          #96AEC2;
-    --ds-line:           #24384A;
-    --ds-canvas:         #0D1A25;
-    --ds-surface:        #142433;
-    --ds-success:        #38C793;
-    --ds-success-wash:   #103326;
-    --ds-error:          #EA7E8E;
-    --ds-error-wash:     #3A1A20;
-    --ds-alert:          #E3AA55;
-    --ds-alert-wash:     #3A2C14;
+    --ds-brand:            #5CB6EC;
+    --ds-brand-deep:       #8ED2F6;
+    --ds-brand-wash:       #14293A;
+    --ds-brand-contrast:   #0B1512;
+    --ds-ink:              #E9F2FA;
+    --ds-muted:            #96AEC2;
+    --ds-line:             #24384A;
+    --ds-canvas:           #0D1A25;
+    --ds-surface:          #142433;
+    --ds-success:          #38C793;
+    --ds-success-wash:     #103326;
+    --ds-success-contrast: #0B1512;
+    --ds-error:            #EA7E8E;
+    --ds-error-wash:       #3A1A20;
+    --ds-error-contrast:   #0B1512;
+    --ds-alert:            #E3AA55;
+    --ds-alert-wash:       #3A2C14;
+    --ds-alert-contrast:   #0B1512;
   }
 }
 
@@ -98,54 +106,66 @@
    um for adicionado), sempre vencendo a preferência do sistema operacional. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ds-brand:          #5CB6EC;
-  --ds-brand-deep:     #8ED2F6;
-  --ds-brand-wash:     #14293A;
-  --ds-ink:            #E9F2FA;
-  --ds-muted:          #96AEC2;
-  --ds-line:           #24384A;
-  --ds-canvas:         #0D1A25;
-  --ds-surface:        #142433;
-  --ds-success:        #38C793;
-  --ds-success-wash:   #103326;
-  --ds-error:          #EA7E8E;
-  --ds-error-wash:     #3A1A20;
-  --ds-alert:          #E3AA55;
-  --ds-alert-wash:     #3A2C14;
+  --ds-brand:            #5CB6EC;
+  --ds-brand-deep:       #8ED2F6;
+  --ds-brand-wash:       #14293A;
+  --ds-brand-contrast:   #0B1512;
+  --ds-ink:              #E9F2FA;
+  --ds-muted:            #96AEC2;
+  --ds-line:             #24384A;
+  --ds-canvas:           #0D1A25;
+  --ds-surface:          #142433;
+  --ds-success:          #38C793;
+  --ds-success-wash:     #103326;
+  --ds-success-contrast: #0B1512;
+  --ds-error:            #EA7E8E;
+  --ds-error-wash:       #3A1A20;
+  --ds-error-contrast:   #0B1512;
+  --ds-alert:            #E3AA55;
+  --ds-alert-wash:       #3A2C14;
+  --ds-alert-contrast:   #0B1512;
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --ds-brand:          #3B9FE0;
-  --ds-brand-deep:     #1D74B8;
-  --ds-brand-wash:     #EAF6FE;
-  --ds-ink:            #1C2B3A;
-  --ds-muted:          #5B6B7C;
-  --ds-line:           #D8E6F2;
-  --ds-canvas:         #FFFFFF;
-  --ds-surface:        #F7FBFE;
-  --ds-success:        #1E9E6C;
-  --ds-success-wash:   #E4F7EF;
-  --ds-error:          #D6455A;
-  --ds-error-wash:     #FCEAED;
-  --ds-alert:          #B9791E;
-  --ds-alert-wash:     #FBF1DF;
+  --ds-brand:            #3B9FE0;
+  --ds-brand-deep:       #1D74B8;
+  --ds-brand-wash:       #EAF6FE;
+  --ds-brand-contrast:   #FFFFFF;
+  --ds-ink:              #1C2B3A;
+  --ds-muted:            #5B6B7C;
+  --ds-line:             #D8E6F2;
+  --ds-canvas:           #FFFFFF;
+  --ds-surface:          #F7FBFE;
+  --ds-success:          #1E9E6C;
+  --ds-success-wash:     #E4F7EF;
+  --ds-success-contrast: #FFFFFF;
+  --ds-error:            #D6455A;
+  --ds-error-wash:       #FCEAED;
+  --ds-error-contrast:   #FFFFFF;
+  --ds-alert:            #B9791E;
+  --ds-alert-wash:       #FBF1DF;
+  --ds-alert-contrast:   #FFFFFF;
 }
 
 @theme {
-  --color-brand:          var(--ds-brand);
-  --color-brand-deep:     var(--ds-brand-deep);
-  --color-brand-wash:     var(--ds-brand-wash);
-  --color-ink:            var(--ds-ink);
-  --color-muted:          var(--ds-muted);
-  --color-line:           var(--ds-line);
-  --color-canvas:         var(--ds-canvas);
-  --color-surface:        var(--ds-surface);
-  --color-success:        var(--ds-success);
-  --color-success-wash:   var(--ds-success-wash);
-  --color-error:          var(--ds-error);
-  --color-error-wash:     var(--ds-error-wash);
-  --color-alert:          var(--ds-alert);
-  --color-alert-wash:     var(--ds-alert-wash);
+  --color-brand:            var(--ds-brand);
+  --color-brand-deep:       var(--ds-brand-deep);
+  --color-brand-wash:       var(--ds-brand-wash);
+  --color-brand-contrast:   var(--ds-brand-contrast);
+  --color-ink:              var(--ds-ink);
+  --color-muted:            var(--ds-muted);
+  --color-line:             var(--ds-line);
+  --color-canvas:           var(--ds-canvas);
+  --color-surface:          var(--ds-surface);
+  --color-success:          var(--ds-success);
+  --color-success-wash:     var(--ds-success-wash);
+  --color-success-contrast: var(--ds-success-contrast);
+  --color-error:            var(--ds-error);
+  --color-error-wash:       var(--ds-error-wash);
+  --color-error-contrast:   var(--ds-error-contrast);
+  --color-alert:            var(--ds-alert);
+  --color-alert-wash:       var(--ds-alert-wash);
+  --color-alert-contrast:   var(--ds-alert-contrast);
 
   --font-heading: 'Manrope', ui-sans-serif, system-ui, sans-serif;
   --font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;

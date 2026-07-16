@@ -71,7 +71,7 @@ const DadosSaudeBanner = ({ selectedPerson, nomeTitular, onVisibleChange }) => {
         </p>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-lg transition"
+          className="bg-brand hover:bg-brand-deep text-brand-contrast text-xs font-bold px-3 py-2 rounded-lg transition"
         >
           Preencher
         </button>
@@ -79,7 +79,7 @@ const DadosSaudeBanner = ({ selectedPerson, nomeTitular, onVisibleChange }) => {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
           <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <h3 className="font-heading text-lg font-bold text-ink mb-1">Perfil de saúde</h3>
             <p className="text-sm text-muted mb-4">Dados de {nome}, sempre editáveis depois.</p>

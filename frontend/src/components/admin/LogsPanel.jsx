@@ -104,7 +104,7 @@ const LogsPanel = ({ api, pharmacists = [], patients = [] }) => {
         <button
           onClick={handleExport}
           disabled={exportLoading}
-          className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-white rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-60 transition"
+          className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-brand-contrast rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-60 transition"
         >
           <Download className="w-3.5 h-3.5" />
           {exportLoading ? 'Exportando…' : 'Exportar CSV'}

@@ -215,7 +215,7 @@ const PerfilModal = ({ onClose }) => {
           <button
             onClick={handleSave}
             disabled={saving || loadingInit}
-            className="w-full py-3 bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold rounded-xl transition text-sm inline-flex items-center justify-center gap-2"
+            className="w-full py-3 bg-brand hover:bg-brand-deep disabled:opacity-50 text-brand-contrast font-bold rounded-xl transition text-sm inline-flex items-center justify-center gap-2"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Salvando...' : 'Salvar alterações'}
@@ -410,7 +410,7 @@ const PerfilModal = ({ onClose }) => {
                       </p>
                       <button
                         onClick={() => setShowTermoModal(true)}
-                        className="px-2.5 py-1 bg-brand text-white border-none rounded-md text-[11px] font-bold cursor-pointer"
+                        className="px-2.5 py-1 bg-brand text-brand-contrast border-none rounded-md text-[11px] font-bold cursor-pointer"
                       >
                         Ver e aceitar
                       </button>

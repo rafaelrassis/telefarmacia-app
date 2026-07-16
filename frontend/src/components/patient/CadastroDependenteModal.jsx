@@ -9,17 +9,17 @@ const CadastroDependenteModal = ({
   onClose,
 }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h3 style={{ fontWeight: 700, fontSize: 16, color: '#111827', margin: 0 }}>Adicionar perfil</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
+    <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="relative bg-canvas border border-line rounded-2xl shadow-md w-full max-w-sm p-6">
+      <div className="flex justify-between items-center mb-5">
+        <h3 className="font-bold text-base text-ink m-0">Adicionar perfil</h3>
+        <button onClick={onClose} className="bg-transparent border-none text-[22px] cursor-pointer text-muted hover:text-ink leading-none">×</button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="flex flex-col gap-3">
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 4 }}>
-            Nome completo <span style={{ color: '#ef4444' }}>*</span>
+          <label className="block text-xs font-semibold text-muted mb-1">
+            Nome completo <span className="text-error">*</span>
           </label>
           <input
             type="text"
@@ -30,17 +30,17 @@ const CadastroDependenteModal = ({
               setCadastroFieldErrors(fe => ({ ...fe, nome: validarNome(v) }));
             }}
             placeholder="Nome do dependente"
-            style={{ width: '100%', boxSizing: 'border-box', border: cadastroFieldErrors.nome ? '1px solid #ef4444' : '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
+            className={`w-full box-border rounded-lg px-3 py-2 text-sm text-ink bg-canvas outline-none border ${cadastroFieldErrors.nome ? 'border-error' : 'border-line'}`}
           />
           {cadastroFieldErrors.nome && (
-            <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4, marginBottom: 0 }}>{cadastroFieldErrors.nome}</p>
+            <p className="text-xs text-error mt-1 mb-0">{cadastroFieldErrors.nome}</p>
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 4 }}>
-              Data de nascimento <span style={{ color: '#ef4444' }}>*</span>
+            <label className="block text-xs font-semibold text-muted mb-1">
+              Data de nascimento <span className="text-error">*</span>
             </label>
             <input
               type="date"
@@ -51,20 +51,20 @@ const CadastroDependenteModal = ({
                 setCadastroForm(f => ({ ...f, dataNascimento: v }));
                 setCadastroFieldErrors(fe => ({ ...fe, data: validarData(v) }));
               }}
-              style={{ width: '100%', boxSizing: 'border-box', border: cadastroFieldErrors.data ? '1px solid #ef4444' : '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
+              className={`w-full box-border rounded-lg px-2.5 py-2 text-sm text-ink bg-canvas outline-none border ${cadastroFieldErrors.data ? 'border-error' : 'border-line'}`}
             />
             {cadastroFieldErrors.data && (
-              <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4, marginBottom: 0 }}>{cadastroFieldErrors.data}</p>
+              <p className="text-xs text-error mt-1 mb-0">{cadastroFieldErrors.data}</p>
             )}
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 4 }}>
-              Sexo <span style={{ color: '#ef4444' }}>*</span>
+            <label className="block text-xs font-semibold text-muted mb-1">
+              Sexo <span className="text-error">*</span>
             </label>
             <select
               value={cadastroForm.sexo}
               onChange={e => setCadastroForm(f => ({ ...f, sexo: e.target.value }))}
-              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'white' }}
+              className="w-full box-border rounded-lg px-2.5 py-2 text-sm text-ink bg-canvas outline-none border border-line"
             >
               <option value="">Selecionar</option>
               <option value="masculino">Masculino</option>
@@ -75,43 +75,43 @@ const CadastroDependenteModal = ({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 4 }}>
+          <label className="block text-xs font-semibold text-muted mb-1">
             Parentesco
           </label>
           <select
             value={cadastroForm.parentesco}
             onChange={e => setCadastroForm(f => ({ ...f, parentesco: e.target.value }))}
-            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'white' }}
+            className="w-full box-border rounded-lg px-3 py-2 text-sm text-ink bg-canvas outline-none border border-line"
           >
             {PARENTESCO_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
 
-        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', fontSize: 13, color: '#374151', lineHeight: 1.4 }}>
+        <label className="flex gap-2.5 items-start cursor-pointer text-[13px] text-ink leading-tight">
           <input
             type="checkbox"
             checked={cadastroForm.aceito}
             onChange={e => setCadastroForm(f => ({ ...f, aceito: e.target.checked }))}
-            style={{ marginTop: 2, width: 16, height: 16, accentColor: '#3B9FE0', flexShrink: 0 }}
+            className="mt-0.5 w-4 h-4 accent-brand shrink-0"
           />
           Confirmo que sou responsável por este dependente e autorizo o uso desta plataforma em seu nome.
         </label>
 
         {cadastroError && (
-          <p style={{ fontSize: 13, color: '#dc2626', margin: 0 }}>{cadastroError}</p>
+          <p className="text-[13px] text-error m-0">{cadastroError}</p>
         )}
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+        <div className="flex gap-2.5 mt-1">
           <button
             onClick={onClose}
-            style={{ flex: 1, padding: '10px 0', border: '1px solid #e5e7eb', borderRadius: 8, background: 'white', fontSize: 14, fontWeight: 500, color: '#374151', cursor: 'pointer' }}
+            className="flex-1 py-2.5 border border-line rounded-lg bg-canvas text-sm font-medium text-ink cursor-pointer hover:bg-surface transition"
           >
             Cancelar
           </button>
           <button
             onClick={handleCadastroDependente}
             disabled={cadastroLoading}
-            style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 8, background: '#3B9FE0', color: 'white', fontSize: 14, fontWeight: 700, cursor: cadastroLoading ? 'not-allowed' : 'pointer', opacity: cadastroLoading ? 0.6 : 1 }}
+            className="flex-1 py-2.5 border-none rounded-lg bg-brand hover:bg-brand-deep text-brand-contrast text-sm font-bold transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {cadastroLoading ? 'Salvando...' : 'Salvar'}
           </button>

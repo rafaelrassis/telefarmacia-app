@@ -32,7 +32,7 @@ const ConfirmPowerAction = ({ title, name, message, alertText, confirmLabel, con
         <button
           onClick={onConfirm}
           disabled={loading}
-          className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:bg-error/90 disabled:opacity-60 transition"
+          className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-error-contrast rounded-xl hover:bg-error/90 disabled:opacity-60 transition"
         >
           {loading ? confirmingLabel : confirmLabel}
         </button>
@@ -235,7 +235,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                             <button
                               onClick={() => handleReativar(p.id)}
                               disabled={actionLoading[p.id + '_reat']}
-                              className="inline-flex items-center gap-1 text-xs font-semibold bg-success hover:bg-success/90 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
+                              className="inline-flex items-center gap-1 text-xs font-semibold bg-success hover:bg-success/90 text-success-contrast px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               {actionLoading[p.id + '_reat'] ? '...' : 'Reativar'}
@@ -244,7 +244,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                             <>
                               <button
                                 onClick={() => setConfirmSuspend(p)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold bg-error hover:bg-error/90 text-white px-3 py-1.5 rounded-lg transition"
+                                className="inline-flex items-center gap-1 text-xs font-semibold bg-error hover:bg-error/90 text-error-contrast px-3 py-1.5 rounded-lg transition"
                               >
                                 <Ban className="w-3.5 h-3.5" />
                                 Suspender
@@ -252,7 +252,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                               <button
                                 onClick={() => setConfirmRevoke(p)}
                                 disabled={actionLoading[p.id + '_rev']}
-                                className="inline-flex items-center gap-1 text-xs font-semibold bg-error/80 hover:bg-error text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
+                                className="inline-flex items-center gap-1 text-xs font-semibold bg-error/80 hover:bg-error text-error-contrast px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
                               >
                                 <UserX className="w-3.5 h-3.5" />
                                 {actionLoading[p.id + '_rev'] ? '...' : 'Inativar'}
@@ -262,7 +262,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                             <button
                               onClick={() => activate(p.id)}
                               disabled={actionLoading[p.id]}
-                              className="inline-flex items-center gap-1 text-xs font-semibold bg-success hover:bg-success/90 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
+                              className="inline-flex items-center gap-1 text-xs font-semibold bg-success hover:bg-success/90 text-success-contrast px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               {actionLoading[p.id] ? '...' : 'Ativar'}
@@ -270,7 +270,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                           )}
                           <button
                             onClick={() => setConfirmDelete(p)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold bg-error hover:bg-error/90 text-white px-3 py-1.5 rounded-lg transition"
+                            className="inline-flex items-center gap-1 text-xs font-semibold bg-error hover:bg-error/90 text-error-contrast px-3 py-1.5 rounded-lg transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             Descadastrar

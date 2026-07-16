@@ -106,7 +106,7 @@ const Navbar = () => {
 
   const Logo = ({ linked }) => (
     <div className={`flex items-center gap-2 shrink-0 ${!linked ? 'cursor-default select-none' : ''}`}>
-      <div className="w-9 h-9 bg-brand rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-wash">
+      <div className="w-9 h-9 bg-brand rounded-lg flex items-center justify-center text-brand-contrast font-black text-lg shadow-md shadow-brand-wash">
         F
       </div>
       <span className="text-xl font-heading font-bold tracking-tight text-ink">
@@ -193,7 +193,7 @@ const Navbar = () => {
                     >
                       <Bell className="w-5 h-5" />
                       {notifData.naoLidas > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-error text-white text-[10px] font-bold leading-none px-[5px] py-[2px] rounded-full min-w-[16px] text-center">
+                        <span className="absolute -top-1 -right-1 bg-error text-error-contrast text-[10px] font-bold leading-none px-[5px] py-[2px] rounded-full min-w-[16px] text-center">
                           {notifData.naoLidas > 9 ? '9+' : notifData.naoLidas}
                         </span>
                       )}
@@ -252,7 +252,7 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/entrar"
-                className="bg-brand hover:bg-brand-deep text-white px-5 py-2.5 rounded-xl font-semibold transition shadow-sm shadow-brand-wash"
+                className="bg-brand hover:bg-brand-deep text-brand-contrast px-5 py-2.5 rounded-xl font-semibold transition shadow-sm shadow-brand-wash"
               >
                 Entrar
               </Link>
@@ -326,7 +326,7 @@ const Navbar = () => {
                     >
                       <span className="inline-flex items-center gap-1.5"><Bell className="w-4 h-4" /> Notificações</span>
                       {notifData.naoLidas > 0 && (
-                        <span className="bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="bg-error text-error-contrast text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                           {notifData.naoLidas}
                         </span>
                       )}
@@ -351,7 +351,7 @@ const Navbar = () => {
               <Link
                 to="/entrar"
                 onClick={() => setMenuOpen(false)}
-                className="block text-center bg-brand text-white font-bold py-3 px-4 rounded-xl text-sm mt-2"
+                className="block text-center bg-brand text-brand-contrast font-bold py-3 px-4 rounded-xl text-sm mt-2"
               >
                 Entrar
               </Link>

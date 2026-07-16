@@ -58,7 +58,7 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
             <Link
               to="/entrar"
-              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep active:bg-brand-deep text-white font-bold px-8 py-4 rounded-2xl transition-all duration-150 text-base shadow-[0_8px_24px_-4px_rgba(59,159,224,0.35)]"
+              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep active:bg-brand-deep text-brand-contrast font-bold px-8 py-4 rounded-2xl transition-all duration-150 text-base shadow-[0_8px_24px_-4px_rgba(59,159,224,0.35)]"
             >
               Agendar consulta
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -33,51 +33,51 @@ const ExcluirContaModal = ({ onClose }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/65 p-4">
+      <div className="bg-canvas border border-line rounded-2xl w-full max-w-[480px] flex flex-col overflow-hidden shadow-md">
 
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>Excluir minha conta</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: '#9ca3af', cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+        <div className="px-5 pt-4 pb-3 border-b border-line flex items-center justify-between">
+          <h2 className="text-[15px] font-bold text-ink m-0">Excluir minha conta</h2>
+          <button onClick={onClose} className="bg-transparent border-none text-xl text-muted hover:text-ink cursor-pointer leading-none p-1">×</button>
         </div>
 
-        <div style={{ padding: '16px 20px 20px' }}>
+        <div className="px-5 pt-4 pb-5">
           {step === 1 ? (
             <>
               {/* Explicação */}
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', margin: '0 0 6px' }}>⚠️ O que acontece ao excluir sua conta</p>
-                <ul style={{ fontSize: 12, color: '#7f1d1d', margin: 0, paddingLeft: 16, lineHeight: 1.8 }}>
+              <div className="bg-error-wash border border-error/30 rounded-[10px] px-3.5 py-3 mb-3.5">
+                <p className="text-[13px] font-bold text-error mb-1.5">⚠️ O que acontece ao excluir sua conta</p>
+                <ul className="text-xs text-error m-0 pl-4 leading-[1.8]">
                   <li>Seus dados de cadastro (nome, e-mail, telefone, CPF) serão <strong>anonimizados</strong></li>
                   <li>Seu login será <strong>desativado permanentemente</strong></li>
                   <li>Você <strong>não poderá</strong> recuperar o acesso à conta</li>
                 </ul>
               </div>
 
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px 14px', marginBottom: 18 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#166534', margin: '0 0 6px' }}>📋 O que é mantido (obrigação legal)</p>
-                <ul style={{ fontSize: 12, color: '#15803d', margin: 0, paddingLeft: 16, lineHeight: 1.8 }}>
+              <div className="bg-success-wash border border-success/30 rounded-[10px] px-3.5 py-3 mb-[18px]">
+                <p className="text-[13px] font-bold text-success mb-1.5">📋 O que é mantido (obrigação legal)</p>
+                <ul className="text-xs text-success m-0 pl-4 leading-[1.8]">
                   <li>Registros clínicos (consultas, receitas, orientações) são mantidos pelo prazo mínimo exigido pela legislação sanitária vigente</li>
                   <li>Esses registros ficam <strong>desvinculados</strong> de seus dados de contato identificáveis</li>
                   <li>Isso é exigido pelas normas do CFF e legislação de saúde</li>
                 </ul>
               </div>
 
-              <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16, textAlign: 'center' }}>
+              <p className="text-xs text-muted mb-4 text-center">
                 Consultas futuras agendadas precisam ser canceladas antes da exclusão.
               </p>
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="flex gap-2">
                 <button
                   onClick={onClose}
-                  style={{ flex: 1, padding: '10px 0', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#374151', background: 'white', cursor: 'pointer' }}
+                  className="flex-1 py-2.5 border border-line rounded-[10px] text-[13px] font-semibold text-ink bg-canvas cursor-pointer hover:bg-surface transition"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => setStep(2)}
-                  style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'white', background: '#dc2626', cursor: 'pointer' }}
+                  className="flex-1 py-2.5 border-none rounded-[10px] text-[13px] font-bold text-error-contrast bg-error hover:opacity-90 cursor-pointer transition"
                 >
                   Entendi, continuar
                 </button>
@@ -86,9 +86,9 @@ const ExcluirContaModal = ({ onClose }) => {
           ) : (
             <>
               {/* Confirmação com e-mail */}
-              <p style={{ fontSize: 13, color: '#374151', marginBottom: 14, lineHeight: 1.6 }}>
+              <p className="text-[13px] text-ink mb-3.5 leading-relaxed">
                 Para confirmar, digite o e-mail da sua conta:<br />
-                <strong style={{ color: '#111827' }}>{user?.email}</strong>
+                <strong className="text-ink">{user?.email}</strong>
               </p>
 
               <input
@@ -96,27 +96,28 @@ const ExcluirContaModal = ({ onClose }) => {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErro(''); }}
                 placeholder="seu@email.com"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }}
+                className="w-full box-border px-3 py-2.5 border border-line rounded-lg text-[13px] text-ink bg-canvas mb-2.5 outline-none"
               />
 
               {erro && (
-                <p style={{ fontSize: 12, color: '#dc2626', marginBottom: 10, background: '#fef2f2', padding: '6px 10px', borderRadius: 6 }}>
+                <p className="text-xs text-error mb-2.5 bg-error-wash px-2.5 py-1.5 rounded-md">
                   {erro}
                 </p>
               )}
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="flex gap-2">
                 <button
                   onClick={() => { setStep(1); setErro(''); setEmail(''); }}
                   disabled={loading}
-                  style={{ flex: 1, padding: '10px 0', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#374151', background: 'white', cursor: 'pointer' }}
+                  className="flex-1 py-2.5 border border-line rounded-[10px] text-[13px] font-semibold text-ink bg-canvas cursor-pointer hover:bg-surface transition"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={handleExcluir}
                   disabled={loading}
-                  style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'white', background: '#dc2626', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1 }}
+                  className="flex-1 py-2.5 border-none rounded-[10px] text-[13px] font-bold text-error-contrast bg-error hover:opacity-90 disabled:opacity-70 transition"
+                  style={{ cursor: loading ? 'wait' : 'pointer' }}
                 >
                   {loading ? 'Excluindo...' : 'Excluir minha conta'}
                 </button>

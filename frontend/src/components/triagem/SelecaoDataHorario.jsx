@@ -45,7 +45,7 @@ const SelecaoDataHorario = ({
               key={hora}
               onClick={() => setSelectedSlot(hora)}
               className={`py-2.5 rounded-xl text-sm font-semibold border ${
-                selectedSlot === hora ? 'bg-brand text-white border-brand' : 'bg-canvas text-ink border-line'
+                selectedSlot === hora ? 'bg-brand text-brand-contrast border-brand' : 'bg-canvas text-ink border-line'
               }`}
             >
               {hora}
@@ -73,7 +73,7 @@ const SelecaoDataHorario = ({
         <button
           onClick={onProximo}
           disabled={!saldoOk}
-          className={`block w-full py-3 rounded-lg text-white text-[15px] font-bold mb-2 ${saldoOk ? 'bg-brand' : 'bg-muted cursor-not-allowed'}`}
+          className={`block w-full py-3 rounded-lg text-[15px] font-bold mb-2 ${saldoOk ? 'bg-brand text-brand-contrast' : 'bg-muted text-white cursor-not-allowed'}`}
         >
           Próximo → Triagem ({selectedSlot})
         </button>

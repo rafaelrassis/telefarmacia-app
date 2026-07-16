@@ -67,36 +67,36 @@ const TemplatesTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-canvas border border-line rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm">Templates de orientação / receita</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h3 className="font-bold text-ink text-sm">Templates de orientação / receita</h3>
+            <p className="text-xs text-muted mt-0.5">
               Textos reutilizáveis com placeholders automáticos ({PLACEHOLDER_HINT})
             </p>
           </div>
           <button
             onClick={() => setModalData({})}
-            className="shrink-0 bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-xl transition"
+            className="shrink-0 bg-brand hover:bg-brand-deep text-brand-contrast text-xs font-bold px-3 py-2 rounded-xl transition"
           >
             + Novo template
           </button>
         </div>
 
         {msg && (
-          <div className={`mx-5 mt-4 px-4 py-3 rounded-xl text-xs border ${msg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+          <div className={`mx-5 mt-4 px-4 py-3 rounded-xl text-xs border ${msg.type === 'success' ? 'bg-success-wash border-success/30 text-success' : 'bg-error-wash border-error/30 text-error'}`}>
             {msg.text}
           </div>
         )}
 
         <div className="p-5">
           {loading ? (
-            <p className="text-slate-400 text-sm text-center py-4">Carregando...</p>
+            <p className="text-muted text-sm text-center py-4">Carregando...</p>
           ) : templates.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-3xl mb-2">📝</p>
-              <p className="text-slate-400 text-sm">Nenhum template criado ainda.</p>
-              <p className="text-slate-400 text-xs mt-1">
+              <p className="text-muted text-sm">Nenhum template criado ainda.</p>
+              <p className="text-muted text-xs mt-1">
                 Crie templates para agilizar orientações e receitas nas consultas.
               </p>
             </div>
@@ -105,12 +105,12 @@ const TemplatesTab = () => {
               {templates.map((t) => (
                 <div
                   key={t.id}
-                  className="border border-slate-100 rounded-xl px-4 py-3 hover:bg-slate-50 transition"
+                  className="border border-line rounded-xl px-4 py-3 hover:bg-surface transition"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{t.titulo}</p>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2 whitespace-pre-wrap">
+                      <p className="text-sm font-semibold text-ink">{t.titulo}</p>
+                      <p className="text-xs text-muted mt-1 line-clamp-2 whitespace-pre-wrap">
                         {t.conteudo}
                       </p>
                     </div>
@@ -124,7 +124,7 @@ const TemplatesTab = () => {
                       <button
                         onClick={() => handleDelete(t.id)}
                         disabled={deletingId === t.id}
-                        className="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 rounded-lg px-2.5 py-1 transition disabled:opacity-40"
+                        className="text-xs text-error/80 hover:text-error border border-error/20 hover:border-error/40 rounded-lg px-2.5 py-1 transition disabled:opacity-40"
                       >
                         {deletingId === t.id ? '...' : 'Excluir'}
                       </button>

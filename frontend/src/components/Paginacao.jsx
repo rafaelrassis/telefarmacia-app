@@ -11,41 +11,31 @@ const Paginacao = ({ page, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, paddingTop: 4 }}>
+    <div className="flex justify-center items-center gap-1 pt-1">
       <button
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
-        style={{
-          padding: '5px 10px', fontSize: 12, fontWeight: 500,
-          border: '1px solid #e5e7eb', borderRadius: 8, cursor: page === 1 ? 'not-allowed' : 'pointer',
-          background: '#fff', color: '#6b7280', opacity: page === 1 ? 0.4 : 1,
-        }}
+        className="px-2.5 py-1 text-xs font-medium border border-line rounded-lg bg-canvas text-muted disabled:opacity-40 disabled:cursor-not-allowed"
       >←</button>
       {getPageNums(page, totalPages).map((n, i, arr) => (
         <React.Fragment key={n}>
           {i > 0 && arr[i - 1] !== n - 1 && (
-            <span style={{ color: '#d1d5db', fontSize: 12, padding: '0 2px' }}>…</span>
+            <span className="text-muted text-xs px-0.5">…</span>
           )}
           <button
             onClick={() => onPageChange(n)}
-            style={{
-              padding: '5px 10px', fontSize: 12, fontWeight: 600,
-              border: n === page ? 'none' : '1px solid #e5e7eb',
-              borderRadius: 8, cursor: 'pointer',
-              background: n === page ? '#3B9FE0' : '#fff',
-              color: n === page ? '#fff' : '#374151',
-            }}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-lg cursor-pointer ${
+              n === page
+                ? 'border-none bg-brand text-brand-contrast'
+                : 'border border-line bg-canvas text-ink'
+            }`}
           >{n}</button>
         </React.Fragment>
       ))}
       <button
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
-        style={{
-          padding: '5px 10px', fontSize: 12, fontWeight: 500,
-          border: '1px solid #e5e7eb', borderRadius: 8, cursor: page === totalPages ? 'not-allowed' : 'pointer',
-          background: '#fff', color: '#6b7280', opacity: page === totalPages ? 0.4 : 1,
-        }}
+        className="px-2.5 py-1 text-xs font-medium border border-line rounded-lg bg-canvas text-muted disabled:opacity-40 disabled:cursor-not-allowed"
       >→</button>
     </div>
   );

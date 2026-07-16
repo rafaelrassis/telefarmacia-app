@@ -66,7 +66,7 @@ const ConfirmarEmailPage = () => {
               </p>
               <Link
                 to="/entrar"
-                className="inline-block w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition text-sm"
+                className="inline-block w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
               >
                 Ir para o login
               </Link>
@@ -79,7 +79,7 @@ const ConfirmarEmailPage = () => {
               <p className="text-sm text-ink mb-4">{error}</p>
               <Link
                 to="/entrar"
-                className="inline-block w-full bg-brand hover:bg-brand-deep text-white font-bold py-2.5 rounded-xl transition text-sm"
+                className="inline-block w-full bg-brand hover:bg-brand-deep text-brand-contrast font-bold py-2.5 rounded-xl transition text-sm"
               >
                 Voltar ao login
               </Link>

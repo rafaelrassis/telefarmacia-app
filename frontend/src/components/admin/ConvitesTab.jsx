@@ -21,7 +21,7 @@ const ConvitesTab = ({ api, showToast }) => {
           {!conviteForm && (
             <button
               onClick={() => { setConviteForm({}); setConviteNome(''); setConviteEmail(''); setConviteLink(null); }}
-              className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-white text-xs font-bold px-4 py-2 rounded-xl transition"
+              className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-brand-contrast text-xs font-bold px-4 py-2 rounded-xl transition"
             >
               <Plus className="w-3.5 h-3.5" />
               Novo convite
@@ -72,7 +72,7 @@ const ConvitesTab = ({ api, showToast }) => {
                 Fechar
               </button>
               <button type="submit" disabled={savingConvite}
-                className="text-sm font-bold bg-brand hover:bg-brand-deep text-white px-5 py-2 rounded-xl transition disabled:opacity-50">
+                className="text-sm font-bold bg-brand hover:bg-brand-deep text-brand-contrast px-5 py-2 rounded-xl transition disabled:opacity-50">
                 {savingConvite ? 'Enviando...' : 'Gerar convite'}
               </button>
             </div>

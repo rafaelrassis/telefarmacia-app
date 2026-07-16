@@ -79,7 +79,7 @@ const PassarAgoraResultPanel = ({
             </p>
             <button
               onClick={onAgendarHorario}
-              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-white bg-brand hover:bg-brand-deep rounded-md px-3.5 py-1.5"
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-contrast bg-brand hover:bg-brand-deep rounded-md px-3.5 py-1.5"
             >
               <CalendarClock className="w-3.5 h-3.5" />
               Agendar horário

@@ -90,26 +90,26 @@ const CalendarioTab = ({ refreshTrigger, onEventClick }) => {
       {/* Contadores */}
       {stats && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-teal-700">{stats.emAtendimento}</p>
-            <p className="text-xs text-gray-500 mt-1">Em atendimento</p>
+          <div className="bg-canvas border border-line rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-success">{stats.emAtendimento}</p>
+            <p className="text-xs text-muted mt-1">Em atendimento</p>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{stats.aceitas}</p>
-            <p className="text-xs text-gray-500 mt-1">Aceitas</p>
+          <div className="bg-canvas border border-line rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-brand-deep">{stats.aceitas}</p>
+            <p className="text-xs text-muted mt-1">Aceitas</p>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-gray-700">{stats.total}</p>
-            <p className="text-xs text-gray-500 mt-1">Total</p>
+          <div className="bg-canvas border border-line rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-ink">{stats.total}</p>
+            <p className="text-xs text-muted mt-1">Total</p>
           </div>
         </div>
       )}
 
       {/* Legenda */}
       <div className="flex flex-wrap gap-3 text-xs">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-500 inline-block" />Agendada aceita</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-100 border border-orange-400 inline-block" />Urgente aceita</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-teal-100 border border-teal-500 inline-block" />Em atendimento</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-brand-wash border border-brand/40 inline-block" />Agendada aceita</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-alert-wash border border-alert/40 inline-block" />Urgente aceita</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-success-wash border border-success/40 inline-block" />Em atendimento</span>
       </div>
 
       {/* Calendário com os eventos da fila e bloqueios */}

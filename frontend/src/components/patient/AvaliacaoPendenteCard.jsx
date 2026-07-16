@@ -92,7 +92,7 @@ const AvaliacaoPendenteCard = ({ onVisibleChange }) => {
         </p>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-brand hover:bg-brand-deep text-white text-xs font-bold px-3 py-2 rounded-lg transition"
+          className="bg-brand hover:bg-brand-deep text-brand-contrast text-xs font-bold px-3 py-2 rounded-lg transition"
         >
           Avaliar
         </button>
@@ -100,7 +100,7 @@ const AvaliacaoPendenteCard = ({ onVisibleChange }) => {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
           <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm p-6">
             {avaliacaoEnviada ? (
               <p className="flex items-center justify-center gap-2 text-sm font-bold text-success text-center">
@@ -157,7 +157,7 @@ const AvaliacaoPendenteCard = ({ onVisibleChange }) => {
                       <button
                         onClick={handleEnviar}
                         disabled={avaliacaoEnviando}
-                        className="flex-[2] py-2.5 bg-brand hover:bg-brand-deep disabled:opacity-60 text-white rounded-lg text-sm font-bold transition"
+                        className="flex-[2] py-2.5 bg-brand hover:bg-brand-deep disabled:opacity-60 text-brand-contrast rounded-lg text-sm font-bold transition"
                       >
                         {avaliacaoEnviando ? 'Enviando...' : 'Enviar avaliação'}
                       </button>

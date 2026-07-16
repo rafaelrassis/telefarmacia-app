@@ -14,13 +14,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 // do paciente.
 
 const STATUS_CONFIG = {
-  aguardando:           { label: 'Aguardando farmacêutico', cls: 'text-gray-500',    dot: 'bg-gray-400' },
-  aceito:               { label: 'Confirmado',              cls: 'text-blue-600',    dot: 'bg-blue-500' },
-  em_atendimento:       { label: 'Em atendimento',          cls: 'text-green-600',   dot: 'bg-green-500' },
-  concluido:            { label: 'Concluído',               cls: 'text-teal-600',  dot: 'bg-teal-500' },
-  cancelado:            { label: 'Cancelado',               cls: 'text-red-500',     dot: 'bg-red-400' },
-  expirado:             { label: 'Expirado',                cls: 'text-gray-400',    dot: 'bg-gray-300' },
-  remarcacao_pendente:  { label: 'Remarcação pendente',     cls: 'text-amber-600',   dot: 'bg-amber-400' },
+  aguardando:           { label: 'Aguardando farmacêutico', cls: 'text-muted',      dot: 'bg-line' },
+  aceito:               { label: 'Confirmado',              cls: 'text-brand-deep', dot: 'bg-brand' },
+  em_atendimento:       { label: 'Em atendimento',          cls: 'text-success',    dot: 'bg-success' },
+  concluido:            { label: 'Concluído',               cls: 'text-success',    dot: 'bg-success' },
+  cancelado:            { label: 'Cancelado',               cls: 'text-error',      dot: 'bg-error' },
+  expirado:             { label: 'Expirado',                cls: 'text-muted',      dot: 'bg-line' },
+  remarcacao_pendente:  { label: 'Remarcação pendente',     cls: 'text-alert',      dot: 'bg-alert' },
 };
 
 const PILL_CLASS = {
@@ -375,7 +375,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       {/* Modal: confirmar cancelamento de fila (com reembolso) */}
       {confirmCancelFila && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmCancelFila(null)} />
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setConfirmCancelFila(null)} />
           <div className="relative bg-canvas rounded-2xl shadow-xl p-6 w-full max-w-sm">
             <h3 className="font-bold text-ink mb-2">Cancelar consulta?</h3>
             <p className="text-sm text-muted mb-1">
@@ -396,7 +396,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               </button>
               <button onClick={handleCancelFila}
                 disabled={cancellingFilaId === confirmCancelFila.id}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-white rounded-xl hover:opacity-90 disabled:opacity-60 transition">
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-error text-error-contrast rounded-xl hover:opacity-90 disabled:opacity-60 transition">
                 {cancellingFilaId === confirmCancelFila.id ? 'Cancelando...' : 'Sim, cancelar'}
               </button>
             </div>
@@ -413,35 +413,35 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
         />
       )}
 
-      <h2 className="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Meus Agendamentos</h2>
+      <h2 className="text-2xl font-bold mb-4 text-ink border-b border-line pb-2">Meus Agendamentos</h2>
 
       {/* Filtros — farmacêutico */}
       {isPharmacist && (
         <div className="flex flex-wrap gap-3 mb-4 items-end">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">De</label>
+            <label className="text-xs text-muted font-medium">De</label>
             <input
               type="date"
               value={filterDe}
               onChange={(e) => setFilterDe(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
+              className="text-sm border border-line rounded-lg px-3 py-1.5 text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Até</label>
+            <label className="text-xs text-muted font-medium">Até</label>
             <input
               type="date"
               value={filterAte}
               onChange={(e) => setFilterAte(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
+              className="text-sm border border-line rounded-lg px-3 py-1.5 text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Status</label>
+            <label className="text-xs text-muted font-medium">Status</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none bg-white"
+              className="text-sm border border-line rounded-lg px-3 py-1.5 text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
             >
               <option value="">Todos</option>
               <option value="em_atendimento">Em atendimento</option>
@@ -453,13 +453,13 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
           {(filterDe || filterAte || filterStatus) && (
             <button
               onClick={() => { setFilterDe(''); setFilterAte(''); setFilterStatus(''); }}
-              className="text-xs text-gray-400 hover:text-gray-700 underline self-end mb-1"
+              className="text-xs text-muted hover:text-ink underline self-end mb-1"
             >
               Limpar filtros
             </button>
           )}
           {!loading && (
-            <span className="text-xs text-gray-400 self-end mb-1">
+            <span className="text-xs text-muted self-end mb-1">
               {total} {total === 1 ? 'resultado' : 'resultados'}
             </span>
           )}
@@ -470,29 +470,29 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       {!isPharmacist && (
         <div className="flex flex-wrap gap-3 mb-4 items-end">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">De</label>
+            <label className="text-xs text-muted font-medium">De</label>
             <input
               type="date"
               value={filterDe}
               onChange={(e) => setFilterDe(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
+              className="text-sm border border-line rounded-lg px-3 py-1.5 text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Até</label>
+            <label className="text-xs text-muted font-medium">Até</label>
             <input
               type="date"
               value={filterAte}
               onChange={(e) => setFilterAte(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none"
+              className="text-sm border border-line rounded-lg px-3 py-1.5 text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Status</label>
+            <label className="text-xs text-muted font-medium">Status</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none bg-white"
+              className="text-sm border border-line rounded-lg px-3 py-1.5 text-ink bg-canvas focus:ring-2 focus:ring-brand outline-none"
             >
               <option value="">Todos</option>
               <option value="aguardando">Aguardando</option>
@@ -504,13 +504,13 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
           {(filterDe || filterAte || filterStatus) && (
             <button
               onClick={() => { setFilterDe(''); setFilterAte(''); setFilterStatus(''); }}
-              className="text-xs text-gray-400 hover:text-gray-700 underline self-end mb-1"
+              className="text-xs text-muted hover:text-ink underline self-end mb-1"
             >
               Limpar filtros
             </button>
           )}
           {!loading && (
-            <span className="text-xs text-gray-400 self-end mb-1">
+            <span className="text-xs text-muted self-end mb-1">
               {total} {total === 1 ? 'resultado' : 'resultados'}
             </span>
           )}
@@ -518,9 +518,9 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
       )}
 
       {loading ? (
-        <p className="text-gray-400 text-sm italic py-4">Carregando...</p>
+        <p className="text-muted text-sm italic py-4">Carregando...</p>
       ) : appointments.length === 0 ? (
-        <p className="text-gray-500 italic">
+        <p className="text-muted italic">
           {!isPharmacist && selectedPerson
             ? `Nenhuma consulta para ${selectedPerson.nome}.`
             : 'Nenhum agendamento encontrado.'}
@@ -531,7 +531,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
             {sortedAppointments.map((app) => {
               const tipo            = app.tipo;
               const effectiveStatus = getEffectiveStatus(app);
-              const statusCfg       = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, cls: 'text-gray-500', dot: 'bg-gray-400' };
+              const statusCfg       = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, cls: 'text-muted', dot: 'bg-line' };
               const tipoBadge       = TIPO_BADGE[tipo];
               const dataHora        = app.dataHora;
               const nomeFarm        = app.farmaceutico?.name;
@@ -545,11 +545,11 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                 return (
                   <div
                     key={app.id}
-                    className={`p-4 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${isCancelled ? 'border-red-100 opacity-60' : 'border-gray-200'}`}
+                    className={`p-4 border rounded-lg bg-canvas shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition ${isCancelled ? 'border-error/30 opacity-60' : 'border-line'}`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <p className={`font-bold text-gray-800 ${isCancelled ? 'line-through' : ''}`}>
+                        <p className={`font-bold text-ink ${isCancelled ? 'line-through' : ''}`}>
                           {new Date(dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                         </p>
                         {tipoBadge && (
@@ -558,13 +558,13 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">Paciente: {app.patient?.name ?? '—'}</p>
+                      <p className="text-sm text-muted">Paciente: {app.patient?.name ?? '—'}</p>
                       <p className="text-sm font-semibold mt-1 flex items-center gap-1.5">
                         <span className={`w-2 h-2 rounded-full inline-block shrink-0 ${statusCfg.dot}`} />
                         <span className={statusCfg.cls}>{statusCfg.label}</span>
                       </p>
                       {app.creditoDebitado != null && (
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-muted mt-0.5">
                           R$ {app.creditoDebitado.toFixed(2).replace('.', ',')} debitados
                         </p>
                       )}
@@ -572,7 +572,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                     <div className="flex gap-2 shrink-0 flex-wrap">
                       <button
                         onClick={() => setViewingConsulta({ id: app.id, tipo })}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-brand border border-brand-wash rounded-lg text-[13px] font-semibold whitespace-nowrap"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-canvas text-brand border border-brand-wash rounded-lg text-[13px] font-semibold whitespace-nowrap"
                       >
                         <Eye className="w-3.5 h-3.5" /> Ver detalhes
                       </button>
@@ -596,7 +596,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                   }`}
                 >
                   {/* Data em destaque */}
-                  <div className={`shrink-0 w-14 text-center rounded-lg py-1.5 ${eAgora ? 'bg-success text-white' : 'bg-surface text-ink'}`}>
+                  <div className={`shrink-0 w-14 text-center rounded-lg py-1.5 ${eAgora ? 'bg-success text-success-contrast' : 'bg-surface text-ink'}`}>
                     <p className="font-heading text-lg font-bold leading-none">{dia}</p>
                     <p className="text-[10px] uppercase tracking-wide leading-none mt-1">{mes}</p>
                   </div>
@@ -672,7 +672,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
                         (Array.isArray(app.receita) && app.receita.length > 0 || app.receitaPdfUrl) && (
                         <button
                           onClick={() => setViewingReceita({ id: app.id, tipo, data: app })}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-lg text-xs font-bold whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-brand-contrast rounded-lg text-xs font-bold whitespace-nowrap"
                         >
                           <FileText className="w-3.5 h-3.5" /> Ver receita
                         </button>
@@ -700,7 +700,7 @@ const MyAppointments = ({ onCancelled, selectedPerson = null, refreshKey = 0 }) 
               <button
                 onClick={handleLoadMore}
                 disabled={loadingMore}
-                className="px-6 py-2.5 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition text-gray-600"
+                className="px-6 py-2.5 text-sm font-semibold border border-line rounded-xl hover:bg-surface disabled:opacity-50 transition text-muted"
               >
                 {loadingMore ? 'Carregando...' : 'Carregar mais'}
               </button>

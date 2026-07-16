@@ -163,7 +163,7 @@ const AlterarSenhaForm = () => {
       <button
         type="submit"
         disabled={saving || !novaSenha || !confirmarSenha || (hasPassword && !senhaAtual)}
-        className="w-full py-2.5 bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold rounded-xl transition text-sm inline-flex items-center justify-center gap-2"
+        className="w-full py-2.5 bg-brand hover:bg-brand-deep disabled:opacity-50 text-brand-contrast font-bold rounded-xl transition text-sm inline-flex items-center justify-center gap-2"
       >
         <Lock className="w-4 h-4" />
         {saving ? 'Salvando...' : hasPassword ? 'Alterar senha' : 'Definir senha'}

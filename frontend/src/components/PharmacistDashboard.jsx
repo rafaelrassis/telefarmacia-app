@@ -282,7 +282,7 @@ const PharmacistDashboard = () => {
                   </div>
                   <button
                     onClick={() => setShowDocForm(true)}
-                    className="shrink-0 bg-brand hover:bg-brand-deep text-white text-xs font-bold px-4 py-2 rounded-lg transition"
+                    className="shrink-0 bg-brand hover:bg-brand-deep text-brand-contrast text-xs font-bold px-4 py-2 rounded-lg transition"
                   >
                     Enviar
                   </button>

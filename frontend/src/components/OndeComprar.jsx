@@ -92,7 +92,7 @@ const OndeComprar = ({ parceiros = [], consultaId, itens = [], token }) => {
                 <button
                   onClick={() => handleClique({ pharmacyId: p.id, tipo: 'home' })}
                   disabled={loadingClique[p.id]}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand hover:bg-brand-deep text-white rounded-lg text-xs font-bold whitespace-nowrap shrink-0 disabled:opacity-70 transition"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand hover:bg-brand-deep text-brand-contrast rounded-lg text-xs font-bold whitespace-nowrap shrink-0 disabled:opacity-70 transition"
                 >
                   {loadingClique[p.id] ? '...' : (<><ExternalLink className="w-3 h-3" />Visitar farmácia</>)}
                 </button>
