@@ -92,6 +92,16 @@ export const AuthProvider = ({ children }) => {
     } catch {}
   };
 
+  // Atualiza token/usuário sem passar pela lógica de seleção de ambiente do
+  // login — usado após ações que emitem um novo JWT para a sessão já ativa
+  // (ex.: alterar/definir senha, que invalida o token anterior).
+  const updateSession = (jwtToken, userData) => {
+    localStorage.setItem(STORAGE_TOKEN, jwtToken);
+    localStorage.setItem(STORAGE_USER, JSON.stringify(userData));
+    setToken(jwtToken);
+    setUser(userData);
+  };
+
   const logout = () => {
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
@@ -112,6 +122,7 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       refreshUser,
+      updateSession,
       setActiveEnv,
       switchEnv,
     }}>

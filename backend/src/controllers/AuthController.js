@@ -7,7 +7,7 @@ import { validateCrf } from '../utils/crfValidation.js';
 const prisma = new PrismaClient();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const isAdminEmail = (email) => {
+export const isAdminEmail = (email) => {
   const adminEmails = (process.env.ADMIN_EMAILS || '')
     .split(',')
     .map((e) => e.trim())
@@ -15,12 +15,19 @@ const isAdminEmail = (email) => {
   return adminEmails.includes(email);
 };
 
-const signToken = (user) =>
+export const signToken = (user) =>
   jwt.sign(
     { id: user.id, email: user.email, role: user.role, isAdmin: isAdminEmail(user.email) },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
+
+// Nunca expor o hash da senha ao cliente — troca pelo booleano que a UI
+// precisa para decidir entre "Alterar senha" e "Definir senha" (Fluxo 3).
+export const sanitizeUser = (user) => {
+  const { password, ...safe } = user;
+  return { ...safe, hasPassword: Boolean(password) };
+};
 
 // ── Google OAuth ────────────────────────────────────────────────────────────
 
@@ -54,7 +61,7 @@ export const googleLogin = async (req, res) => {
 
     return res.status(200).json({
       token: signToken(user),
-      user: { ...user, isAdmin: isAdminEmail(user.email) },
+      user: { ...sanitizeUser(user), isAdmin: isAdminEmail(user.email) },
       isNewUser,
     });
   } catch (error) {
@@ -96,7 +103,7 @@ export const register = async (req, res) => {
       success: true,
       message: 'Usuário registrado com sucesso.',
       token: signToken(user),
-      user: { ...user, isAdmin: false },
+      user: { ...sanitizeUser(user), isAdmin: false },
       isNewUser: true,
     });
   } catch (error) {
@@ -129,7 +136,7 @@ export const login = async (req, res) => {
 
     return res.status(200).json({
       token: signToken(user),
-      user: { ...user, isAdmin: isAdminEmail(user.email) },
+      user: { ...sanitizeUser(user), isAdmin: isAdminEmail(user.email) },
       isNewUser: false,
     });
   } catch (error) {
@@ -148,7 +155,7 @@ export const getMe = async (req, res) => {
     });
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
     return res.status(200).json({
-      ...user,
+      ...sanitizeUser(user),
       isAdmin: isAdminEmail(user.email),
       token: signToken(user),
     });
@@ -192,7 +199,7 @@ export const completeOnboarding = async (req, res) => {
 
     return res.status(200).json({
       message: 'Perfil atualizado com sucesso.',
-      user: { ...updatedUser, isAdmin: isAdminEmail(updatedUser.email) },
+      user: { ...sanitizeUser(updatedUser), isAdmin: isAdminEmail(updatedUser.email) },
       token: signToken(updatedUser),
     });
   } catch (error) {

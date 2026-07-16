@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import Modal from '../ui/Modal.jsx';
 import TermoConsentimento from '../TermoConsentimento.jsx';
 import ExcluirContaModal from '../ExcluirContaModal.jsx';
+import AlterarSenhaForm from '../AlterarSenhaForm.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -376,6 +377,10 @@ const PerfilModal = ({ onClose }) => {
                 </div>
               </>
             )}
+
+            {/* Segurança — paciente e farmacêutico */}
+            <div className={sec}><Lock className="w-3.5 h-3.5" /> Segurança</div>
+            <AlterarSenhaForm />
 
             {/* Consentimento — só paciente */}
             {!isFarm && (

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import RedefinirSenhaPage from './pages/RedefinirSenhaPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SelecionarPerfilPage from './pages/SelecionarPerfilPage.jsx';
 import InviteRegistro from './components/InviteRegistro.jsx';
@@ -21,6 +22,7 @@ function App() {
         <Route element={<Layout />}>
           <Route index element={<LandingPage />} />
           <Route path="entrar" element={<LoginPage />} />
+          <Route path="redefinir-senha" element={<RedefinirSenhaPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="selecionar-perfil" element={<SelecionarPerfilPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -13,6 +13,7 @@ import { logger } from './utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import authRoutes from './routes/authRoutes.js';
+import contaRoutes from './routes/contaRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import pharmacistRoutes from './routes/pharmacistRoutes.js';
 import pacienteRoutes from './routes/pacienteRoutes.js';
@@ -112,6 +113,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api', contaRoutes);
 app.use('/api', userRoutes);
 app.use('/api', pharmacistRoutes);
 app.use('/api', pacienteRoutes);

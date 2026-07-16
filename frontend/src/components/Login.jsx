@@ -3,6 +3,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PharmacistSignupWizard from './pharmacist/PharmacistSignupWizard.jsx';
+import EsqueciSenhaForm from './EsqueciSenhaForm.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -146,6 +147,7 @@ const Login = ({ onModeChange }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [profile, setProfile] = useState('paciente'); // 'paciente' | 'farmaceutico'
   const [error, setError] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   useEffect(() => {
     onModeChange?.(mode);
@@ -209,6 +211,8 @@ const Login = ({ onModeChange }) => {
           </p>
           <PharmacistSignupWizard embedded />
         </div>
+      ) : showForgotPassword ? (
+        <EsqueciSenhaForm onVoltar={() => setShowForgotPassword(false)} />
       ) : (
         <>
           {/* Tab switcher */}
@@ -255,7 +259,20 @@ const Login = ({ onModeChange }) => {
               )}
             </div>
           ) : (
-            <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
+            <>
+              <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} />
+              {mode === 'login' && (
+                <p className="text-center text-xs mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-brand-deep font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </p>
+              )}
+            </>
           )}
         </>
       )}

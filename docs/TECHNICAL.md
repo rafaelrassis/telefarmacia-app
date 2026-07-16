@@ -26,6 +26,7 @@
    - 5.4 [Ciclo de vida de uma consulta (fila)](#54-ciclo-de-vida-de-uma-consulta-fila)
    - 5.5 [Emissão e distribuição de receita](#55-emissão-e-distribuição-de-receita)
    - 5.6 [Pagamentos e carteira](#56-pagamentos-e-carteira)
+   - 5.7 [Alterar e recuperar senha](#57-alterar-e-recuperar-senha)
 6. [Modelo de segurança](#6-modelo-de-segurança)
    - 6.1 [Isolamento de dados entre usuários](#61-isolamento-de-dados-entre-usuários)
    - 6.2 [Rate limiting](#62-rate-limiting)
@@ -116,6 +117,8 @@ jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
 
 O frontend armazena o token em `localStorage` sob a chave `@Telefarmacia:token` e o envia em cada requisição como `Authorization: Bearer <token>`.
 
+Não existe tabela de sessões — a invalidação de tokens antigos após troca/reset de senha (§5.7) é feita comparando o `iat` do JWT com `User.passwordChangedAt` a cada requisição autenticada (uma consulta extra, indexada por PK, dentro de `authMiddleware`).
+
 #### Google OAuth
 
 O fluxo usa `google-auth-library` para verificar o `id_token` enviado pelo frontend (obtido via `@react-oauth/google`). Se o usuário não existir, é criado automaticamente. Se existir com e-mail/senha, o `googleId` é vinculado ao cadastro existente.
@@ -152,8 +155,18 @@ if (!req.user || !emails.includes(req.user.email.toLowerCase())) {
 | POST | `/auth/google` | Login/cadastro via Google OAuth |
 | GET | `/auth/me` | Retorna dados do usuário autenticado |
 | PUT | `/auth/onboarding` | Marca `onboardingConcluido` no perfil |
+| POST | `/auth/esqueci-senha` | Gera token de reset e envia e-mail (sempre 200, mensagem genérica) |
+| POST | `/auth/redefinir-senha` | Consome o token e define nova senha |
 
-Rate limiter: 20 tentativas por IP a cada 15 min.
+Rate limiter: 20 tentativas por IP a cada 15 min (todo `/api/auth/*`) + limite dedicado de `/auth/esqueci-senha` (ver §6.2).
+
+---
+
+#### `/api/conta` — PasswordController
+
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| POST | `/conta/alterar-senha` | Sim | Altera senha (exige `senhaAtual` se o usuário já tiver uma) ou define a primeira senha local de uma conta só-Google |
 
 ---
 
@@ -314,12 +327,15 @@ Todo o ciclo de vida das consultas (`FilaAgendada`, `FilaUrgente`) é controlado
 ### 3.1 Schema Prisma
 
 #### `User`
-Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` não existe no schema — é derivada do campo `adminEmails` em `SystemConfig` ou verificada por lista de e-mails no `adminMiddleware`.
+Usuário central. Pode ter role `PACIENTE` ou `FARMACEUTICO`. A flag `isAdmin` não existe no schema — é derivada do campo `adminEmails` em `SystemConfig` ou verificada por lista de e-mails no `adminMiddleware`. `password` é opcional (`null` para contas só-Google); `passwordChangedAt` é gravado a cada troca/reset de senha e usado por `authMiddleware` para invalidar tokens emitidos antes dessa data (§5.7).
 
 Relações:
 - `1:1` com `PacienteProfile` ou `PharmacistProfile`
 - `1:1` com `Carteira`
-- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`, `PushSubscription` (Web Push), `AdminAuditLog`
+- `1:N` com `FilaAgendada`, `FilaUrgente`, `Availability`, `WeeklySchedule`, `BloqueioAgenda`, `Notificacao`, `DependentProfile`, `ConsentRecord`, `PushSubscription` (Web Push), `AdminAuditLog`, `PasswordReset`
+
+#### `PasswordReset`
+Token de redefinição de senha (Fluxo "esqueci minha senha"). Só o hash SHA-256 do token é persistido em `tokenHash` (`@unique`); o token em claro só existe em memória e no e-mail enviado. `expiresAt` é 30 min após a criação; `usedAt` marca uso único — ao gerar um novo token para o mesmo usuário, quaisquer tokens anteriores ainda ativos (`usedAt: null`) são marcados como usados antes da criação.
 
 #### `PacienteProfile`
 Dados clínicos e pessoais do paciente. Campos de endereço são opcionais (preenchidos no onboarding). `onboardingConcluido` é `false` até o paciente completar o wizard de 3 etapas.
@@ -457,6 +473,8 @@ Tabelas independentes:
 | `20260703220000_consent_record` | ConsentRecord |
 | `20260703230000_whatsapp_remarcacao_retorno` | Campos de remarcação e retorno sugerido |
 | `20260706172558_remove_legacy_agendamento_flow` | Remove `Appointment`, enum `AppointmentStatus` e `PharmacistProfile.calendarEmbedUrl` — o fluxo de agendamento com pagamento Stripe-like e Google Meet foi descontinuado. `Availability`/`WeeklySchedule` seguem em uso pela agenda própria do farmacêutico (bloqueios, geração de slots) |
+| `20260715180000_baseline` | Squash do histórico de migrations acima num único baseline (schema completo até essa data) |
+| `20260716033645_password_reset` | Modelo `PasswordReset` e `User.passwordChangedAt` (alterar/recuperar senha) |
 
 Scripts manuais em `backend/scripts/` adicionam as colunas raw (`triagem`, `observacoes`, `receita`, `receita_pdf_url`, `motivo`, `finalizacao`) com `ALTER TABLE … ADD COLUMN IF NOT EXISTS`.
 
@@ -746,6 +764,48 @@ O sistema usa uma **carteira virtual** simulada (sem gateway real em produção)
 
 ---
 
+### 5.7 Alterar e recuperar senha
+
+Três fluxos, um endpoint autenticado (`PasswordController.alterarSenha`) e dois públicos (`esqueciSenha`/`redefinirSenha`), sem tabela de sessões — a invalidação de tokens antigos é feita via `User.passwordChangedAt` (ver §2.2).
+
+```
+Fluxo 1/3 — Alterar/definir senha (logado)
+[Frontend — Segurança]
+    │
+    └─ POST /conta/alterar-senha { senhaAtual?, novaSenha, confirmarSenha }
+           │
+           ├─ password existente? → bcrypt.compare(senhaAtual) → 400 se inválida
+           ├─ validateNewPassword (min 8, ≠ atual, ≠ e-mail, não óbvia)
+           ├─ bcrypt.hash(novaSenha, 12) → User.password
+           ├─ User.passwordChangedAt = now()   → invalida tokens com iat anterior
+           ├─ log_acoes: PASSWORD_CHANGED | PASSWORD_SET
+           ├─ e-mail de notificação (assíncrono, não bloqueia a resposta)
+           └─ 200 { user, token }  ← novo JWT, iat ≥ passwordChangedAt, continua válido
+
+Fluxo 2 — Esqueci minha senha (deslogado)
+[Frontend — Login → "Esqueci minha senha"]
+    │
+    └─ POST /auth/esqueci-senha { email }
+           │  (rate limit: 3/hora por IP e por e-mail, ver §6.2)
+           ├─ e-mail existe? → invalida PasswordReset ativos anteriores
+           │                   cria novo { tokenHash: sha256(token), expiresAt: +30min }
+           │                   envia e-mail com link ?token=<token em claro>
+           └─ 200 { mensagem genérica }  ← sempre, exista ou não o e-mail
+
+[Frontend — /redefinir-senha?token=...]
+    │
+    └─ POST /auth/redefinir-senha { token, novaSenha, confirmarSenha }
+           │
+           ├─ sha256(token) → busca PasswordReset (usedAt: null, expiresAt > now)
+           ├─ validateNewPassword
+           ├─ User.password + passwordChangedAt = now()  → derruba sessões antigas
+           ├─ PasswordReset.usedAt = now()  → uso único
+           ├─ log_acoes: PASSWORD_RESET
+           └─ 200 { mensagem }
+```
+
+---
+
 ## 6. Modelo de segurança
 
 ### 6.1 Isolamento de dados entre usuários
@@ -785,7 +845,10 @@ Isso impede que um farmacêutico acesse a triagem (dados de saúde) ou receita d
 | Grupo | Limite | Janela |
 |-------|--------|--------|
 | `/api/auth/*` | 20 req/IP | 15 min |
+| `/api/auth/esqueci-senha` | 3 req/IP **e** 3 req/e-mail (camadas independentes, a mais restritiva vale) | 1 hora |
 | Demais | Sem limite (implícito) | — |
+
+Acima do limite de `/esqueci-senha`, a resposta continua `200` com a mesma mensagem genérica do fluxo normal — o rate limit nunca é revelado ao cliente (`handler` customizado em `src/middlewares/passwordResetLimiter.js`, ver §5.7).
 
 ---
 
@@ -806,6 +869,8 @@ A exclusão de conta:
 2. Pseudonimiza nome e e-mail
 3. Remove dados sensíveis (`cpf`, `telefone`, dados de saúde)
 4. Preserva registros financeiros para obrigações legais (art. 16 LGPD)
+
+**Trilha de auditoria de senha:** toda troca/reset/definição de senha grava um evento em `log_acoes` (`usuario_id`, `role`, `ip`, timestamp) com `acao` igual a `PASSWORD_CHANGED` (Fluxo 1), `PASSWORD_RESET` (Fluxo 2) ou `PASSWORD_SET` (Fluxo 3 — primeira senha de uma conta só-Google). Ver `PasswordController.js` e §5.7.
 
 ---
 
