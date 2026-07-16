@@ -87,6 +87,14 @@ export const googleLogin = async (req, res) => {
       });
     }
 
+    // Re-busca com os perfis — o objeto retornado ao cliente precisa conter
+    // pacienteProfile/pharmacistProfile, senão o frontend conclui que o
+    // cadastro nunca foi feito (gate hasProfile do PatientDashboard).
+    user = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { pharmacistProfile: true, pacienteProfile: true },
+    });
+
     return res.status(200).json({
       token: signToken(user),
       user: { ...sanitizeUser(user), isAdmin: isAdminEmail(user.email) },
