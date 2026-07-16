@@ -8,13 +8,11 @@ import ConfirmarEmailPage from './pages/ConfirmarEmailPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SelecionarPerfilPage from './pages/SelecionarPerfilPage.jsx';
 import InviteRegistro from './components/InviteRegistro.jsx';
-import InstallPrompt from './components/InstallPrompt.jsx';
 import PWAReloadPrompt from './components/PWAReloadPrompt.jsx';
 
 function App() {
   return (
     <>
-      <InstallPrompt />
       <PWAReloadPrompt />
       <Routes>
         {/* Rota pública sem layout: onboarding via convite */}

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, User, ChevronDown, Menu, X, CheckCircle2, FileText, Wallet } from 'lucide-react';
+import { Bell, User, ChevronDown, Menu, X, CheckCircle2, FileText, Wallet, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt.js';
 import PerfilModal from './PerfilModal.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -34,6 +35,29 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPerfil, setShowPerfil]     = useState(false);
   const dropRef = useRef(null);
+
+  // ── Instalar app ─────────────────────────────────────────────────────────
+  const { isIOS, isStandalone, canInstall, promptInstall } = useInstallPrompt();
+  const [showIOSTip, setShowIOSTip] = useState(false);
+  const iosTipRef = useRef(null);
+  const showInstallButton = !isStandalone && (canInstall || isIOS);
+
+  const handleInstallClick = async () => {
+    if (canInstall) {
+      await promptInstall();
+    } else if (isIOS) {
+      setShowIOSTip((v) => !v);
+    }
+  };
+
+  useEffect(() => {
+    if (!showIOSTip) return;
+    const handler = (e) => {
+      if (iosTipRef.current && !iosTipRef.current.contains(e.target)) setShowIOSTip(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showIOSTip]);
 
   // ── Notificações ─────────────────────────────────────────────────────────
   const [notifOpen,    setNotifOpen]    = useState(false);
@@ -121,10 +145,39 @@ const Navbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
           {/* Logo */}
-          {user
-            ? <Link to="/dashboard"><Logo linked /></Link>
-            : <Link to="/"><Logo linked /></Link>
-          }
+          <div className="flex items-center gap-3">
+            {user
+              ? <Link to="/dashboard"><Logo linked /></Link>
+              : <Link to="/"><Logo linked /></Link>
+            }
+
+            {/* Instalar app */}
+            {showInstallButton && (
+              <div className="relative" ref={iosTipRef}>
+                <button
+                  onClick={handleInstallClick}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-deep border border-brand/30 bg-brand-wash px-2.5 py-1.5 rounded-lg hover:bg-brand/10 transition"
+                  aria-label="Instalar aplicativo"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Instalar</span>
+                </button>
+
+                {showIOSTip && (
+                  <div className="absolute left-0 top-full mt-2 w-64 bg-canvas border border-line rounded-xl shadow-lg p-3 z-50 text-xs text-ink">
+                    Toque em <strong>Compartilhar</strong> (ícone de quadrado com seta) e depois em{' '}
+                    <strong>&quot;Adicionar à Tela de Início&quot;</strong>.
+                    <button
+                      onClick={() => setShowIOSTip(false)}
+                      className="mt-2 block text-brand-deep font-semibold"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Desktop — lado direito */}
           <div className="hidden md:flex items-center gap-3 text-sm">
