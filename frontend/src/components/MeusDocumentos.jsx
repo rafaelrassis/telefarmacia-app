@@ -73,7 +73,7 @@ const MeusDocumentos = ({ onClose }) => {
         />
 
         <div
-          className="relative bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-lg"
+          className="relative bg-canvas w-full sm:rounded-2xl shadow-2xl sm:max-w-lg"
           style={{
             maxHeight: '92vh',
             display: 'flex',

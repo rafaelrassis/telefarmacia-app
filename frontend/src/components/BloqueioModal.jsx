@@ -81,13 +81,13 @@ const BloqueioModal = ({ onClose, onSaved }) => {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+      <div className="bg-canvas rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-800 text-base">Novo bloqueio de agenda</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h2 className="font-bold text-ink text-base">Novo bloqueio de agenda</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-xl leading-none transition"
+            className="text-muted hover:text-ink text-xl leading-none transition"
           >
             ×
           </button>
@@ -95,33 +95,33 @@ const BloqueioModal = ({ onClose, onSaved }) => {
 
         {/* Conflitos detectados */}
         {conflitos && (
-          <div className="mx-6 mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <p className="text-sm font-semibold text-amber-800 mb-2">
+          <div className="mx-6 mt-4 bg-alert-wash border border-alert/20 rounded-xl p-4">
+            <p className="text-sm font-semibold text-alert mb-2">
               ⚠️ {conflitos.length} consulta{conflitos.length !== 1 ? 's' : ''} neste período
             </p>
             <ul className="space-y-1 mb-3 max-h-40 overflow-y-auto">
               {conflitos.map((c) => (
-                <li key={c.id} className="text-xs text-amber-700">
+                <li key={c.id} className="text-xs text-alert">
                   • {c.pacienteNome} — {fmtDT(c.dataHora)}{' '}
-                  <span className="text-amber-500">({c.tipo})</span>
+                  <span className="text-alert">({c.tipo})</span>
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-amber-700 mb-3">
+            <p className="text-xs text-alert mb-3">
               As consultas <strong>não serão canceladas automaticamente</strong>. Você precisará tratar cada uma individualmente.
               Ao confirmar, os pacientes serão notificados que precisam reagendar.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConflitos(null)}
-                className="flex-1 border border-amber-300 text-amber-800 text-xs font-semibold py-2 rounded-lg hover:bg-amber-100 transition"
+                className="flex-1 border border-alert/20 text-alert text-xs font-semibold py-2 rounded-lg hover:bg-alert-wash transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleSubmit(true)}
                 disabled={saving}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold py-2 rounded-lg transition"
+                className="flex-1 bg-alert hover:opacity-90 disabled:opacity-50 text-white text-xs font-bold py-2 rounded-lg transition"
               >
                 {saving ? 'Salvando...' : 'Confirmar assim mesmo'}
               </button>
@@ -136,32 +136,32 @@ const BloqueioModal = ({ onClose, onSaved }) => {
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div
                 onClick={() => setDiaInteiro((v) => !v)}
-                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full border-2 border-transparent transition-colors ${diaInteiro ? 'bg-brand' : 'bg-gray-300'}`}
+                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full border-2 border-transparent transition-colors ${diaInteiro ? 'bg-brand' : 'bg-line'}`}
               >
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${diaInteiro ? 'translate-x-4' : 'translate-x-0'}`} />
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-canvas shadow transition duration-200 ${diaInteiro ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
-              <span className="text-sm text-gray-700">Dia inteiro</span>
+              <span className="text-sm text-muted">Dia inteiro</span>
             </label>
 
             {/* Data início */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Data início</label>
+                <label className="block text-xs font-medium text-muted mb-1">Data início</label>
                 <input
                   type="date"
                   value={dataInicio}
                   min={todayStr()}
                   onChange={(e) => setDataInicio(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
+                  className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
                 />
               </div>
               {!diaInteiro && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Hora início</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Hora início</label>
                   <select
                     value={horaInicio}
                     onChange={(e) => setHoraInicio(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none bg-white"
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none bg-canvas"
                   >
                     {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -172,22 +172,22 @@ const BloqueioModal = ({ onClose, onSaved }) => {
             {/* Data fim */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Data fim</label>
+                <label className="block text-xs font-medium text-muted mb-1">Data fim</label>
                 <input
                   type="date"
                   value={dataFim}
                   min={dataInicio}
                   onChange={(e) => setDataFim(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
+                  className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
                 />
               </div>
               {!diaInteiro && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Hora fim</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Hora fim</label>
                   <select
                     value={horaFim}
                     onChange={(e) => setHoraFim(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none bg-white"
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none bg-canvas"
                   >
                     {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -197,24 +197,24 @@ const BloqueioModal = ({ onClose, onSaved }) => {
 
             {/* Motivo */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Motivo (opcional)</label>
+              <label className="block text-xs font-medium text-muted mb-1">Motivo (opcional)</label>
               <input
                 type="text"
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 placeholder="Ex: Férias, consulta médica, almoço..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
+                className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none"
               />
             </div>
 
             {erro && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erro}</p>
+              <p className="text-xs text-error bg-error-wash border border-error/20 rounded-lg px-3 py-2">{erro}</p>
             )}
 
             <div className="flex gap-2 pt-1">
               <button
                 onClick={onClose}
-                className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition"
+                className="flex-1 border border-line text-muted text-sm font-medium py-2.5 rounded-xl hover:bg-surface transition"
               >
                 Cancelar
               </button>

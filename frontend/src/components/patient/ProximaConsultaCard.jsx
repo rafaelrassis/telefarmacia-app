@@ -47,7 +47,7 @@ const ProximaConsultaCard = ({ token, onCancelledExtra, onAgendar }) => {
           </button>
           <button
             onClick={() => setReminderDetalhes({ id: proximaConsulta.id, tipo: proximaConsulta.tipo, autoRemarcar: true })}
-            className="flex-1 bg-white text-brand-deep text-sm font-bold rounded-lg py-2 transition hover:bg-white/90"
+            className="flex-1 bg-canvas text-brand-deep text-sm font-bold rounded-lg py-2 transition hover:opacity-90"
           >
             Remarcar
           </button>

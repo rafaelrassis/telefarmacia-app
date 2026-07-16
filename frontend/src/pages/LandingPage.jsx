@@ -177,8 +177,11 @@ const SpecialtiesSection = () => (
             <Icon className="w-7 h-7" strokeWidth={1.75} />
           </div>
           <div>
-            <h3 className="font-heading font-bold text-ink text-base mb-1.5">{label}</h3>
-            <p className="text-xs text-muted leading-relaxed">{desc}</p>
+            {/* Texto fixo (não usa tokens de tema): o card mantém fundo pastel
+                fixo por categorização, então o texto precisa permanecer escuro
+                em ambos os temas para continuar legível sobre ele. */}
+            <h3 className="font-heading font-bold text-slate-800 text-base mb-1.5">{label}</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
           </div>
         </Link>
       ))}

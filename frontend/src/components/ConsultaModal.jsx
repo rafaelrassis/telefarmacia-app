@@ -58,7 +58,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="absolute inset-0 bg-ink/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Painel de trabalho — quase tela cheia, 3 zonas: header/corpo/footer fixos */}
       <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-6xl h-full sm:h-[95vh] flex flex-col overflow-hidden">

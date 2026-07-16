@@ -109,10 +109,10 @@ const exportPDF = (items, de, ate, metricas) => {
 // ── Subcomponentes ────────────────────────────────────────────────────────────
 
 const MetricCard = ({ label, value, sub, subColor, highlight }) => (
-  <div className={`border rounded-xl p-4 flex flex-col gap-1 min-w-0 ${highlight ? 'bg-brand-wash border-brand/30' : 'bg-white border-gray-200'}`}>
-    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest truncate">{label}</p>
-    <p className={`text-xl font-bold truncate ${highlight ? 'text-brand-deep' : 'text-gray-900'}`}>{value}</p>
-    {sub && <p className={`text-xs font-medium truncate ${subColor ?? 'text-gray-400'}`}>{sub}</p>}
+  <div className={`border rounded-xl p-4 flex flex-col gap-1 min-w-0 ${highlight ? 'bg-brand-wash border-brand/30' : 'bg-canvas border-line'}`}>
+    <p className="text-[10px] font-semibold text-muted uppercase tracking-widest truncate">{label}</p>
+    <p className={`text-xl font-bold truncate ${highlight ? 'text-brand-deep' : 'text-ink'}`}>{value}</p>
+    {sub && <p className={`text-xs font-medium truncate ${subColor ?? 'text-muted'}`}>{sub}</p>}
   </div>
 );
 
@@ -138,7 +138,7 @@ const BarChart = ({ data }) => {
       <div className="flex overflow-hidden mt-1" style={{ gap: data.length > 30 ? 1 : 3 }}>
         {data.map((d, i) => (
           <div key={d.data} className="shrink-0 text-center" style={{ flex: 1, minWidth: data.length > 60 ? 4 : 8 }}>
-            {i % step === 0 && <span className="text-[9px] text-gray-400 leading-none">{d.label}</span>}
+            {i % step === 0 && <span className="text-[9px] text-muted leading-none">{d.label}</span>}
           </div>
         ))}
       </div>
@@ -149,7 +149,7 @@ const BarChart = ({ data }) => {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 const TIPO_LABEL = { agendada: 'Agendada', urgente: 'Urgente' };
-const TIPO_CLS   = { agendada: 'bg-brand-wash text-brand-deep', urgente: 'bg-red-100 text-red-700' };
+const TIPO_CLS   = { agendada: 'bg-brand-wash text-brand-deep', urgente: 'bg-error-wash text-error' };
 
 const GanhosTab = () => {
   const { token } = useAuth();
@@ -282,9 +282,9 @@ const GanhosTab = () => {
   const m = gData?.metricas;
   const hasPrev     = m?.prevTotal > 0;
   const compSign    = (m?.comparativo ?? 0) > 0 ? '+' : '';
-  const compColor   = (m?.comparativo ?? 0) > 0 ? 'text-green-600'
-                    : (m?.comparativo ?? 0) < 0 ? 'text-red-500'
-                    : 'text-gray-400';
+  const compColor   = (m?.comparativo ?? 0) > 0 ? 'text-success'
+                    : (m?.comparativo ?? 0) < 0 ? 'text-error'
+                    : 'text-muted';
   const compDisplay = hasPrev || (m?.comparativo ?? 0) !== 0 ? `${compSign}${m?.comparativo}%` : '—';
   const compSub     = hasPrev || (m?.comparativo ?? 0) !== 0 ? 'vs período anterior' : 'sem dados anteriores';
 
@@ -304,7 +304,7 @@ const GanhosTab = () => {
             className={`px-3.5 py-1.5 text-sm font-medium rounded-lg transition ${
               preset === p.id
                 ? 'bg-brand text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-brand'
+                : 'bg-canvas border border-line text-muted hover:border-brand'
             }`}
           >
             {p.label}
@@ -314,14 +314,14 @@ const GanhosTab = () => {
         {preset === 'custom' && (
           <>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 font-medium">De</label>
+              <label className="text-xs text-muted font-medium">De</label>
               <input type="date" value={customDe} max={today} onChange={(e) => setCustomDe(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
+                className="text-sm border border-line rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 font-medium">Até</label>
+              <label className="text-xs text-muted font-medium">Até</label>
               <input type="date" value={customAte} min={customDe || undefined} max={today} onChange={(e) => setCustomAte(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
+                className="text-sm border border-line rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand outline-none" />
             </div>
           </>
         )}
@@ -333,7 +333,7 @@ const GanhosTab = () => {
           <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : fetchError ? (
-        <p className="text-red-500 text-sm py-4 text-center">{fetchError}</p>
+        <p className="text-error text-sm py-4 text-center">{fetchError}</p>
       ) : !gData ? null : (
         <>
           {/* ── Totalizadores globais ── */}
@@ -348,7 +348,7 @@ const GanhosTab = () => {
               label="Repassado no mês"
               value={fmtBRL(m.repassadoMes ?? 0)}
               sub="pagamentos recebidos"
-              subColor="text-green-600"
+              subColor="text-success"
             />
             <MetricCard
               label="Total no ano"
@@ -380,15 +380,15 @@ const GanhosTab = () => {
 
           {/* ── Gráfico ── */}
           {gData.grafico.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-canvas border border-line rounded-xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">Ganhos por dia</h3>
+                <h3 className="text-sm font-semibold text-muted">Ganhos por dia</h3>
                 {m.totalRecebido > 0 && (
-                  <p className="text-xs text-gray-400">Máx: {fmtBRL(Math.max(...gData.grafico.map((d) => d.total)))}</p>
+                  <p className="text-xs text-muted">Máx: {fmtBRL(Math.max(...gData.grafico.map((d) => d.total)))}</p>
                 )}
               </div>
               {m.totalRecebido === 0 ? (
-                <p className="text-sm text-gray-400 italic text-center py-6">Nenhum ganho no período para exibir</p>
+                <p className="text-sm text-muted italic text-center py-6">Nenhum ganho no período para exibir</p>
               ) : (
                 <BarChart data={gData.grafico} />
               )}
@@ -396,16 +396,16 @@ const GanhosTab = () => {
           )}
 
           {/* ── Repasses recebidos ── */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700">Repasses</h3>
+          <div className="bg-canvas border border-line rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-line">
+              <h3 className="text-sm font-semibold text-muted">Repasses</h3>
             </div>
             {loadingRepasses ? (
               <div className="flex justify-center py-8">
                 <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
               </div>
             ) : !repassesData ? (
-              <p className="text-sm text-gray-400 text-center py-8">Erro ao carregar repasses.</p>
+              <p className="text-sm text-muted text-center py-8">Erro ao carregar repasses.</p>
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3 p-5">
@@ -418,7 +418,7 @@ const GanhosTab = () => {
                   <MetricCard
                     label="Total repassado"
                     value={fmtBRL(repassesData.resumo.total_repassado)}
-                    subColor="text-green-600"
+                    subColor="text-success"
                   />
                   <MetricCard
                     label="Líquido acumulado"
@@ -427,18 +427,18 @@ const GanhosTab = () => {
                   />
                 </div>
                 {repassesData.data.length > 0 && (
-                  <div className="divide-y divide-gray-50 border-t border-gray-100">
+                  <div className="divide-y divide-line border-t border-line">
                     {repassesData.data.map((r) => (
                       <div key={r.id} className="px-5 py-3 flex items-center justify-between gap-4">
                         <div>
-                          <p className="text-sm text-gray-700">
+                          <p className="text-sm text-muted">
                             {fmtDate(r.periodoInicio)} – {fmtDate(r.periodoFim)}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted">
                             recebido em {fmtDate(r.criadoEm)}{r.referencia ? ` · ref: ${r.referencia}` : ''}
                           </p>
                         </div>
-                        <p className="text-sm font-bold text-green-700">{fmtBRL(r.valor)}</p>
+                        <p className="text-sm font-bold text-success">{fmtBRL(r.valor)}</p>
                       </div>
                     ))}
                   </div>
@@ -448,11 +448,11 @@ const GanhosTab = () => {
           </div>
 
           {/* ── Lista detalhada ── */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-3">
+          <div className="bg-canvas border border-line rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-line flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-gray-700">Detalhamento</h3>
-                <span className="text-xs text-gray-400">
+                <h3 className="text-sm font-semibold text-muted">Detalhamento</h3>
+                <span className="text-xs text-muted">
                   {gData.lista.total} {gData.lista.total === 1 ? 'registro' : 'registros'}
                 </span>
               </div>
@@ -467,7 +467,7 @@ const GanhosTab = () => {
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className="text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition"
+                    className="text-xs font-semibold text-muted border border-line rounded-lg px-3 py-1.5 hover:bg-surface transition"
                   >
                     🖨 PDF
                   </button>
@@ -476,47 +476,47 @@ const GanhosTab = () => {
             </div>
 
             {gData.lista.items.length === 0 ? (
-              <div className="px-5 py-10 text-center text-sm text-gray-400 italic">
+              <div className="px-5 py-10 text-center text-sm text-muted italic">
                 Nenhuma consulta concluída no período.
               </div>
             ) : (
               <>
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-line">
                   {gData.lista.items.map((item) => (
                     <div key={item.id} className="px-5 py-3 flex items-center justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{item.paciente}</p>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${TIPO_CLS[item.tipo] ?? 'bg-gray-100 text-gray-600'}`}>
+                          <p className="text-sm font-semibold text-ink truncate">{item.paciente}</p>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${TIPO_CLS[item.tipo] ?? 'bg-surface text-muted'}`}>
                             {TIPO_LABEL[item.tipo] ?? item.tipo}
                           </span>
                           {/* Badge de repasse */}
                           {item.repassado ? (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-success-wash text-success">
                               ✓ Repassado
                             </span>
                           ) : (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-alert-wash text-alert">
                               ⏳ A receber
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <p className="text-xs text-gray-400">{fmtDateTime(item.data)}</p>
+                          <p className="text-xs text-muted">{fmtDateTime(item.data)}</p>
                           {item.repassado && item.repassadoEm && (
-                            <p className="text-xs text-green-600">· repassado em {fmtDate(item.repassadoEm)}</p>
+                            <p className="text-xs text-success">· repassado em {fmtDate(item.repassadoEm)}</p>
                           )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-bold text-brand-deep">{fmtBRL(item.ganho ?? item.valor)}</p>
                         {item.ganho != null && item.ganho !== item.valor && (
-                          <p className="text-[10px] text-gray-400 mt-0.5">{fmtBRL(item.valor)} cobrado</p>
+                          <p className="text-[10px] text-muted mt-0.5">{fmtBRL(item.valor)} cobrado</p>
                         )}
                         {item.comissaoPercentual != null && (
-                          <p className="text-[10px] text-gray-400 mt-0.5">
+                          <p className="text-[10px] text-muted mt-0.5">
                             comissão {item.comissaoPercentual}%
-                            {item.estimado && <span className="text-amber-500"> · estimado</span>}
+                            {item.estimado && <span className="text-alert"> · estimado</span>}
                           </p>
                         )}
                       </div>
@@ -525,11 +525,11 @@ const GanhosTab = () => {
                 </div>
 
                 {gData.lista.hasMore && (
-                  <div className="px-5 py-4 border-t border-gray-100 text-center">
+                  <div className="px-5 py-4 border-t border-line text-center">
                     <button
                       onClick={handleLoadMore}
                       disabled={loadingMore}
-                      className="px-5 py-2 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition text-gray-600"
+                      className="px-5 py-2 text-sm font-semibold border border-line rounded-xl hover:bg-surface disabled:opacity-50 transition text-muted"
                     >
                       {loadingMore ? 'Carregando...' : 'Carregar mais'}
                     </button>

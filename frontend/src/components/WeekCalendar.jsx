@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
 const STATUS = {
-  FILA_AGENDADA:       { label: 'Agendada (aceita)',  cls: 'bg-green-100 border-green-500 text-green-900' },
-  FILA_URGENTE:        { label: 'Urgente (aceita)',   cls: 'bg-orange-100 border-orange-400 text-orange-900' },
-  FILA_EM_ATENDIMENTO: { label: 'Em atendimento',    cls: 'bg-teal-100 border-teal-500 text-teal-900' },
+  FILA_AGENDADA:       { label: 'Agendada (aceita)',  cls: 'bg-success-wash border-success text-success' },
+  FILA_URGENTE:        { label: 'Urgente (aceita)',   cls: 'bg-alert-wash border-alert text-alert' },
+  FILA_EM_ATENDIMENTO: { label: 'Em atendimento',    cls: 'bg-brand-wash border-brand text-brand-deep' },
 };
 
 const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -110,10 +110,10 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
   const colTemplate = `52px repeat(${days.length}, 1fr)`;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <div className="bg-canvas border border-line rounded-xl overflow-hidden">
 
       {/* Seletor de visualização */}
-      <div className="flex items-center gap-1 px-4 pt-3 pb-2 border-b border-gray-100 flex-wrap">
+      <div className="flex items-center gap-1 px-4 pt-3 pb-2 border-b border-line flex-wrap">
         {VIEW_MODES.map(({ key, label }) => (
           <button
             key={key}
@@ -121,7 +121,7 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
               viewMode === key
                 ? 'bg-brand text-white'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                : 'text-muted hover:text-ink hover:bg-surface'
             }`}
           >
             {label}
@@ -130,17 +130,17 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
       </div>
 
       {/* Navegação */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-line">
         <button
           onClick={() => shiftView(-1)}
-          className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+          className="text-sm text-muted hover:text-ink px-3 py-1.5 rounded-lg hover:bg-surface transition"
         >
           ← Anterior
         </button>
-        <p className="text-sm font-semibold text-gray-800 text-center">{rangeLabel}</p>
+        <p className="text-sm font-semibold text-ink text-center">{rangeLabel}</p>
         <button
           onClick={() => shiftView(1)}
-          className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+          className="text-sm text-muted hover:text-ink px-3 py-1.5 rounded-lg hover:bg-surface transition"
         >
           Próxima →
         </button>
@@ -150,14 +150,14 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
         <div style={{ minWidth: days.length === 1 ? '320px' : '640px' }}>
 
           {/* Cabeçalho dos dias */}
-          <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: colTemplate }}>
+          <div className="grid border-b border-line" style={{ gridTemplateColumns: colTemplate }}>
             <div className="py-3" />
             {days.map((d, i) => {
               const isToday = d.toDateString() === today.toDateString();
               return (
-                <div key={i} className={`py-2 text-center border-l border-gray-100 ${isToday ? 'bg-brand-wash' : ''}`}>
-                  <p className="text-xs text-gray-400">{DAYS_PT[d.getDay()]}</p>
-                  <p className={`text-base font-bold mt-0.5 ${isToday ? 'text-brand-deep' : 'text-gray-700'}`}>
+                <div key={i} className={`py-2 text-center border-l border-line ${isToday ? 'bg-brand-wash' : ''}`}>
+                  <p className="text-xs text-muted">{DAYS_PT[d.getDay()]}</p>
+                  <p className={`text-base font-bold mt-0.5 ${isToday ? 'text-brand-deep' : 'text-muted'}`}>
                     {d.getDate()}
                   </p>
                 </div>
@@ -169,10 +169,10 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
           {HOURS.map((hour) => (
             <div
               key={hour}
-              className="grid border-b border-gray-50"
+              className="grid border-b border-line"
               style={{ gridTemplateColumns: colTemplate, minHeight: '52px' }}
             >
-              <div className="py-1 px-2 text-xs text-gray-300 leading-none pt-2">
+              <div className="py-1 px-2 text-xs text-muted leading-none pt-2">
                 {String(hour).padStart(2, '0')}h
               </div>
               {days.map((d, dayIdx) => {
@@ -182,7 +182,7 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
                 return (
                   <div
                     key={dayIdx}
-                    className={`border-l border-gray-100 p-1 relative ${isToday ? 'bg-brand-wash/40' : ''}`}
+                    className={`border-l border-line p-1 relative ${isToday ? 'bg-brand-wash/40' : ''}`}
                   >
                     {motivo && (
                       <div
@@ -222,7 +222,7 @@ const WeekCalendar = ({ appointments = [], blocks = [], onEventClick, minHour = 
       </div>
 
       {!hasAnyAppt && (
-        <div className="py-10 text-center text-sm text-gray-400">
+        <div className="py-10 text-center text-sm text-muted">
           Nenhum agendamento neste período.
         </div>
       )}

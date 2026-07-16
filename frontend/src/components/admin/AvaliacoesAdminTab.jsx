@@ -15,7 +15,7 @@ export const Estrelas = ({ nota, size = 16 }) => (
         key={n}
         width={size}
         height={size}
-        className={n <= Math.round(nota) ? 'text-amber-400' : 'text-line'}
+        className={n <= Math.round(nota) ? 'text-alert' : 'text-line'}
         fill="currentColor"
         strokeWidth={0}
       />
@@ -167,7 +167,7 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
                     <div key={n} className="flex items-center gap-2">
                       <span className="text-xs text-muted w-3">{n}</span>
                       <div className="flex-1 h-2.5 bg-surface rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-alert rounded-full" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-xs text-muted w-6 text-right">{qtd}</span>
                     </div>

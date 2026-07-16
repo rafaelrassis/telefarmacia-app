@@ -98,7 +98,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
     return (
       <div className="text-center py-8">
         <p className="text-4xl mb-3">✅</p>
-        <p className="font-bold text-gray-800">Perfil salvo com sucesso!</p>
+        <p className="font-bold text-ink">Perfil salvo com sucesso!</p>
       </div>
     );
   }
@@ -107,8 +107,8 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
     <form onSubmit={handleSubmit} className="space-y-5">
       {!compact && (
         <div className="mb-1">
-          <h2 className="font-heading text-lg font-bold text-gray-800">Complete seu cadastro</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h2 className="font-heading text-lg font-bold text-ink">Complete seu cadastro</h2>
+          <p className="text-sm text-muted mt-0.5">
             Seus dados pessoais e de contato. CPF e data de nascimento não poderão ser alterados depois.
           </p>
         </div>
@@ -116,39 +116,39 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
 
       {/* Dados pessoais */}
       <section>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Dados pessoais</p>
+        <p className="text-xs font-bold text-muted uppercase tracking-wide mb-3">Dados pessoais</p>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Nome completo *</label>
+            <label className="block text-xs font-semibold text-muted mb-1">Nome completo *</label>
             <input
               type="text"
               value={form.nome_completo}
               onChange={(e) => set('nome_completo', e.target.value)}
               placeholder="Como consta no documento"
               required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+              className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Data de nascimento *</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Data de nascimento *</label>
               <input
                 type="date"
                 value={form.data_nascimento}
                 onChange={(e) => set('data_nascimento', e.target.value)}
                 required
                 max={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Gênero *</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Gênero *</label>
               <select
                 value={form.genero}
                 onChange={(e) => set('genero', e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none bg-white"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none bg-canvas"
               >
                 <option value="">Selecione</option>
                 {GENEROS.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -158,7 +158,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">CPF *</label>
+              <label className="block text-xs font-semibold text-muted mb-1">CPF *</label>
               <input
                 type="text"
                 value={form.cpf}
@@ -166,12 +166,12 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 placeholder="000.000.000-00"
                 required
                 inputMode="numeric"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Telefone/WhatsApp <span className="font-normal text-gray-400">(opcional)</span>
+              <label className="block text-xs font-semibold text-muted mb-1">
+                Telefone/WhatsApp <span className="font-normal text-muted">(opcional)</span>
               </label>
               <input
                 type="text"
@@ -179,7 +179,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                 onChange={(e) => set('telefone', maskPhone(e.target.value))}
                 placeholder="(11) 99999-8888"
                 inputMode="numeric"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
           </div>
@@ -188,13 +188,13 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
 
       {/* Endereço */}
       <section>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-          Endereço <span className="font-normal normal-case text-gray-400">(opcional)</span>
+        <p className="text-xs font-bold text-muted uppercase tracking-wide mb-3">
+          Endereço <span className="font-normal normal-case text-muted">(opcional)</span>
         </p>
         <div className="space-y-3">
           <div className="flex gap-3">
             <div className="w-36">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">CEP</label>
+              <label className="block text-xs font-semibold text-muted mb-1">CEP</label>
               <div className="relative">
                 <input
                   type="text"
@@ -206,76 +206,76 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
                   }}
                   placeholder="00000-000"
                   inputMode="numeric"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                  className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
                 />
                 {cepLoading && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">...</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted">...</span>
                 )}
               </div>
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Logradouro</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Logradouro</label>
               <input
                 type="text"
                 value={form.logradouro}
                 onChange={(e) => set('logradouro', e.target.value)}
                 placeholder="Rua, Av., etc."
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Número</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Número</label>
               <input
                 type="text"
                 value={form.numero}
                 onChange={(e) => set('numero', e.target.value)}
                 placeholder="123"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Complemento</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Complemento</label>
               <input
                 type="text"
                 value={form.complemento}
                 onChange={(e) => set('complemento', e.target.value)}
                 placeholder="Apto, bloco..."
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Bairro</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Bairro</label>
               <input
                 type="text"
                 value={form.bairro}
                 onChange={(e) => set('bairro', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div className="col-span-1">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Cidade</label>
+              <label className="block text-xs font-semibold text-muted mb-1">Cidade</label>
               <input
                 type="text"
                 value={form.cidade}
                 onChange={(e) => set('cidade', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">UF</label>
+              <label className="block text-xs font-semibold text-muted mb-1">UF</label>
               <input
                 type="text"
                 value={form.estado}
                 onChange={(e) => set('estado', e.target.value.toUpperCase().slice(0, 2))}
                 placeholder="SP"
                 maxLength={2}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none uppercase"
+                className="w-full px-3 py-2.5 border border-line rounded-lg text-sm focus:ring-2 focus:ring-brand-wash focus:border-brand outline-none uppercase"
               />
             </div>
           </div>
@@ -283,14 +283,14 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
       </section>
 
       {/* Termos LGPD */}
-      <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+      <label className="flex items-start gap-3 p-3 border border-line rounded-lg cursor-pointer hover:bg-surface transition">
         <input
           type="checkbox"
           checked={form.aceite_termos}
           onChange={(e) => set('aceite_termos', e.target.checked)}
           className="mt-0.5 w-4 h-4 rounded accent-brand shrink-0"
         />
-        <span className="text-xs text-gray-600 leading-relaxed">
+        <span className="text-xs text-muted leading-relaxed">
           Li e aceito os{' '}
           <span className="text-brand-deep font-semibold">Termos de Uso e Política de Privacidade</span>.
           Autorizo o uso dos meus dados pessoais conforme a{' '}
@@ -299,7 +299,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
       </label>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+        <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg">{error}</p>
       )}
 
       <div className="flex gap-3 pt-1">
@@ -307,7 +307,7 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+            className="flex-1 py-2.5 border border-line rounded-xl text-sm font-semibold text-muted hover:bg-surface transition"
           >
             Agora não
           </button>

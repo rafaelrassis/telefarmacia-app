@@ -21,7 +21,7 @@ const AlertaEmergencia = ({ onFechar }) => (
     <button
       type="button"
       onClick={onFechar}
-      className="w-full max-w-[280px] py-3 rounded-lg bg-white text-error font-bold text-sm"
+      className="w-full max-w-[280px] py-3 rounded-lg bg-canvas text-error font-bold text-sm"
     >
       Fechar e cancelar
     </button>

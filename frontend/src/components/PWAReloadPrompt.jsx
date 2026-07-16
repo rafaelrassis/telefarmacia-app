@@ -23,8 +23,8 @@ const PWAReloadPrompt = () => {
   if (!offlineReady && !needRefresh) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 p-4 bg-white border border-gray-200 shadow-xl rounded-lg z-50 max-w-sm">
-      <div className="mb-3 text-gray-800 text-sm">
+    <div className="fixed bottom-4 right-4 p-4 bg-canvas border border-line shadow-xl rounded-lg z-50 max-w-sm">
+      <div className="mb-3 text-ink text-sm">
         {offlineReady ? (
           <span>App pronto para funcionar offline!</span>
         ) : (
@@ -33,11 +33,11 @@ const PWAReloadPrompt = () => {
       </div>
       <div className="flex gap-2">
         {needRefresh && (
-          <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition" onClick={() => updateServiceWorker(true)}>
+          <button className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-deep text-sm font-semibold transition" onClick={() => updateServiceWorker(true)}>
             Atualizar
           </button>
         )}
-        <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm font-semibold transition" onClick={() => close()}>
+        <button className="px-4 py-2 bg-line text-ink rounded hover:opacity-80 text-sm font-semibold transition" onClick={() => close()}>
           Fechar
         </button>
       </div>

@@ -91,7 +91,7 @@ const OverviewTab = ({ api, showToast }) => {
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+            className={`inline-block h-5 w-5 transform rounded-full bg-canvas shadow transition-transform duration-200 ${
               sistemaAberto ? 'translate-x-8' : 'translate-x-1'
             }`}
           />

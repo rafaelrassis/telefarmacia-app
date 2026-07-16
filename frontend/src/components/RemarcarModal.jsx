@@ -62,7 +62,7 @@ const RemarcarModal = ({ consulta, onClose, onRemarcado }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+        className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm"
         style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}
       >
         <div style={{ padding: '24px 24px 0' }}>

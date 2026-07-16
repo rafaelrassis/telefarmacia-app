@@ -10,7 +10,7 @@ const CadastroDependenteModal = ({
 }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-sm p-6">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h3 style={{ fontWeight: 700, fontSize: 16, color: '#111827', margin: 0 }}>Adicionar perfil</h3>
         <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>

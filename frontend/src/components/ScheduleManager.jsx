@@ -144,23 +144,23 @@ const ScheduleManager = () => {
   const grouped = groupByDate(slots);
 
   if (loadingInit) {
-    return <div className="text-gray-400 text-sm py-12 text-center">Carregando agenda...</div>;
+    return <div className="text-muted text-sm py-12 text-center">Carregando agenda...</div>;
   }
 
   return (
     <div className="space-y-5">
 
       {/* Online toggle */}
-      <div className={`rounded-2xl border p-5 transition-all duration-200 ${isOnline ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+      <div className={`rounded-2xl border p-5 transition-all duration-200 ${isOnline ? 'border-success/20 bg-success-wash' : 'border-line bg-surface'}`}>
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-              <span className={`font-bold text-sm ${isOnline ? 'text-emerald-700' : 'text-slate-500'}`}>
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? 'bg-success animate-pulse' : 'bg-line'}`} />
+              <span className={`font-bold text-sm ${isOnline ? 'text-success' : 'text-muted'}`}>
                 {isOnline ? 'Você está Online' : 'Você está Offline'}
               </span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               {isOnline
                 ? 'Pacientes podem ver você no catálogo e agendar consultas pelos seus horários.'
                 : 'Você não aparece no catálogo. Ative para receber agendamentos.'}
@@ -168,24 +168,24 @@ const ScheduleManager = () => {
           </div>
           <button
             onClick={() => setIsOnline((v) => !v)}
-            className={`relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            className={`relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${isOnline ? 'bg-success' : 'bg-line'}`}
             aria-label="Toggle online"
           >
-            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${isOnline ? 'translate-x-6' : 'translate-x-1'}`} />
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-canvas shadow-sm transition-transform duration-200 ${isOnline ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
       </div>
 
       {/* Weekly schedule grid */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="font-bold text-slate-800 text-sm">Agenda Semanal Recorrente</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+      <div className="bg-canvas border border-line rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-line">
+          <h3 className="font-bold text-ink text-sm">Agenda Semanal Recorrente</h3>
+          <p className="text-xs text-muted mt-0.5">
             Defina os dias e horários que você atende toda semana. Os slots são de 30 min + 15 min de intervalo.
           </p>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-line">
           {DAYS.map(({ dow, label }) => {
             const day = schedule.find((d) => d.dayOfWeek === dow);
             if (!day) return null;
@@ -201,19 +201,19 @@ const ScheduleManager = () => {
                     type="checkbox"
                     checked={day.isActive}
                     onChange={(e) => updateDay(dow, 'isActive', e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 accent-blue-600 cursor-pointer"
+                    className="w-4 h-4 rounded border-line accent-brand cursor-pointer"
                   />
-                  <span className="text-sm font-medium text-slate-700">{label}</span>
+                  <span className="text-sm font-medium text-muted">{label}</span>
                 </label>
 
                 {/* Start */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-slate-400 hidden sm:block">Das</span>
+                  <span className="text-xs text-muted hidden sm:block">Das</span>
                   <select
                     value={day.startTime}
                     onChange={(e) => updateDay(dow, 'startTime', e.target.value)}
                     disabled={!day.isActive}
-                    className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:cursor-not-allowed"
+                    className="border border-line rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none bg-canvas disabled:cursor-not-allowed"
                   >
                     {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -221,12 +221,12 @@ const ScheduleManager = () => {
 
                 {/* End */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-slate-400 hidden sm:block">às</span>
+                  <span className="text-xs text-muted hidden sm:block">às</span>
                   <select
                     value={day.endTime}
                     onChange={(e) => updateDay(dow, 'endTime', e.target.value)}
                     disabled={!day.isActive}
-                    className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:cursor-not-allowed"
+                    className="border border-line rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-brand outline-none bg-canvas disabled:cursor-not-allowed"
                   >
                     {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -234,7 +234,7 @@ const ScheduleManager = () => {
 
                 {/* Slot count hint */}
                 {day.isActive && count > 0 && (
-                  <span className="text-xs text-slate-400 ml-auto hidden md:block shrink-0">
+                  <span className="text-xs text-muted ml-auto hidden md:block shrink-0">
                     {count} horário{count !== 1 ? 's' : ''}/dia
                   </span>
                 )}
@@ -244,8 +244,8 @@ const ScheduleManager = () => {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <p className="text-xs text-slate-400">
+        <div className="px-5 py-4 border-t border-line bg-surface flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p className="text-xs text-muted">
             {activeDaysCount} dia{activeDaysCount !== 1 ? 's' : ''} ativo{activeDaysCount !== 1 ? 's' : ''}
             {' · '}Slots de 45 min (30 min consulta + 15 min intervalo)
             {' · '}Gera horários para os próximos 28 dias
@@ -253,7 +253,7 @@ const ScheduleManager = () => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="shrink-0 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition shadow-sm"
+            className="shrink-0 bg-brand hover:bg-brand-deep disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition shadow-sm"
           >
             {saving ? 'Salvando...' : 'Salvar e Gerar Horários'}
           </button>
@@ -262,17 +262,17 @@ const ScheduleManager = () => {
 
       {/* Message */}
       {msg && (
-        <div className={`text-sm px-4 py-3 rounded-xl border ${msg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+        <div className={`text-sm px-4 py-3 rounded-xl border ${msg.type === 'success' ? 'bg-success-wash border-success/20 text-success' : 'bg-error-wash border-error/20 text-error'}`}>
           {msg.text}
         </div>
       )}
 
       {/* Generated slots list */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-slate-800 text-sm">Horários Gerados</h3>
+      <div className="bg-canvas border border-line rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+          <h3 className="font-bold text-ink text-sm">Horários Gerados</h3>
           {!loadingSlots && (
-            <span className="text-xs text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+            <span className="text-xs text-muted bg-surface px-2.5 py-1 rounded-full">
               {slots.length} horário{slots.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -280,26 +280,26 @@ const ScheduleManager = () => {
 
         <div className="p-5">
           {loadingSlots ? (
-            <p className="text-slate-400 text-sm text-center py-4">Carregando...</p>
+            <p className="text-muted text-sm text-center py-4">Carregando...</p>
           ) : slots.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-2xl mb-2">📅</p>
-              <p className="text-slate-400 text-sm">Nenhum horário gerado ainda.</p>
-              <p className="text-slate-400 text-xs mt-1">Configure sua agenda acima e clique em "Salvar e Gerar Horários".</p>
+              <p className="text-muted text-sm">Nenhum horário gerado ainda.</p>
+              <p className="text-muted text-xs mt-1">Configure sua agenda acima e clique em "Salvar e Gerar Horários".</p>
             </div>
           ) : (
             <div className="space-y-5">
               {Object.entries(grouped).map(([date, daySlots]) => (
                 <div key={date}>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 capitalize">{date}</p>
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 capitalize">{date}</p>
                   <div className="flex flex-wrap gap-2">
                     {daySlots.map((slot) => (
                       <div
                         key={slot.id}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm ${
                           slot.isBooked
-                            ? 'bg-blue-50 border-blue-200 text-blue-700'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                            ? 'bg-brand-wash border-brand/20 text-brand-deep'
+                            : 'bg-canvas border-line text-muted hover:border-muted'
                         }`}
                       >
                         <span className="font-semibold tabular-nums">
@@ -311,7 +311,7 @@ const ScheduleManager = () => {
                           <button
                             onClick={() => handleDelete(slot.id)}
                             disabled={deletingId === slot.id}
-                            className="text-slate-300 hover:text-red-500 transition disabled:opacity-40 leading-none font-bold"
+                            className="text-muted hover:text-error transition disabled:opacity-40 leading-none font-bold"
                             title="Remover horário"
                           >
                             {deletingId === slot.id ? '·' : '×'}

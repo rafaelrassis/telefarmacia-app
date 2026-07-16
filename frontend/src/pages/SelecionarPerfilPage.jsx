@@ -21,8 +21,8 @@ const ENV_CONFIG = {
     icon: '⚙',
     label: 'Administração',
     description: 'Gerenciar usuários, métricas e plataforma',
-    color: 'border-gray-300 hover:border-gray-500 hover:bg-gray-50',
-    badge: 'bg-gray-100 text-gray-700',
+    color: 'border-line hover:border-muted hover:bg-surface',
+    badge: 'bg-surface text-muted',
   },
 };
 
@@ -38,17 +38,17 @@ const SelecionarPerfilPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-60px)] bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-[calc(100vh-60px)] bg-surface flex items-center justify-center px-4">
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">
-          <p className="text-sm text-gray-400 mb-1">Bem-vindo de volta</p>
-          <h1 className="font-heading text-2xl font-bold text-gray-900">{user.name?.split(' ')[0]}</h1>
-          <p className="text-sm text-gray-400 mt-1">{user.email}</p>
+          <p className="text-sm text-muted mb-1">Bem-vindo de volta</p>
+          <h1 className="font-heading text-2xl font-bold text-ink">{user.name?.split(' ')[0]}</h1>
+          <p className="text-sm text-muted mt-1">{user.email}</p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <p className="text-sm font-semibold text-gray-700 mb-4">Como deseja entrar hoje?</p>
+        <div className="bg-canvas border border-line rounded-2xl p-6 shadow-sm">
+          <p className="text-sm font-semibold text-muted mb-4">Como deseja entrar hoje?</p>
 
           <div className="space-y-3">
             {availableEnvs.map((envId) => {
@@ -57,23 +57,23 @@ const SelecionarPerfilPage = () => {
                 <button
                   key={envId}
                   onClick={() => handleSelect(envId)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition duration-150 bg-white ${cfg.color}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition duration-150 bg-canvas ${cfg.color}`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${cfg.badge}`}>
                     {cfg.icon}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">{cfg.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{cfg.description}</p>
+                    <p className="font-semibold text-ink text-sm">{cfg.label}</p>
+                    <p className="text-xs text-muted mt-0.5">{cfg.description}</p>
                   </div>
-                  <span className="ml-auto text-gray-300 text-lg">›</span>
+                  <span className="ml-auto text-muted text-lg">›</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-5">
+        <p className="text-center text-xs text-muted mt-5">
           Sua escolha será lembrada na próxima sessão.
         </p>
       </div>

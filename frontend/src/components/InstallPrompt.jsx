@@ -29,11 +29,11 @@ const InstallPrompt = () => {
   if (!showInstall) return null;
 
   return (
-    <div className="bg-blue-600 text-white p-3 flex justify-between items-center fixed top-0 left-0 w-full z-50 shadow-md">
+    <div className="bg-brand text-white p-3 flex justify-between items-center fixed top-0 left-0 w-full z-50 shadow-md">
       <span className="text-sm font-semibold">Instale nosso app para um acesso mais rápido!</span>
       <button
         onClick={handleInstallClick}
-        className="bg-white text-blue-600 px-3 py-1 rounded text-sm font-bold shadow hover:bg-gray-100 transition"
+        className="bg-canvas text-brand px-3 py-1 rounded text-sm font-bold shadow hover:bg-surface transition"
       >
         Instalar
       </button>

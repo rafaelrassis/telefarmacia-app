@@ -70,7 +70,7 @@ const HorariosTab = ({ api, showToast }) => {
                       h.ativo ? 'bg-success' : 'bg-line'
                     }`}
                   >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-canvas shadow transition-transform duration-200 ${
                       h.ativo ? 'translate-x-4' : 'translate-x-0.5'
                     }`} />
                   </div>
