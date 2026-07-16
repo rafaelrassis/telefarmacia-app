@@ -11,6 +11,90 @@ const getTransporter = () => {
   });
 };
 
+const getAppUrl = () =>
+  (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
+
+// E-mail de redefinição de senha (Fluxo 2/3) — enviado tanto para usuários
+// com senha local quanto para usuários só-Google (o link permite os dois
+// casos: redefinir senha existente ou definir a primeira senha local).
+export const sendPasswordResetEmail = async ({ to, token, hasPassword }) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn('[email] SMTP não configurado — e-mail de redefinição não enviado.');
+    return;
+  }
+  const resetUrl = `${getAppUrl()}/redefinir-senha?token=${token}`;
+  const googleNotice = hasPassword ? '' : `
+    <p style="color:#374151;font-size:14px;line-height:1.6;">
+      Sua conta usa login com Google. Você pode continuar entrando com o Google normalmente,
+      ou definir uma senha local pelo link abaixo para também poder entrar com e-mail e senha.
+    </p>
+  `;
+  try {
+    await transporter.sendMail({
+      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      to,
+      subject: 'Redefinição de senha — FarmaConsulta',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+          <h2 style="color:#0E4F45;">Redefinição de senha</h2>
+          ${googleNotice}
+          <p style="color:#374151;font-size:14px;line-height:1.6;">
+            Clique no botão abaixo para ${hasPassword ? 'definir uma nova senha' : 'definir sua senha'}.
+            O link expira em <strong>30 minutos</strong>.
+          </p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${resetUrl}" style="background:#0E4F45;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block;">
+              Redefinir senha
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:12px;">
+            Se você não solicitou essa redefinição, ignore este e-mail — nenhuma alteração será feita.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('[email] Falha ao enviar e-mail de redefinição:', err.message);
+  }
+};
+
+// Notificação enviada após qualquer alteração de senha bem-sucedida
+// (Fluxo 1, 2 ou 3) — permite ao usuário identificar uma troca não autorizada.
+export const sendPasswordChangedEmail = async ({ to }) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn('[email] SMTP não configurado — notificação de troca de senha não enviada.');
+    return;
+  }
+  const appUrl = getAppUrl();
+  try {
+    await transporter.sendMail({
+      from: `"FarmaConsulta" <${process.env.SMTP_USER}>`,
+      to,
+      subject: 'Sua senha foi alterada — FarmaConsulta',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+          <h2 style="color:#0E4F45;">Sua senha foi alterada</h2>
+          <p style="color:#374151;font-size:14px;line-height:1.6;">
+            A senha da sua conta FarmaConsulta foi alterada agora há pouco.
+          </p>
+          <p style="color:#374151;font-size:14px;line-height:1.6;">
+            <strong>Se não foi você, redefina sua senha imediatamente</strong> pelo link "Esqueci minha senha" na tela de login.
+          </p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${appUrl}" style="background:#0E4F45;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block;">
+              Acessar FarmaConsulta →
+            </a>
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('[email] Falha ao enviar notificação de troca de senha:', err.message);
+  }
+};
+
 export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
   const to = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!to) {
