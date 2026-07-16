@@ -1,4 +1,6 @@
 import request from 'supertest';
+import bcrypt from 'bcrypt';
+import { prisma } from './db.js';
 
 let seq = 0;
 const uniqueEmail = (prefix) => `${prefix}${Date.now()}_${seq++}@teste.com`;
@@ -47,18 +49,25 @@ export async function registerFarmaceutico(app, overrides = {}) {
   return { token: res.body.token, user: res.body.user, userId: user.id };
 }
 
-// Admin de teste — email definido em ADMIN_EMAILS (.env.test). Cacheado por
-// senha fixa: se outra chamada já registrou esse e-mail neste teste (ex.:
-// criarFarmaceuticoAprovado chamado mais de uma vez), cai para login.
+// Admin de teste — email definido em ADMIN_EMAILS (.env.test). Emails da
+// whitelist não podem mais se autocadastrar via /api/auth/register (bloqueio
+// intencional, ver auth.test.js), então o usuário é semeado direto no banco
+// — como um admin real seria provisionado — e a sessão vem do login normal.
+// Cacheado por senha fixa: se outra chamada já semeou esse e-mail neste
+// teste (ex.: criarFarmaceuticoAprovado chamado mais de uma vez), reaproveita.
 const ADMIN_PASSWORD = 'senha_admin_teste_123';
 
 export async function getAdminToken(app) {
   const email = (process.env.ADMIN_EMAILS || '').split(',')[0].trim();
   if (!email) throw new Error('ADMIN_EMAILS não configurado no .env.test.');
-  const registro = await request(app)
-    .post('/api/auth/register')
-    .send({ email, password: ADMIN_PASSWORD, nome: 'Admin Teste' });
-  if (registro.status === 201) return registro.body.token;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (!existing) {
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+    await prisma.user.create({
+      data: { email, name: 'Admin Teste', password: hashedPassword, role: 'PACIENTE' },
+    });
+  }
 
   const login = await request(app).post('/api/auth/login').send({ email, password: ADMIN_PASSWORD });
   if (login.status !== 200) {
