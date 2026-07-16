@@ -19,10 +19,10 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
-      includeAssets: ['icon-192.svg', 'icon-512.svg'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Telefarmácia – Orientação Farmacêutica Online',
-        short_name: 'Telefarmácia',
+        name: 'FarmaConsulta – Orientação Farmacêutica Online',
+        short_name: 'FarmaConsulta',
         description: 'Conectando pacientes a farmacêuticos clínicos para orientações de saúde.',
         theme_color: '#3B9FE0',
         background_color: '#FFFFFF',
@@ -32,16 +32,22 @@ export default defineConfig({
         lang: 'pt-BR',
         icons: [
           {
-            src: '/icon-192.svg',
+            src: '/icon-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: '/icon-512.svg',
+            src: '/icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
