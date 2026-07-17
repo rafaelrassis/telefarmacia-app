@@ -59,7 +59,7 @@ const HorariosTab = ({ api, showToast }) => {
             const inicioId = `horario-inicio-${h.diaSemana}`;
             const fimId = `horario-fim-${h.diaSemana}`;
             return (
-              <div key={h.diaSemana} className="flex items-center gap-4 px-5 py-3.5">
+              <div key={h.diaSemana} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 sm:px-5">
                 <div className="w-24 shrink-0">
                   <p className="text-sm font-medium text-ink">{DIAS_SEMANA[h.diaSemana]}</p>
                 </div>
@@ -79,7 +79,7 @@ const HorariosTab = ({ api, showToast }) => {
                   </span>
                 </label>
                 {h.ativo && (
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm w-full sm:w-auto sm:ml-auto">
                     <label htmlFor={inicioId} className="sr-only">Horário de início — {DIAS_SEMANA[h.diaSemana]}</label>
                     <input
                       id={inicioId}
