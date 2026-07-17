@@ -30,6 +30,12 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         lang: 'pt-BR',
+        related_applications: [
+          {
+            platform: 'webapp',
+            url: 'https://telefarmacia-app.vercel.app/manifest.webmanifest',
+          },
+        ],
         icons: [
           {
             src: '/icon-192.png',
