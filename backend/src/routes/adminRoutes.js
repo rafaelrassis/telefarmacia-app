@@ -4,6 +4,7 @@ import {
   listPharmacists,
   listPatients,
   deletePharmacist,
+  deletePatient,
   listarPendentes,
   getDocumentos,
   setStatus,
@@ -48,6 +49,7 @@ const guard = [authMiddleware, adminMiddleware];
 router.get('/admin/pharmacists',                    ...guard, listPharmacists);
 router.get('/admin/patients',                       ...guard, listPatients);
 router.delete('/admin/pharmacists/:userId',         ...guard, deletePharmacist);
+router.delete('/admin/pacientes/:userId',           ...guard, deletePatient);
 router.get('/admin/farmaceuticos/pendentes',        ...guard, listarPendentes);
 
 // Novos v2

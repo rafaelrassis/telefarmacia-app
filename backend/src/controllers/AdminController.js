@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { createHash } from 'crypto';
 import { logAction } from '../utils/logAction.js';
 import { logAdminAction } from '../utils/logAdminAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
 import { invalidateAdminEmailsCache } from '../middlewares/adminMiddleware.js';
+import { isAdminEmail } from './AuthController.js';
 
 const prisma = new PrismaClient();
 
@@ -103,9 +105,9 @@ export const listPatients = async (req, res) => {
   const skip     = (pageNum - 1) * limitNum;
   try {
     const [total, patients] = await Promise.all([
-      prisma.user.count({ where: { role: 'PACIENTE' } }),
+      prisma.user.count({ where: { role: 'PACIENTE', email: { not: { endsWith: '@removed.invalid' } } } }),
       prisma.user.findMany({
-        where: { role: 'PACIENTE' },
+        where: { role: 'PACIENTE', email: { not: { endsWith: '@removed.invalid' } } },
         include: {
           carteira: { select: { saldo: true } },
           _count: {
@@ -160,6 +162,75 @@ export const deletePharmacist = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Erro ao descadastrar farmacêutico.' });
+  }
+};
+
+export const deletePatient = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== 'PACIENTE') {
+      return res.status(404).json({ error: 'Paciente não encontrado.' });
+    }
+    if (isAdminEmail(user.email) || userId === req.user?.id) {
+      return res.status(403).json({ error: 'Esta conta não pode ser excluída pelo painel.' });
+    }
+
+    const [ativasAgendada, ativasUrgente] = await Promise.all([
+      prisma.filaAgendada.count({ where: { pacienteId: userId, status: { in: ['aguardando', 'aceito'] } } }),
+      prisma.filaUrgente.count({ where: { pacienteId: userId, status: { in: ['aguardando', 'aceito'] } } }),
+    ]);
+    if (ativasAgendada + ativasUrgente > 0) {
+      return res.status(422).json({ error: 'Paciente possui consulta ativa na fila. Cancele-a antes de excluir.' });
+    }
+
+    const [totalAgendada, totalUrgente] = await Promise.all([
+      prisma.filaAgendada.count({ where: { pacienteId: userId } }),
+      prisma.filaUrgente.count({ where: { pacienteId: userId } }),
+    ]);
+    const temHistorico = totalAgendada + totalUrgente > 0;
+
+    if (temHistorico) {
+      // Anonimizar — mesmo padrão do LgpdController.excluirConta
+      const hash = createHash('sha256').update(userId).digest('hex').slice(0, 12);
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            name: 'Usuário Removido',
+            email: `deleted_${hash}@removed.invalid`,
+            phone: null, password: null, googleId: null, photoUrl: null,
+          },
+        }),
+        prisma.pacienteProfile.updateMany({
+          where: { userId },
+          data: {
+            nomeCompleto: 'Usuário Removido',
+            cpf: `REMOVIDO_${hash}`,
+            telefone: null, cep: null, logradouro: null, numero: null,
+            complemento: null, bairro: null, cidade: null, estado: null,
+          },
+        }),
+      ]);
+    } else {
+      await prisma.user.delete({ where: { id: userId } });
+    }
+
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'excluir_paciente', alvoTipo: 'paciente', alvoId: userId,
+      detalhes: { nome: user.name, email: user.email, modo: temHistorico ? 'anonimizado' : 'excluido' },
+    });
+
+    return res.status(200).json({
+      message: temHistorico
+        ? 'Paciente anonimizado. Registros clínicos mantidos conforme prazo legal.'
+        : 'Paciente excluído.',
+      modo: temHistorico ? 'anonimizado' : 'excluido',
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Erro ao excluir paciente.' });
   }
 };
 

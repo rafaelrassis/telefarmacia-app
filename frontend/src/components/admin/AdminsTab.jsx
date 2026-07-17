@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { UserPlus, Trash2 } from 'lucide-react';
+import { UserPlus, Trash2, Lock } from 'lucide-react';
 import Modal from '../ui/Modal';
+import AlterarSenhaForm from '../AlterarSenhaForm.jsx';
 
 // ── Aba "Administradores" ────────────────────────────────────────────────────
 
@@ -132,6 +133,15 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="mt-6 bg-canvas border border-line rounded-xl p-4">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted uppercase tracking-wide mb-3">
+          <Lock className="w-3.5 h-3.5" /> Segurança — Alterar minha senha
+        </div>
+        <div className="max-w-md">
+          <AlterarSenhaForm />
+        </div>
       </div>
 
       {confirmRemove && (
