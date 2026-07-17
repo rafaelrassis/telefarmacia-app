@@ -44,7 +44,7 @@ const Navbar = () => {
 
   const installTipText = isIOS
     ? 'Toque em Compartilhar (ícone de quadrado com seta) e depois em "Adicionar à Tela de Início".'
-    : 'Abra o menu ⋮ do navegador e toque em "Instalar aplicativo" ou "Adicionar à tela inicial".';
+    : 'Se o app já estiver instalado, procure "FarmaConsulta" na tela inicial. Caso contrário, abra o menu ⋮ do navegador e toque em "Instalar aplicativo" ou "Adicionar à tela inicial".';
 
   const handleInstallClick = async () => {
     if (canInstall) {

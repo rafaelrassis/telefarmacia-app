@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getDeferredPrompt, subscribe, triggerInstall } from '../lib/installPrompt.js';
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
 
@@ -9,35 +10,20 @@ function getIsStandalone() {
 }
 
 export function useInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(getDeferredPrompt());
   const [isStandalone, setIsStandalone] = useState(getIsStandalone());
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    const handleAppInstalled = () => {
-      setDeferredPrompt(null);
-      setIsStandalone(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
+    const unsubscribe = subscribe((prompt) => {
+      setDeferredPrompt(prompt);
+      if (!prompt && getIsStandalone()) setIsStandalone(true);
+    });
+    // Sincroniza caso o evento tenha chegado entre o render inicial e o effect
+    setDeferredPrompt(getDeferredPrompt());
+    return unsubscribe;
   }, []);
 
-  const promptInstall = useCallback(async () => {
-    if (!deferredPrompt) return null;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    return outcome;
-  }, [deferredPrompt]);
+  const promptInstall = useCallback(() => triggerInstall(), []);
 
   return {
     isIOS,
