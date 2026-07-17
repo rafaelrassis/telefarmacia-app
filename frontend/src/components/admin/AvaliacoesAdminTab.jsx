@@ -202,28 +202,30 @@ const AvaliacoesAdminTab = ({ api, pharmacists = [] }) => {
             {resumo.por_farmaceutico.length === 0 ? (
               <div className="p-8 text-center text-muted text-sm">Nenhuma avaliação no período.</div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
-                    <th className="text-left px-4 py-2.5">Farmacêutico</th>
-                    <th className="text-left px-4 py-2.5">Média</th>
-                    <th className="text-left px-4 py-2.5">Avaliações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {resumo.por_farmaceutico.map((f) => (
-                    <tr key={f.id} className={f.media < 3.5 ? 'bg-alert-wash' : ''}>
-                      <td className="px-4 py-2.5 text-ink font-medium">{f.nome}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={`font-semibold ${f.media < 3.5 ? 'text-alert' : 'text-ink'}`}>
-                          {f.media.toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted">{f.total}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
+                      <th className="text-left px-4 py-2.5">Farmacêutico</th>
+                      <th className="text-left px-4 py-2.5">Média</th>
+                      <th className="text-left px-4 py-2.5">Avaliações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {resumo.por_farmaceutico.map((f) => (
+                      <tr key={f.id} className={f.media < 3.5 ? 'bg-alert-wash' : ''}>
+                        <td className="px-4 py-2.5 text-ink font-medium">{f.nome}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`font-semibold ${f.media < 3.5 ? 'text-alert' : 'text-ink'}`}>
+                            {f.media.toFixed(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-muted">{f.total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>

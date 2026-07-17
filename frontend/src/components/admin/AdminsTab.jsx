@@ -94,44 +94,46 @@ const AdminsTab = ({ api, showToast, currentUserEmail }) => {
         ) : admins.length === 0 ? (
           <div className="p-12 text-center text-muted text-sm">Nenhum administrador configurado.</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
-                <th className="text-left px-4 py-3">E-mail</th>
-                <th className="text-left px-4 py-3">Origem</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {admins.map((a) => (
-                <tr key={a.email} className="hover:bg-surface transition">
-                  <td className="px-4 py-3 font-medium text-ink">
-                    {a.email}
-                    {a.email === currentUserEmail && <span className="ml-2 text-[10px] text-brand font-semibold">(você)</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      a.origem === 'env' ? 'bg-surface text-muted' : 'bg-brand-wash text-brand-deep'
-                    }`}>
-                      {a.origem === 'env' ? 'Variável de ambiente' : 'Painel'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {a.removivel && a.email !== currentUserEmail && (
-                      <button
-                        onClick={() => setConfirmRemove(a.email)}
-                        disabled={removing[a.email]}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-error hover:text-error/80 disabled:opacity-40"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Remover
-                      </button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line bg-surface text-xs font-semibold text-muted uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">E-mail</th>
+                  <th className="text-left px-4 py-3">Origem</th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {admins.map((a) => (
+                  <tr key={a.email} className="hover:bg-surface transition">
+                    <td className="px-4 py-3 font-medium text-ink">
+                      {a.email}
+                      {a.email === currentUserEmail && <span className="ml-2 text-[10px] text-brand font-semibold">(você)</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        a.origem === 'env' ? 'bg-surface text-muted' : 'bg-brand-wash text-brand-deep'
+                      }`}>
+                        {a.origem === 'env' ? 'Variável de ambiente' : 'Painel'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {a.removivel && a.email !== currentUserEmail && (
+                        <button
+                          onClick={() => setConfirmRemove(a.email)}
+                          disabled={removing[a.email]}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-error hover:text-error/80 disabled:opacity-40"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remover
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
