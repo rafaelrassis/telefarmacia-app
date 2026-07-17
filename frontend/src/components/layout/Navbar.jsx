@@ -28,6 +28,77 @@ const NOTIF_ICON = {
   estorno:         Wallet,
 };
 
+const NotifBell = ({ notifData, onOpen }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const handleClick = () => {
+    setOpen((v) => {
+      const next = !v;
+      if (next) onOpen();
+      return next;
+    });
+  };
+
+  // Fecha painel de notificações ao clicar fora
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={handleClick}
+        className="relative flex items-center justify-center w-9 h-9 rounded-lg border border-line hover:border-line hover:bg-surface transition text-muted"
+        aria-label="Notificações"
+      >
+        <Bell className="w-5 h-5" />
+        {notifData.naoLidas > 0 && (
+          <span className="absolute -top-1 -right-1 bg-error text-white text-[10px] font-bold leading-none px-[5px] py-[2px] rounded-full min-w-[16px] text-center">
+            {notifData.naoLidas > 9 ? '9+' : notifData.naoLidas}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+8px)] w-80 max-w-[calc(100vw-2rem)] bg-canvas border border-line rounded-2xl shadow-lg z-[60] overflow-hidden">
+          <div className="px-4 pt-3.5 pb-2.5 border-b border-line flex justify-between items-center">
+            <span className="text-[13px] font-bold text-ink">Notificações</span>
+            {notifData.naoLidas > 0 && (
+              <span className="text-[11px] text-error font-semibold">{notifData.naoLidas} não lida{notifData.naoLidas > 1 ? 's' : ''}</span>
+            )}
+          </div>
+          <div className="max-h-[380px] overflow-y-auto">
+            {notifData.notificacoes.length === 0 ? (
+              <p className="text-[13px] text-muted text-center py-6 px-4">Nenhuma notificação.</p>
+            ) : notifData.notificacoes.map((n) => {
+              const NotifIcon = NOTIF_ICON[n.tipo] ?? Bell;
+              return (
+                <div key={n.id} className={`px-4 py-3 border-b border-line flex gap-2.5 items-start ${n.lida ? 'bg-canvas' : 'bg-brand-wash'}`}>
+                  <NotifIcon className="w-[18px] h-[18px] text-brand-deep shrink-0 mt-0.5" strokeWidth={1.75} />
+                  <div className="flex-1 min-w-0">
+                    <p className="m-0 text-[13px] font-semibold text-ink">{n.titulo}</p>
+                    <p className="mt-0.5 text-xs text-muted leading-snug">{n.mensagem}</p>
+                    <p className="mt-[3px] text-[11px] text-muted">{fmtRelativo(n.criadoEm)}</p>
+                  </div>
+                  {!n.lida && (
+                    <span className="w-[7px] h-[7px] rounded-full bg-brand shrink-0 mt-1.5" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Navbar = () => {
   const { user, token, logout, activeEnv, availableEnvs, setActiveEnv } = useAuth();
   const navigate = useNavigate();
@@ -64,9 +135,7 @@ const Navbar = () => {
   }, [showInstallTip]);
 
   // ── Notificações ─────────────────────────────────────────────────────────
-  const [notifOpen,    setNotifOpen]    = useState(false);
-  const [notifData,    setNotifData]    = useState({ naoLidas: 0, notificacoes: [] });
-  const notifRef = useRef(null);
+  const [notifData, setNotifData] = useState({ naoLidas: 0, notificacoes: [] });
 
   const showNotifBell = (activeEnv === 'patient' || activeEnv === 'pharmacist') && Boolean(user);
 
@@ -87,33 +156,20 @@ const Navbar = () => {
     return () => clearInterval(id);
   }, [fetchNotificacoes, showNotifBell]);
 
-  const handleOpenNotif = async () => {
-    setNotifOpen((v) => !v);
-    if (!notifOpen && notifData.naoLidas > 0) {
-      // Marcar como lidas
-      try {
-        await fetch(`${API_URL}/api/paciente/notificacoes/marcar-lidas`, {
-          method:  'PATCH',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setNotifData((d) => ({
-          ...d,
-          naoLidas:      0,
-          notificacoes:  d.notificacoes.map((n) => ({ ...n, lida: true })),
-        }));
-      } catch {}
-    }
+  const markNotificacoesLidas = async () => {
+    if (notifData.naoLidas === 0) return;
+    try {
+      await fetch(`${API_URL}/api/paciente/notificacoes/marcar-lidas`, {
+        method:  'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifData((d) => ({
+        ...d,
+        naoLidas:      0,
+        notificacoes:  d.notificacoes.map((n) => ({ ...n, lida: true })),
+      }));
+    } catch {}
   };
-
-  // Fecha painel de notificações ao clicar fora
-  useEffect(() => {
-    if (!notifOpen) return;
-    const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [notifOpen]);
 
   const handleLogout = () => { logout(); navigate('/entrar'); };
 
@@ -240,53 +296,7 @@ const Navbar = () => {
                 )}
 
                 {/* Sininho de notificações (paciente e farmacêutico) */}
-                {showNotifBell && (
-                  <div className="relative" ref={notifRef}>
-                    <button
-                      onClick={handleOpenNotif}
-                      className="relative flex items-center justify-center w-9 h-9 rounded-lg border border-line hover:border-line hover:bg-surface transition text-muted"
-                      aria-label="Notificações"
-                    >
-                      <Bell className="w-5 h-5" />
-                      {notifData.naoLidas > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-error text-white text-[10px] font-bold leading-none px-[5px] py-[2px] rounded-full min-w-[16px] text-center">
-                          {notifData.naoLidas > 9 ? '9+' : notifData.naoLidas}
-                        </span>
-                      )}
-                    </button>
-
-                    {notifOpen && (
-                      <div className="absolute right-0 top-[calc(100%+8px)] w-80 bg-canvas border border-line rounded-2xl shadow-lg z-[60] overflow-hidden">
-                        <div className="px-4 pt-3.5 pb-2.5 border-b border-line flex justify-between items-center">
-                          <span className="text-[13px] font-bold text-ink">Notificações</span>
-                          {notifData.naoLidas > 0 && (
-                            <span className="text-[11px] text-error font-semibold">{notifData.naoLidas} não lida{notifData.naoLidas > 1 ? 's' : ''}</span>
-                          )}
-                        </div>
-                        <div className="max-h-[380px] overflow-y-auto">
-                          {notifData.notificacoes.length === 0 ? (
-                            <p className="text-[13px] text-muted text-center py-6 px-4">Nenhuma notificação.</p>
-                          ) : notifData.notificacoes.map((n) => {
-                            const NotifIcon = NOTIF_ICON[n.tipo] ?? Bell;
-                            return (
-                              <div key={n.id} className={`px-4 py-3 border-b border-line flex gap-2.5 items-start ${n.lida ? 'bg-canvas' : 'bg-brand-wash'}`}>
-                                <NotifIcon className="w-[18px] h-[18px] text-brand-deep shrink-0 mt-0.5" strokeWidth={1.75} />
-                                <div className="flex-1 min-w-0">
-                                  <p className="m-0 text-[13px] font-semibold text-ink">{n.titulo}</p>
-                                  <p className="mt-0.5 text-xs text-muted leading-snug">{n.mensagem}</p>
-                                  <p className="mt-[3px] text-[11px] text-muted">{fmtRelativo(n.criadoEm)}</p>
-                                </div>
-                                {!n.lida && (
-                                  <span className="w-[7px] h-[7px] rounded-full bg-brand shrink-0 mt-1.5" />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {showNotifBell && <NotifBell notifData={notifData} onOpen={markNotificacoesLidas} />}
 
                 {/* Meu Perfil */}
                 <button
@@ -315,14 +325,17 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Hamburger (mobile) */}
-          <button
-            className="md:hidden p-2 rounded-lg text-muted hover:bg-surface transition"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Menu"
-          >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Sino + Hamburger (mobile) */}
+          <div className="md:hidden flex items-center gap-2">
+            {showNotifBell && <NotifBell notifData={notifData} onOpen={markNotificacoesLidas} />}
+            <button
+              className="p-2 rounded-lg text-muted hover:bg-surface transition"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Menu mobile */}
@@ -375,19 +388,6 @@ const Navbar = () => {
                 )}
 
                 <div className="border-t border-line pt-1">
-                  {showNotifBell && (
-                    <button
-                      onClick={() => { setMenuOpen(false); handleOpenNotif(); }}
-                      className="flex items-center justify-between w-full text-left px-3 py-2 text-sm text-muted rounded-lg hover:bg-surface"
-                    >
-                      <span className="inline-flex items-center gap-1.5"><Bell className="w-4 h-4" /> Notificações</span>
-                      {notifData.naoLidas > 0 && (
-                        <span className="bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                          {notifData.naoLidas}
-                        </span>
-                      )}
-                    </button>
-                  )}
                   <button
                     onClick={() => { setMenuOpen(false); setShowPerfil(true); }}
                     className="flex items-center gap-1.5 w-full text-left px-3 py-2 text-sm text-muted rounded-lg hover:bg-surface"

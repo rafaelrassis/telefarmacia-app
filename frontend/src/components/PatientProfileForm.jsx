@@ -303,15 +303,6 @@ const PatientProfileForm = ({ onClose, compact = false }) => {
       )}
 
       <div className="flex gap-3 pt-1">
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-line rounded-xl text-sm font-semibold text-muted hover:bg-surface transition"
-          >
-            Agora não
-          </button>
-        )}
         <button
           type="submit"
           disabled={loading}
