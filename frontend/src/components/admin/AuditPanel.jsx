@@ -28,6 +28,7 @@ const AUDIT_ACAO_LABEL = {
   atualizar_parceiro:              'Atualizar parceiro',
   excluir_parceiro:                'Excluir parceiro',
   ajustar_carteira:                'Ajuste de carteira',
+  excluir_paciente:                'Excluir paciente',
   adicionar_admin:                 'Adicionar admin',
   remover_admin:                   'Remover admin',
 };

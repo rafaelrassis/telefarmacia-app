@@ -1,10 +1,32 @@
 import React, { useState } from 'react';
-import { Wallet } from 'lucide-react';
+import { Wallet, Trash2 } from 'lucide-react';
 import AjusteCarteiraModal from './AjusteCarteiraModal';
+import ConfirmPowerAction from './ConfirmPowerAction';
 import { fmt } from '../../utils/adminFormat';
 
 const PatientsTab = ({ api, showToast, patients, setPatients }) => {
   const [ajustandoCarteira, setAjustandoCarteira] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (p) => {
+    setDeleting(true);
+    try {
+      const res = await api(`/api/admin/pacientes/${p.id}`, { method: 'DELETE' });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast('success', d.message || 'Paciente excluído.');
+        setPatients((prev) => prev.filter((x) => x.id !== p.id));
+      } else {
+        showToast('error', d.error || 'Erro ao excluir paciente.');
+      }
+    } catch {
+      showToast('error', 'Falha de conexão.');
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(null);
+    }
+  };
 
   return (
     <>
@@ -35,13 +57,22 @@ const PatientsTab = ({ api, showToast, patients, setPatients }) => {
                     </td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{fmt(p.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => setAjustandoCarteira(p)}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold border border-brand/30 text-brand-deep hover:bg-brand-wash px-3 py-1.5 rounded-lg transition whitespace-nowrap"
-                      >
-                        <Wallet className="w-3.5 h-3.5" />
-                        Ajustar saldo
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setAjustandoCarteira(p)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold border border-brand/30 text-brand-deep hover:bg-brand-wash px-3 py-1.5 rounded-lg transition whitespace-nowrap"
+                        >
+                          <Wallet className="w-3.5 h-3.5" />
+                          Ajustar saldo
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(p)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold border border-error/30 text-error hover:bg-error-wash px-3 py-1.5 rounded-lg transition whitespace-nowrap"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Excluir
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -60,6 +91,24 @@ const PatientsTab = ({ api, showToast, patients, setPatients }) => {
           onSuccess={(pacienteId, novoSaldo) => {
             setPatients((prev) => prev.map((p) => (p.id === pacienteId ? { ...p, saldo: novoSaldo } : p)));
           }}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmPowerAction
+          title="Excluir paciente?"
+          name={confirmDelete.name}
+          message="será removido da plataforma."
+          alertText={
+            (confirmDelete.consultasCount ?? 0) > 0
+              ? 'Este paciente possui histórico de consultas: a conta será anonimizada e os registros clínicos mantidos conforme prazo legal.'
+              : 'Esta conta não possui consultas e será excluída definitivamente. Esta ação não pode ser desfeita.'
+          }
+          confirmLabel="Confirmar"
+          confirmingLabel="Excluindo..."
+          loading={deleting}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => handleDelete(confirmDelete)}
         />
       )}
     </>
