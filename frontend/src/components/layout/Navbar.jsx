@@ -108,10 +108,10 @@ const Navbar = () => {
   const dropRef = useRef(null);
 
   // ── Instalar app ─────────────────────────────────────────────────────────
-  const { isIOS, isStandalone, canInstall, promptInstall } = useInstallPrompt();
+  const { isIOS, isInstalled, canInstall, promptInstall } = useInstallPrompt();
   const [showInstallTip, setShowInstallTip] = useState(false);
   const installTipRef = useRef(null);
-  const showInstallButton = !isStandalone;
+  const showInstallButton = !isInstalled;
 
   const installTipText = isIOS
     ? 'Toque em Compartilhar (ícone de quadrado com seta) e depois em "Adicionar à Tela de Início".'
