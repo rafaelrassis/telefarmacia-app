@@ -863,6 +863,67 @@ export const getUrgentesAceitas = async (req, res) => {
   }
 };
 
+// ── GET /api/farmaceutico/me/metricas?dias=30 ───────────────────────────────
+// Indicadores consolidados do próprio farmacêutico (Fase 14). tempoMedioMin
+// considera apenas registros com iniciadoEm E concluidoEm gravados — a métrica
+// acumula dados a partir da criação dessas colunas. A métrica "devolvidas" foi
+// omitida de propósito: devolverConsulta volta o status para 'aguardando' e
+// não persiste um status de devolução.
+
+const METRICAS_DIAS_VALIDOS = [7, 30, 90];
+
+export const getMetricasFarmaceutico = async (req, res) => {
+  if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
+  const farmaceuticoId = req.user.id;
+  const diasParam = parseInt(req.query.dias ?? '30', 10);
+  const dias      = METRICAS_DIAS_VALIDOS.includes(diasParam) ? diasParam : 30;
+  const desde     = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+
+  try {
+    const whereConcluidas = {
+      farmaceuticoId,
+      status:   { in: ['concluido', 'CONCLUIDO'] },
+      criadoEm: { gte: desde },
+    };
+    const [agendadas, urgentes, avaliacoesAgg] = await Promise.all([
+      prisma.filaAgendada.findMany({ where: whereConcluidas, select: { iniciadoEm: true, concluidoEm: true } }),
+      prisma.filaUrgente.findMany({ where: whereConcluidas, select: { iniciadoEm: true, concluidoEm: true } }),
+      prisma.avaliacao.aggregate({
+        where:  { pharmacistId: farmaceuticoId, createdAt: { gte: desde } },
+        _avg:   { nota: true },
+        _count: { nota: true },
+      }),
+    ]);
+
+    const duracoesMin = [...agendadas, ...urgentes]
+      .filter((c) => c.iniciadoEm && c.concluidoEm)
+      .map((c) => (new Date(c.concluidoEm).getTime() - new Date(c.iniciadoEm).getTime()) / 60000)
+      .filter((min) => min >= 0);
+    const tempoMedioMin = duracoesMin.length > 0
+      ? Math.round(duracoesMin.reduce((s, m) => s + m, 0) / duracoesMin.length)
+      : null;
+
+    const totalAvaliacoes = avaliacoesAgg._count.nota;
+    const notaMedia = totalAvaliacoes > 0
+      ? Math.round(avaliacoesAgg._avg.nota * 10) / 10
+      : null;
+
+    return res.status(200).json({
+      periodoDias: dias,
+      concluidas: {
+        total:     agendadas.length + urgentes.length,
+        agendadas: agendadas.length,
+        urgentes:  urgentes.length,
+      },
+      tempoMedioMin,
+      avaliacoes: { notaMedia, total: totalAvaliacoes },
+    });
+  } catch (err) {
+    console.error('getMetricasFarmaceutico error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar métricas.' });
+  }
+};
+
 // ── GET /uploads/:filename (autenticado — documentos de identidade/CRF) ─────
 // Serve foto_rg_cnh/foto_crf apenas para o próprio farmacêutico dono ou admin.
 // Padrão do multerConfig: `${userId}_${fieldname}_${timestamp}.ext`.

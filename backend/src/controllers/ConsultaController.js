@@ -150,6 +150,12 @@ export const iniciarConsulta = async (req, res) => {
     if (result.count === 0) {
       return res.status(409).json({ error: 'Consulta não pode ser iniciada (status inválido ou não é sua).' });
     }
+    // Timestamp de início (Fase 14 — métricas): só grava se ainda nulo, para
+    // preservar o primeiro início em consultas devolvidas e reaceitas.
+    // Best-effort: nunca pode derrubar o fluxo se a coluna ainda não existir.
+    try {
+      await model.updateMany({ where: { id, iniciadoEm: null }, data: { iniciadoEm: new Date() } });
+    } catch {}
     await logAction(prisma, { consultaId: id, usuarioId: pharmacistId, role: req.user.role, acao: 'iniciado', detalhes: { tipo } });
     return res.status(200).json({ success: true, status: 'em_atendimento' });
   } catch (err) {
@@ -211,6 +217,12 @@ export const concluirConsulta = async (req, res) => {
       count = r.count;
     }
     if (count === 0) return res.status(409).json({ error: 'Consulta não pode ser concluída (verifique o status).' });
+    // Timestamp de conclusão (Fase 14 — métricas). Best-effort: nunca pode
+    // derrubar a conclusão se a coluna ainda não existir.
+    try {
+      const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
+      await model.updateMany({ where: { id, farmaceuticoId: pharmacistId }, data: { concluidoEm: new Date() } });
+    } catch {}
     let duracaoMin = null;
     try {
       const rows = await prisma.$queryRawUnsafe(

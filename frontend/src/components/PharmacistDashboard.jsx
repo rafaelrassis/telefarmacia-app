@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   CircleCheck, Ban, Clock, Zap, ZapOff, Bell, BellOff, FileText,
-  CalendarDays, CalendarRange, ClipboardList, Wallet, Star,
+  CalendarDays, CalendarRange, ClipboardList, Wallet, Star, BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MyAppointments from './MyAppointments';
@@ -19,6 +19,7 @@ import CalendarioTab from './pharmacist/CalendarioTab';
 import AgendaTab from './pharmacist/AgendaTab';
 import TemplatesTab from './pharmacist/TemplatesTab';
 import ResumoDoDia from './pharmacist/ResumoDoDia';
+import MetricasTab from './pharmacist/MetricasTab';
 import { getPharmacistStatus } from '../utils/pharmacistFormat';
 
 const STATUS_BADGE = {
@@ -60,6 +61,7 @@ const TABS = [
   { id: 'consultas',  label: 'Consultas',    icon: ClipboardList  },
   { id: 'ganhos',     label: 'Ganhos',       icon: Wallet         },
   { id: 'avaliacoes', label: 'Avaliações',   icon: Star           },
+  { id: 'metricas',   label: 'Métricas',     icon: BarChart3      },
 ];
 
 const PharmacistDashboard = () => {
@@ -361,6 +363,7 @@ const PharmacistDashboard = () => {
       {activeTab === 'consultas'  && <MyAppointments />}
       {activeTab === 'ganhos'     && <GanhosTab />}
       {activeTab === 'avaliacoes' && <AvaliacoesTab />}
+      {activeTab === 'metricas'   && <MetricasTab />}
       {activeTab === 'perfil'     && <PharmacistProfileEditor />}
 
       {consultaAlvo && (

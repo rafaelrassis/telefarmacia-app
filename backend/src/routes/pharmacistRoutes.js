@@ -15,6 +15,7 @@ import {
   getGanhosFarmaceutico,
   exportGanhosFarmaceutico,
   getUrgentesAceitas,
+  getMetricasFarmaceutico,
 } from '../controllers/PharmacistController.js';
 import { listarBloqueios, criarBloqueio, excluirBloqueio } from '../controllers/BloqueioController.js';
 import { getMeusRepasses } from '../controllers/RepasseController.js';
@@ -51,6 +52,9 @@ router.get('/farmaceutico/consultas', authMiddleware, getConsultasFarmaceutico);
 // Relatório de ganhos do farmacêutico
 router.get('/farmaceutico/ganhos', authMiddleware, getGanhosFarmaceutico);
 router.get('/farmaceutico/ganhos/export', authMiddleware, exportGanhosFarmaceutico);
+
+// Métricas consolidadas do farmacêutico logado
+router.get('/farmaceutico/me/metricas', authMiddleware, getMetricasFarmaceutico);
 
 // Urgentes aceitas pelo farmacêutico logado
 router.get('/farmaceutico/urgentes-aceitas', authMiddleware, getUrgentesAceitas);

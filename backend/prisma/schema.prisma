@@ -226,6 +226,8 @@ model FilaAgendada {
   creditoDebitado Decimal           @db.Decimal(10, 2)
   criadoEm        DateTime          @default(now())
   aceitoEm        DateTime?
+  iniciadoEm      DateTime?
+  concluidoEm     DateTime?
   dependentId     String?
   dependent       DependentProfile? @relation("DependenteFilaAgendada", fields: [dependentId], references: [id])
   avaliacao       Avaliacao?
@@ -241,6 +243,8 @@ model FilaUrgente {
   creditoDebitado Decimal           @db.Decimal(10, 2)
   criadoEm        DateTime          @default(now())
   aceitoEm        DateTime?
+  iniciadoEm      DateTime?
+  concluidoEm     DateTime?
   dependentId     String?
   dependent       DependentProfile? @relation("DependenteFilaUrgente", fields: [dependentId], references: [id])
   avaliacao       Avaliacao?
