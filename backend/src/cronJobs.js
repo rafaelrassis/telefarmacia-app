@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 import { logAction } from './utils/logAction.js';
 import { criarNotificacao } from './controllers/NotificacaoController.js';
-import { notifyEstorno, notifyLembreteConsulta } from './services/pushService.js';
+import { notifyEstorno, notifyLembreteConsulta, notifyLembreteMedicacao } from './services/pushService.js';
 import { logger } from './utils/logger.js';
 import { VERIFICATION_TOKEN_TTL_MS } from './utils/emailVerificationToken.js';
 
@@ -380,6 +380,64 @@ export async function jobExcluirCadastrosNaoConfirmados() {
   }
 }
 
+// ── Job 7: lembretes de medicação nos horários configurados (a cada 5 min) ──
+// Janela do tick: [HH:MM arredondado ao múltiplo de 5, +5 min) em
+// America/Sao_Paulo — cobre horários fora do múltiplo (ex.: 08:03).
+
+export async function jobLembretesMedicacao() {
+  try {
+    const agora = new Date();
+    const [horaSp, minSp] = agora
+      .toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false, hour: '2-digit', minute: '2-digit' })
+      .split(':')
+      .map(Number);
+    const minTick = minSp - (minSp % 5);
+    const janela = Array.from({ length: 5 }, (_, i) =>
+      `${String(horaSp).padStart(2, '0')}:${String(minTick + i).padStart(2, '0')}`
+    );
+
+    // Anti-duplicação: só dispara se ultimoDisparoEm for null ou > 20 min atrás
+    const limiteDisparo = new Date(agora.getTime() - 20 * 60 * 1000);
+    const elegiveis = await prisma.lembreteMedicacao.findMany({
+      where: {
+        ativo:    true,
+        horarios: { hasSome: janela },
+        OR: [
+          { ultimoDisparoEm: null },
+          { ultimoDisparoEm: { lt: limiteDisparo } },
+        ],
+      },
+      include: { dependent: { select: { nome: true } } },
+    });
+
+    let enviados = 0;
+    for (const l of elegiveis) {
+      try {
+        const quem     = l.dependent?.nome ? ` (para ${l.dependent.nome.split(' ')[0]})` : '';
+        const doseStr  = l.dose ? ` — ${l.dose}` : '';
+        await notifyLembreteMedicacao(l.pacienteId, l.medicamento, l.dose);
+        await criarNotificacao({
+          userId:   l.pacienteId,
+          tipo:     'lembrete_medicacao',
+          titulo:   'Hora do medicamento',
+          mensagem: `${l.medicamento}${doseStr}${quem}`,
+        });
+        await prisma.lembreteMedicacao.update({
+          where: { id: l.id },
+          data:  { ultimoDisparoEm: new Date() },
+        });
+        enviados += 1;
+      } catch (err) {
+        console.error(`[cron] Falha ao disparar lembrete de medicação ${l.id}:`, err.message);
+      }
+    }
+    if (enviados > 0)
+      console.log(`[cron] ${enviados} lembrete(s) de medicação enviado(s).`);
+  } catch (err) {
+    console.error('[cron] Erro no job de lembretes de medicação:', err.message);
+  }
+}
+
 export const initCronJobs = () => {
   if (process.env.NODE_ENV === 'test') {
     console.log('[cron] NODE_ENV=test — jobs não agendados (invocar as funções diretamente nos testes).');
@@ -392,6 +450,7 @@ export const initCronJobs = () => {
   cron.schedule('*/15 * * * *', jobExpirarAgendadasOrfas);
   cron.schedule('*/15 * * * *', jobLembreteConsulta);
   cron.schedule('0 * * * *',    jobExcluirCadastrosNaoConfirmados);
+  cron.schedule('*/5 * * * *',  jobLembretesMedicacao);
 
-  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min) | cadastros não confirmados (hora em hora).');
+  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min) | cadastros não confirmados (hora em hora) | lembretes de medicação (5min).');
 };

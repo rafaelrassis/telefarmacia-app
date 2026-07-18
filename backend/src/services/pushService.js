@@ -87,6 +87,14 @@ export async function notifyReceitaPronta(pacienteId) {
   });
 }
 
+export async function notifyLembreteMedicacao(userId, medicamento, dose) {
+  await sendPushToUser(userId, {
+    title: '💊 Hora do medicamento',
+    body:  dose ? `${medicamento} — ${dose}` : medicamento,
+    url:   '/dashboard',
+  });
+}
+
 export async function notifyEstorno(pacienteId) {
   await sendPushToUser(pacienteId, {
     title: '💰 Créditos devolvidos',
