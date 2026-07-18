@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
-import { FileText, CheckCircle2, RotateCcw, Ban, UserX, Trash2 } from 'lucide-react';
+import { FileText, CheckCircle2, RotateCcw, Ban, UserX, Trash2, Eye } from 'lucide-react';
 import ConfirmPowerAction from './ConfirmPowerAction';
 import OcorrenciasModal from './OcorrenciasModal';
 import DocumentoViewerModal from './DocumentoViewerModal';
+import CadastroFarmaceuticoModal from './CadastroFarmaceuticoModal';
 import { fmt } from '../../utils/adminFormat';
-import { getPharmacistStatus } from '../../utils/pharmacistFormat';
-
-const STATUS_BADGE_CLS = {
-  suspenso: 'bg-error-wash text-error',
-  ativo:    'bg-success-wash text-success',
-  pendente: 'bg-alert-wash text-alert',
-};
-const STATUS_BADGE_LABEL = { suspenso: 'Suspenso', ativo: 'Ativo', pendente: 'Pendente' };
+import { getPharmacistStatus, STATUS_BADGE_CLS, STATUS_BADGE_LABEL } from '../../utils/pharmacistFormat';
 
 const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimiteOcorrencias }) => {
   const [actionLoading, setActionLoading] = useState({});
@@ -21,6 +15,7 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
   const [suspendLoading, setSuspendLoading] = useState(false);
   const [viewingOcorrencias, setViewingOcorrencias] = useState(null);
   const [viewingDocs, setViewingDocs] = useState(null);
+  const [viewingCadastro, setViewingCadastro] = useState(null);
 
   const setBtnLoading = (key, v) => setActionLoading((prev) => ({ ...prev, [key]: v }));
 
@@ -144,6 +139,12 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
                       <td className="px-4 py-3">
                         <p className="font-medium text-ink">{p.name}</p>
                         <p className="text-xs text-muted">{p.email}</p>
+                        <button
+                          onClick={() => setViewingCadastro(p)}
+                          className="inline-flex items-center gap-1 text-xs text-brand-deep hover:underline mt-0.5"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Ver cadastro
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-ink">
                         {prof ? `${prof.crfNumber}/${prof.crfUF}` : '—'}
@@ -303,6 +304,15 @@ const PharmacistsTab = ({ api, showToast, pharmacists, setPharmacists, finLimite
         <DocumentoViewerModal
           farmaceutico={viewingDocs}
           onClose={() => setViewingDocs(null)}
+        />
+      )}
+
+      {viewingCadastro && (
+        <CadastroFarmaceuticoModal
+          farmaceutico={viewingCadastro}
+          onClose={() => setViewingCadastro(null)}
+          onVerDocumentos={() => { setViewingDocs(viewingCadastro); setViewingCadastro(null); }}
+          onAtivar={() => { activate(viewingCadastro.id); setViewingCadastro(null); }}
         />
       )}
     </>

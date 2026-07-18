@@ -22,6 +22,7 @@ import RepassesTab from './admin/RepassesTab';
 import ConvitesTab from './admin/ConvitesTab';
 import ParceirosTab from './admin/ParceirosTab';
 import AdminsTab from './admin/AdminsTab';
+import { getPharmacistStatus } from '../utils/pharmacistFormat';
 
 const AdminPanel = () => {
   const { token, user } = useAuth();
@@ -50,11 +51,15 @@ const AdminPanel = () => {
 
   useEffect(() => { loadDirectory(); }, [loadDirectory]);
 
+  const pendentesCount = pharmacists.filter(
+    (p) => getPharmacistStatus(p.pharmacistProfile).key === 'pendente'
+  ).length;
+
   const TABS = [
     { id: 'overview',     label: 'Visão geral', icon: LayoutDashboard },
     { id: 'horarios',     label: 'Horários', icon: Clock },
     { id: 'consultas',    label: 'Consultas', icon: CalendarClock },
-    { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})`, icon: Stethoscope },
+    { id: 'pharmacists',  label: `Farmacêuticos (${pharmacists.length})`, icon: Stethoscope, badge: pendentesCount },
     { id: 'patients',     label: `Pacientes (${patients.length})`, icon: Users },
     { id: 'avaliacoes',   label: 'Avaliações', icon: Star },
     { id: 'financeiro',   label: 'Financeiro', icon: Wallet },
@@ -97,9 +102,14 @@ const AdminPanel = () => {
           >
             {TAB_GROUPS.map((group) => (
               <optgroup key={group.label} label={group.label}>
-                {group.ids.map((id) => (
-                  <option key={id} value={id}>{tabById[id].label}</option>
-                ))}
+                {group.ids.map((id) => {
+                  const { label, badge } = tabById[id];
+                  return (
+                    <option key={id} value={id}>
+                      {badge > 0 ? `${label} · ${badge} pendente(s)` : label}
+                    </option>
+                  );
+                })}
               </optgroup>
             ))}
           </select>
@@ -127,6 +137,11 @@ const AdminPanel = () => {
                     >
                       <Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} />
                       <span className="truncate">{t.label}</span>
+                      {t.badge > 0 && (
+                        <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-alert text-white text-[10px] font-bold">
+                          {t.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
