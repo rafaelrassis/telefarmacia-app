@@ -450,6 +450,10 @@ export const cadastroFarmaceutico = async (req, res) => {
       nome:      user.name,
       crfNumber: profile.crfNumber,
       crfUF:     profile.crfUF,
+      email:     user.email,
+      phone:     user.phone,
+      bio:       profile.bio,
+      tags:      profile.tags,
     }).catch(() => {});
 
     return res.status(201).json({ success: true, status: 'Inativo' });

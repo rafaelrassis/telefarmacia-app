@@ -147,7 +147,7 @@ export const sendVerificationEmail = async ({ to, token }) => {
   }
 };
 
-export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
+export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF, email, phone, bio, tags }) => {
   const to = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!to) {
     console.warn('[email] ADMIN_NOTIFICATION_EMAIL não configurado — notificação não enviada.');
@@ -162,6 +162,10 @@ export const notifyAdminNewPharmacist = async ({ nome, crfNumber, crfUF }) => {
         <h2>Novo farmacêutico aguardando aprovação</h2>
         <p><strong>Nome:</strong> ${nome}</p>
         <p><strong>CRF:</strong> ${crfNumber}/${crfUF}</p>
+        <p><strong>E-mail:</strong> ${email}</p>
+        <p><strong>Telefone:</strong> ${phone || 'não informado'}</p>
+        <p><strong>Áreas de atuação:</strong> ${tags?.length ? tags.join(', ') : 'não informadas'}</p>
+        <p><strong>Bio:</strong> ${bio || 'não informada'}</p>
         <p>Acesse o painel administrativo para revisar os documentos e ativar o cadastro.</p>
         <p><a href="${appUrl}">Acessar painel →</a></p>
       `,

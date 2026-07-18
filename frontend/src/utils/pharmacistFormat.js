@@ -67,6 +67,13 @@ export const getPharmacistStatus = (profile) => {
   return { key: 'pendente', label: 'Pendente', docEnviado };
 };
 
+export const STATUS_BADGE_CLS = {
+  suspenso: 'bg-error-wash text-error',
+  ativo:    'bg-success-wash text-success',
+  pendente: 'bg-alert-wash text-alert',
+};
+export const STATUS_BADGE_LABEL = { suspenso: 'Suspenso', ativo: 'Ativo', pendente: 'Pendente' };
+
 export function playBeep() {
   try {
     const ctx  = new (window.AudioContext || window.webkitAudioContext)();
