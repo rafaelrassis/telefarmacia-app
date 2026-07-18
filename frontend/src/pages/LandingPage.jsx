@@ -251,29 +251,85 @@ const TRUST_FACTS = [
   },
 ];
 
-const TestimonialsSection = () => (
-  <section className="bg-canvas py-16 border-t border-line">
-    {/* TODO Fase futura: substituir por avaliações reais da API quando houver volume */}
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Confiança</p>
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
-          Por que confiar no FarmaConsulta
-        </h2>
-        <p className="text-muted text-sm mt-2">Sem estrelas inventadas: só o que podemos provar.</p>
-      </div>
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {TRUST_FACTS.map(({ title, desc }) => (
-          <div key={title} className="bg-surface border border-line rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
-            <h3 className="font-heading font-bold text-ink text-base mb-2">{title}</h3>
-            <p className="text-sm text-muted leading-relaxed">{desc}</p>
+const fmtNum = (n) => Number(n).toLocaleString('pt-BR');
+const fmtNota = (n) => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+const TestimonialsSection = () => {
+  // Social proof real: números agregados vindos da API, com threshold mínimo
+  // de volume no backend. Falha ou volume zero = seção idêntica à estática
+  // (progressive enhancement — nunca regressão de compliance).
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/public/stats`);
+        if (!res.ok) return;
+        const d = await res.json();
+        if (ativo && d && typeof d.consultasConcluidas === 'number') setStats(d);
+      } catch { /* falha silenciosa — a seção estática permanece */ }
+    })();
+    return () => { ativo = false; };
+  }, []);
+
+  const temNota      = stats?.notaMedia != null;
+  const temConsultas = (stats?.consultasConcluidas ?? 0) > 0;
+
+  return (
+    <section className="bg-canvas py-16 border-t border-line">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <p className="text-[11px] font-bold text-brand-deep uppercase tracking-[0.12em] mb-3">Confiança</p>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
+            Por que confiar no FarmaConsulta
+          </h2>
+          <p className="text-muted text-sm mt-2">Sem estrelas inventadas: só o que podemos provar.</p>
+        </div>
+
+        {temNota && (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 bg-surface border border-line rounded-2xl px-6 py-5 mb-8 text-center">
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true" style={{ letterSpacing: 1 }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <span key={n} style={{ fontSize: 18, color: n <= Math.round(stats.notaMedia) ? '#f59e0b' : '#e5e7eb' }}>★</span>
+                ))}
+              </span>
+              <p className="text-sm text-ink m-0">
+                Nota média <strong>{fmtNota(stats.notaMedia)}</strong> em{' '}
+                <strong>{fmtNum(stats.totalAvaliacoes)}</strong> avaliações de pacientes reais
+              </p>
+            </div>
+            {temConsultas && (
+              <p className="text-sm text-ink m-0">
+                <strong>{fmtNum(stats.consultasConcluidas)}</strong> consultas concluídas
+              </p>
+            )}
           </div>
-        ))}
+        )}
+
+        {!temNota && temConsultas && (
+          <div className="flex items-center justify-center bg-surface border border-line rounded-2xl px-6 py-5 mb-8 text-center">
+            <p className="text-sm text-ink m-0">
+              <strong>{fmtNum(stats.consultasConcluidas)}</strong> consultas concluídas na plataforma
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {TRUST_FACTS.map(({ title, desc }) => (
+            <div key={title} className="bg-surface border border-line rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
+              <h3 className="font-heading font-bold text-ink text-base mb-2">{title}</h3>
+              <p className="text-sm text-muted leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 /* ─────────────────────────────────────────────────────────────
    CTA FINAL
