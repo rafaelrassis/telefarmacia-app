@@ -121,7 +121,10 @@ export const register = async (req, res) => {
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return res.status(400).json({ error: 'E-mail já cadastrado.' });
+      return res.status(409).json({
+        error: 'Este e-mail já tem uma conta na FarmaConsulta. Entre com sua senha — a mesma conta funciona como paciente e como farmacêutico.',
+        code: 'EMAIL_JA_CADASTRADO',
+      });
     }
 
     if (isAdminEmail(email)) {
@@ -218,6 +221,11 @@ export const completeOnboarding = async (req, res) => {
       const crfError = validateCrf(crfNumber, crfUF);
       if (crfError) {
         return res.status(400).json({ error: crfError });
+      }
+
+      const jaExiste = await prisma.pharmacistProfile.findUnique({ where: { userId } });
+      if (jaExiste) {
+        return res.status(409).json({ error: 'Você já possui cadastro de farmacêutico.', code: 'JA_E_FARMACEUTICO' });
       }
 
       await prisma.user.update({

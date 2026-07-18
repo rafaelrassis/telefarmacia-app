@@ -132,9 +132,6 @@ export const getPerfil = async (req, res) => {
 // UNION das fontes: FilaAgendada + FilaUrgente
 
 export const getHistorico = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') {
-    return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
-  }
   const patientId = req.user.id;
 
   try {
@@ -186,9 +183,6 @@ export const getHistorico = async (req, res) => {
 // ── GET /api/paciente/agendamentos (filtros + paginação) ─────────────────────
 
 export const getAgendamentos = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') {
-    return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
-  }
   const patientId = req.user.id;
   console.log('[getAgendamentos] userId da sessão (JWT):', patientId, '| email:', req.user.email);
   const { de, ate, status, page = '1', limit = '10', dependentId } = req.query;
@@ -408,7 +402,6 @@ export const patchNascimento = async (req, res) => {
 // ── GET /api/paciente/consulta/:id?tipo=agendada|urgente ─────────
 
 export const getConsultaDetalhesPaciente = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
   const { id }     = req.params;
   const { tipo }   = req.query;
   const patientId  = req.user.id;
@@ -500,7 +493,6 @@ export const getConsultaDetalhesPaciente = async (req, res) => {
 // ── GET /api/paciente/consulta/:id/pdf?tipo=agendada|urgente ────────────────
 
 export const getReceitaPdfPaciente = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
   const { id }      = req.params;
   const { tipo, doc = 'receita' } = req.query;
   const patientId   = req.user.id;
@@ -550,7 +542,6 @@ export const getReceitaPdfPaciente = async (req, res) => {
 // ── GET /api/paciente/proxima-consulta ──────────────────────────────────────
 
 export const getProximaConsulta = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
   const patientId = req.user.id;
 
   try {
@@ -620,7 +611,6 @@ export const getExtrato = async (req, res) => {
 
 // GET /api/paciente/retorno-sugerido
 export const getRetornoSugerido = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
   const pacienteId = req.user.id;
   try {
     const agendadaRows = await prisma.$queryRawUnsafe(`
@@ -678,7 +668,6 @@ export const getRetornoSugerido = async (req, res) => {
 
 // GET /api/paciente/documentos
 export const getMeusDocumentos = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
   const pacienteId = req.user.id;
   const { dependentId, titular } = req.query;
 

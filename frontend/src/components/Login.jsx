@@ -26,6 +26,9 @@ const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
   // confirmação (Fluxo 3, código EMAIL_NOT_VERIFIED). Não vazio → mostra a
   // tela de aviso/reenvio no lugar do formulário.
   const [pendingEmail, setPendingEmail] = useState('');
+  // E-mail já cadastrado detectado durante o registro — mostra CTA para
+  // entrar com a mesma conta em vez de apenas o erro.
+  const [emailJaCadastrado, setEmailJaCadastrado] = useState(false);
 
   useEffect(() => {
     onPendingChange?.(Boolean(pendingEmail));
@@ -34,6 +37,7 @@ const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setEmailJaCadastrado(false);
     setLoading(true);
     try {
       const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
@@ -50,6 +54,9 @@ const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
         if (data.code === 'EMAIL_NOT_VERIFIED') {
           setPendingEmail(email);
           return;
+        }
+        if (mode === 'register' && (data.code === 'EMAIL_JA_CADASTRADO' || res.status === 409)) {
+          setEmailJaCadastrado(true);
         }
         setError(data.error || 'Erro ao processar requisição.');
         return;
@@ -142,6 +149,16 @@ const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
         <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg" role="alert">{error}</p>
       )}
 
+      {emailJaCadastrado && (
+        <button
+          type="button"
+          onClick={() => { setMode('login'); setError(''); setEmailJaCadastrado(false); }}
+          className="w-full border-2 border-brand text-brand-deep font-bold py-2.5 rounded-xl transition text-sm hover:bg-brand-wash focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          Entrar com este e-mail
+        </button>
+      )}
+
       <button
         type="submit"
         disabled={loading}
@@ -156,7 +173,7 @@ const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
         {mode === 'login' ? 'Não tem uma conta?' : 'Já tem uma conta?'}{' '}
         <button
           type="button"
-          onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
+          onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setEmailJaCadastrado(false); }}
           className="text-brand-deep font-semibold hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {mode === 'login' ? 'Criar conta' : 'Entrar'}

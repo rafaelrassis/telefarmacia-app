@@ -408,21 +408,24 @@ export const aceitarAgendada = async (req, res) => {
       return res.status(400).json({ error: 'Conclua o atendimento atual antes de aceitar outro.' });
     }
 
+    const consulta = await prisma.filaAgendada.findUnique({ where: { id }, select: { dataHora: true, pacienteId: true } });
+    if (!consulta) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    if (consulta.pacienteId === pharmacistId) {
+      return res.status(403).json({ error: 'Você não pode atender sua própria consulta.' });
+    }
+
     // Verifica se o horário da consulta cai em bloqueio de agenda do farmacêutico
-    const consulta = await prisma.filaAgendada.findUnique({ where: { id }, select: { dataHora: true } });
-    if (consulta) {
-      const bloqueioAtivo = await prisma.bloqueioAgenda.findFirst({
-        where: {
-          pharmacistId,
-          dataInicio: { lte: consulta.dataHora },
-          dataFim:    { gte: consulta.dataHora },
-        },
+    const bloqueioAtivo = await prisma.bloqueioAgenda.findFirst({
+      where: {
+        pharmacistId,
+        dataInicio: { lte: consulta.dataHora },
+        dataFim:    { gte: consulta.dataHora },
+      },
+    });
+    if (bloqueioAtivo) {
+      return res.status(409).json({
+        error: 'Você tem um bloqueio de agenda neste horário. Remova o bloqueio antes de aceitar esta consulta.',
       });
-      if (bloqueioAtivo) {
-        return res.status(409).json({
-          error: 'Você tem um bloqueio de agenda neste horário. Remova o bloqueio antes de aceitar esta consulta.',
-        });
-      }
     }
 
     const result = await prisma.filaAgendada.updateMany({
@@ -489,6 +492,12 @@ export const aceitarUrgente = async (req, res) => {
       return res.status(400).json({
         error: `Limite de ${maxSimult} urgência(s) simultânea(s) atingido. Conclua um atendimento antes de aceitar outro.`,
       });
+    }
+
+    const alvo = await prisma.filaUrgente.findUnique({ where: { id }, select: { pacienteId: true } });
+    if (!alvo) return res.status(404).json({ error: 'Consulta não encontrada.' });
+    if (alvo.pacienteId === pharmacistId) {
+      return res.status(403).json({ error: 'Você não pode atender sua própria consulta.' });
     }
 
     const result = await prisma.filaUrgente.updateMany({
