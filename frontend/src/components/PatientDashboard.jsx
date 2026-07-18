@@ -19,6 +19,7 @@ import RetornoSugeridoCard from './patient/RetornoSugeridoCard';
 import AgendamentoButtons from './patient/AgendamentoButtons';
 import CarteiraCard from './patient/CarteiraCard';
 import AgendarConsultaModal from './patient/AgendarConsultaModal';
+import LembretesMedicacao from './patient/LembretesMedicacao';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -208,6 +209,14 @@ const PatientDashboard = () => {
       </div>
 
       {showDocumentos && <MeusDocumentos onClose={() => setShowDocumentos(false)} />}
+
+      <LembretesMedicacao
+        dependentes={dep.dependentes}
+        pushEnabled={pushEnabled}
+        togglingPush={togglingPush}
+        togglePush={togglePush}
+      />
+
 
       <PushToggleBanner pushEnabled={pushEnabled} togglingPush={togglingPush} togglePush={togglePush} />
     </div>

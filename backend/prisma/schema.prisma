@@ -47,6 +47,7 @@ model User {
   pushSubscriptions            PushSubscription[] @relation("UserPushSubs")
   passwordResets               PasswordReset[]
   verificationTokens           VerificationToken[]
+  lembretesMedicacao           LembreteMedicacao[] @relation("PacienteLembretesMedicacao")
 }
 
 model VerificationToken {
@@ -260,6 +261,23 @@ model DependentProfile {
   atualizadoEm            DateTime       @updatedAt
   filaAgendada            FilaAgendada[] @relation("DependenteFilaAgendada")
   filaUrgente             FilaUrgente[]  @relation("DependenteFilaUrgente")
+  lembretesMedicacao      LembreteMedicacao[] @relation("DependenteLembretesMedicacao")
+}
+
+model LembreteMedicacao {
+  id              String            @id @default(uuid())
+  pacienteId      String
+  paciente        User              @relation("PacienteLembretesMedicacao", fields: [pacienteId], references: [id], onDelete: Cascade)
+  dependentId     String?
+  dependent       DependentProfile? @relation("DependenteLembretesMedicacao", fields: [dependentId], references: [id], onDelete: Cascade)
+  medicamento     String
+  dose            String?
+  horarios        String[]
+  ativo           Boolean           @default(true)
+  ultimoDisparoEm DateTime?
+  criadoEm        DateTime          @default(now())
+
+  @@index([pacienteId])
 }
 
 model FarmaceuticoStatus {
