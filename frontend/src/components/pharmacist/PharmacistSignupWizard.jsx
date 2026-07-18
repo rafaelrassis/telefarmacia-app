@@ -78,7 +78,7 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
   const [stepIndex, setStepIndex] = useState(0);
   const [minStepIndex, setMinStepIndex] = useState(0);
-  const [terminal, setTerminal] = useState(null); // null | 'exists' | 'pending'
+  const [terminal, setTerminal] = useState(null); // null | 'exists' | 'pending' | 'ja_farmaceutico'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -88,6 +88,9 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  // Senha digitada no terminal 'exists' (conta já cadastrada) para entrar e
+  // continuar o cadastro de farmacêutico na mesma conta.
+  const [senhaExistente, setSenhaExistente] = useState('');
 
   // Dados pessoais + profissionais
   const [telefone, setTelefone] = useState(draft.telefone || '');
@@ -148,6 +151,7 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
         setTempToken(data.token);
         setStepIndex(1);
       } else {
+        if (data.user?.email) setEmail(data.user.email);
         setTerminal('exists');
       }
     } catch {
@@ -168,9 +172,52 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
         body: JSON.stringify({ email, password: senha, nome }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Erro ao criar conta.'); return; }
+      if (!res.ok) {
+        if (data.code === 'EMAIL_JA_CADASTRADO' || res.status === 409) {
+          setTerminal('exists');
+          return;
+        }
+        setError(data.error || 'Erro ao criar conta.');
+        return;
+      }
       setTempToken(data.token);
       setStepIndex(1);
+    } catch {
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Terminal 'exists': entra na conta já cadastrada e continua o cadastro de
+  // farmacêutico nela. O token vai para tempToken (mesmo mecanismo das outras
+  // rotas de conta do wizard) — a sessão global (AuthContext.login) só é
+  // efetivada no envio final, para não desmontar o wizard com o redirect
+  // pós-login da página.
+  const handleEntrarEContinuar = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: senhaExistente }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.code === 'JA_E_FARMACEUTICO') { setTerminal('ja_farmaceutico'); return; }
+        setError(data.error || 'Erro ao entrar.');
+        return;
+      }
+      if (data.user?.role === 'FARMACEUTICO' || data.user?.pharmacistProfile) {
+        setTerminal('ja_farmaceutico');
+        return;
+      }
+      setTempToken(data.token);
+      setTerminal(null);
+      setStepIndex(1);
+      setMinStepIndex(1);
     } catch {
       setError('Erro de conexão. Tente novamente.');
     } finally {
@@ -217,6 +264,10 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
       });
       const onboardingData = await onboardingRes.json();
       if (!onboardingRes.ok) {
+        if (onboardingData.code === 'JA_E_FARMACEUTICO') {
+          setTerminal('ja_farmaceutico');
+          return;
+        }
         setError(onboardingData.error || 'Erro ao salvar perfil.');
         return;
       }
@@ -265,14 +316,45 @@ const PharmacistSignupWizard = ({ onClose, embedded = false }) => {
 
       <div className="px-6 py-6">
         {terminal === 'exists' && (
+            <div className="py-4">
+              <div className="text-center">
+                <span className="text-4xl block mb-4">👋</span>
+                <h3 className="font-bold text-ink mb-2">Você já tem uma conta</h3>
+                <p className="text-sm text-muted leading-relaxed mb-6">
+                  Este e-mail já está cadastrado. Entre com sua senha para continuar o cadastro de farmacêutico na mesma conta.
+                </p>
+              </div>
+              <form onSubmit={handleEntrarEContinuar} className="space-y-3">
+                <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input label="Senha" type="password" placeholder="••••••••" autoComplete="current-password"
+                  value={senhaExistente} onChange={(e) => setSenhaExistente(e.target.value)} required />
+                {error && (
+                  <p className="text-sm text-error bg-error-wash px-3 py-2 rounded-lg" role="alert">{error}</p>
+                )}
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? 'Entrando...' : 'Entrar e continuar'}
+                </Button>
+              </form>
+              <div className="text-center mt-4">
+                <button onClick={() => { setTerminal(null); setError(''); }} className="text-sm text-brand-deep hover:underline">
+                  ← Voltar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {terminal === 'ja_farmaceutico' && (
             <div className="text-center py-4">
-              <span className="text-4xl block mb-4">⚠️</span>
-              <h3 className="font-bold text-ink mb-2">Conta já cadastrada como paciente</h3>
+              <span className="text-4xl block mb-4">✅</span>
+              <h3 className="font-bold text-ink mb-2">Sua conta já é de farmacêutico</h3>
               <p className="text-sm text-muted leading-relaxed mb-6">
-                Este e-mail já está associado a uma conta de paciente. Para se cadastrar como farmacêutico, use outro e-mail.
+                Sua conta já é de farmacêutico — faça login normalmente para acessar a plataforma.
               </p>
-              <button onClick={() => setTerminal(null)} className="text-sm text-brand-deep hover:underline">
-                ← Tentar com outro e-mail
+              <button
+                onClick={() => { onClose?.(); navigate('/login'); }}
+                className="text-sm text-brand-deep font-semibold hover:underline"
+              >
+                Ir para a tela de login
               </button>
             </div>
           )}

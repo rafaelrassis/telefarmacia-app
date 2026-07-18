@@ -573,7 +573,6 @@ export const semContato = async (req, res) => {
 // Paciente remarca consulta agendada (máx 2x, com 2h de antecedência)
 
 export const remarcarConsulta = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso negado.' });
   const { id } = req.params;
   const { nova_data_hora } = req.body;
   const pacienteId = req.user.id;
@@ -696,7 +695,6 @@ export const proporRemarcacao = async (req, res) => {
 // Paciente responde à proposta do farmacêutico
 
 export const responderRemarcacao = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso negado.' });
   const { id } = req.params;
   const { decisao, nova_data_hora } = req.body;
   const pacienteId = req.user.id;
@@ -1336,7 +1334,6 @@ async function buildEncaminhamentoPdf({ filepath, pacienteNome, dataHora, farmNo
 // resposta (sem gravar arquivo em disco nem URL pública).
 
 export const gerarReciboPdf = async (req, res) => {
-  if (req.user.role !== 'PACIENTE') return res.status(403).json({ error: 'Acesso restrito a pacientes.' });
   const { id }    = req.params;
   const { tipo }  = req.query;
   const patientId = req.user.id;
