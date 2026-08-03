@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from './useToast';
 import { abrirDocumentoAutenticado } from '../utils/abrirDocumentoAutenticado';
 import { STATUS_LABELS, emptyMed } from '../utils/consultaFormat';
 
@@ -8,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
   const isVisualizacao = modo === 'visualizacao';
   const { token, user } = useAuth();
+  const { toast, showToast } = useToast();
   const [consulta, setConsulta]           = useState(null);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState('');
@@ -107,7 +109,10 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ tipo }),
-      }).then((r) => r.json()).then((d) => { if (d.url) setReceitaPdfUrl(d.url); }).catch(() => {});
+      }).then((r) => r.json()).then((d) => {
+        if (d.url) { setReceitaPdfUrl(d.url); showToast('success', 'Receita pronta — PDF gerado.'); }
+        else       { showToast('error', 'Falha ao gerar o PDF da receita automaticamente.'); }
+      }).catch(() => showToast('error', 'Falha ao gerar o PDF da receita automaticamente.'));
     }
 
     if (consulta.finalizacao?.encaminhamento_medico === 'sim' && !encaminhamentoPdfUrl && !retriedPdfRef.current.encaminhamento) {
@@ -117,7 +122,10 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ tipo, especialidade, resumoClinico: especialidade }),
-      }).then((r) => r.json()).then((d) => { if (d.url) setEncaminhamentoPdfUrl(d.url); }).catch(() => {});
+      }).then((r) => r.json()).then((d) => {
+        if (d.url) { setEncaminhamentoPdfUrl(d.url); showToast('success', 'Encaminhamento pronto — PDF gerado.'); }
+        else       { showToast('error', 'Falha ao gerar o PDF de encaminhamento automaticamente.'); }
+      }).catch(() => showToast('error', 'Falha ao gerar o PDF de encaminhamento automaticamente.'));
     }
   }, [consulta, receita, receitaPdfUrl, encaminhamentoPdfUrl, isAssigned, isVisualizacao, id, tipo, token]);
 
@@ -276,6 +284,7 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
   return {
     isVisualizacao,
     consulta, loading, error,
+    toast,
     motivo, setMotivo, observacoes, setObservacoes, obsError, setObsError,
     receita, receitaPdfUrl, encaminhamentoPdfUrl, anexoReceitaUrl,
     actionLoading,

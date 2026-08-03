@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { useConsultaModal } from '../hooks/useConsultaModal';
+import Toast from './ui/Toast';
 import FinalizacaoSection from './consulta/FinalizacaoSection';
 import ConsultaInfoHeader from './consulta/ConsultaInfoHeader';
 import DevolverAction from './consulta/DevolverAction';
@@ -17,6 +18,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   const {
     isVisualizacao,
     consulta, loading, error,
+    toast,
     motivo, setMotivo, observacoes, setObservacoes, obsError, setObsError,
     receita, receitaPdfUrl, encaminhamentoPdfUrl, anexoReceitaUrl,
     actionLoading,
@@ -56,6 +58,15 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {toast && (
+        <Toast variant={toast.type === 'success' ? 'success' : 'error'}>
+          <span className="inline-flex items-center gap-2">
+            {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {toast.text}
+          </span>
+        </Toast>
+      )}
 
       {/* Painel de trabalho — quase tela cheia, 3 zonas: header/corpo/footer fixos */}
       <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col overflow-hidden">
