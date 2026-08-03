@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as Sentry from '@sentry/node';
 import PDFDocument from 'pdfkit';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
@@ -238,33 +239,36 @@ export const concluirConsulta = async (req, res) => {
     // Gera o PDF da receita automaticamente quando há medicamentos
     // prescritos — mesma lógica do botão "Gerar PDF" (gerarReceitaPdfInterno).
     // Nunca pode derrubar a conclusão: se falhar, a consulta segue concluída
-    // normalmente e o farmacêutico ainda pode gerar o PDF manualmente depois
-    // (botão "Gerar PDF" continua disponível na consulta já concluída).
+    // normalmente; a tela reflete o retorno abaixo e, se ainda faltar,
+    // useConsultaModal tenta gerar de novo sozinho ao reabrir a consulta.
+    let receitaPdfUrl = null;
     if (receitaStr) {
       try {
-        await gerarReceitaPdfInterno({ id, tipo, pharmacistId });
+        receitaPdfUrl = await gerarReceitaPdfInterno({ id, tipo, pharmacistId });
       } catch (pdfErr) {
         logger.error('Falha ao gerar PDF de receita automaticamente na conclusão', {
-          requestId: req.id, consultaId: id, tipo, message: pdfErr.message,
+          requestId: req.id, consultaId: id, tipo, message: pdfErr.message, stack: pdfErr.stack,
         });
+        Sentry.captureException(pdfErr, { tags: { consultaId: id, tipo, fase: 'receita_pdf_auto' } });
       }
     }
 
     // Gera o PDF de encaminhamento automaticamente quando o farmacêutico
     // marcou "Necessita encaminhamento médico? Sim" na finalização.
-    // Mesma regra da receita: nunca derruba a conclusão em caso de falha;
-    // o botão "Gerar/Re-gerar encaminhamento" continua disponível depois.
+    // Mesma regra da receita: nunca derruba a conclusão em caso de falha.
+    let encaminhamentoPdfUrl = null;
     if (finalizacao?.encaminhamento_medico === 'sim') {
       try {
-        await gerarEncaminhamentoPdfInterno({
+        encaminhamentoPdfUrl = await gerarEncaminhamentoPdfInterno({
           id, tipo, pharmacistId,
           especialidade: finalizacao.encaminhamento_detalhe?.trim() || 'Encaminhamento médico',
           resumoClinico: finalizacao.encaminhamento_detalhe?.trim() || null,
         });
       } catch (pdfErr) {
         logger.error('Falha ao gerar PDF de encaminhamento automaticamente na conclusão', {
-          requestId: req.id, consultaId: id, tipo, message: pdfErr.message,
+          requestId: req.id, consultaId: id, tipo, message: pdfErr.message, stack: pdfErr.stack,
         });
+        Sentry.captureException(pdfErr, { tags: { consultaId: id, tipo, fase: 'encaminhamento_pdf_auto' } });
       }
     }
 
@@ -297,7 +301,7 @@ export const concluirConsulta = async (req, res) => {
       }
     } catch {}
 
-    return res.status(200).json({ success: true, status: 'concluido' });
+    return res.status(200).json({ success: true, status: 'concluido', receitaPdfUrl, encaminhamentoPdfUrl });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao concluir consulta.' });

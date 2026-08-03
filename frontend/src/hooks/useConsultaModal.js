@@ -92,6 +92,35 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
+  // ── Autocorreção de PDF ──────────────────────────────────────────────────────
+  // Sem botão manual, a única rede de segurança contra falha na geração
+  // automática de concluirConsulta é tentar de novo (uma vez por consulta
+  // aberta) sempre que a tela é carregada/atualizada e o PDF esperado ainda
+  // não existe.
+  const retriedPdfRef = useRef({ receita: false, encaminhamento: false });
+  useEffect(() => {
+    if (!consulta || isVisualizacao || !isAssigned || consulta.status !== 'concluido') return;
+
+    if (receita.length > 0 && !receitaPdfUrl && !retriedPdfRef.current.receita) {
+      retriedPdfRef.current.receita = true;
+      fetch(`${API_URL}/api/consulta/${id}/receita/pdf`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tipo }),
+      }).then((r) => r.json()).then((d) => { if (d.url) setReceitaPdfUrl(d.url); }).catch(() => {});
+    }
+
+    if (consulta.finalizacao?.encaminhamento_medico === 'sim' && !encaminhamentoPdfUrl && !retriedPdfRef.current.encaminhamento) {
+      retriedPdfRef.current.encaminhamento = true;
+      const especialidade = consulta.finalizacao.encaminhamento_detalhe?.trim() || 'Encaminhamento médico';
+      fetch(`${API_URL}/api/consulta/${id}/encaminhamento/pdf`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tipo, especialidade, resumoClinico: especialidade }),
+      }).then((r) => r.json()).then((d) => { if (d.url) setEncaminhamentoPdfUrl(d.url); }).catch(() => {});
+    }
+  }, [consulta, receita, receitaPdfUrl, encaminhamentoPdfUrl, isAssigned, isVisualizacao, id, tipo, token]);
+
   // ── Ações genéricas ────────────────────────────────────────────────────────
   const doAction = async (action, extra = {}) => {
     setError('');
@@ -158,9 +187,11 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
       retorno_sugerido: retornoSugeridoPayload,
     });
     if (data) {
-      setConsulta((p) => ({ ...p, status: 'concluido', receita: itensValidos }));
+      setConsulta((p) => ({ ...p, status: 'concluido', receita: itensValidos, finalizacao }));
       setReceita(itensValidos);
       setFinalizacaoData(finalizacao);
+      if (data.receitaPdfUrl) setReceitaPdfUrl(data.receitaPdfUrl);
+      if (data.encaminhamentoPdfUrl) setEncaminhamentoPdfUrl(data.encaminhamentoPdfUrl);
       onUpdated?.();
     }
   };
