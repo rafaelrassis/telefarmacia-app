@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  CircleCheck, Ban, Clock, Zap, ZapOff, Bell, BellOff, FileText,
+  CircleCheck, Ban, Clock, Zap, ZapOff, FileText,
   CalendarDays, CalendarRange, ClipboardList, Wallet, Star, BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,7 @@ import ConsultaModal from './ConsultaModal';
 import GanhosTab from './GanhosTab';
 import AvaliacoesTab from './AvaliacoesTab';
 import Badge from './ui/Badge';
-import { isPushSupported, getCurrentPushSubscription, subscribeToPush, unsubscribeFromPush } from '../utils/push';
+import { usePushToggle } from '../hooks/usePushToggle';
 import FilaPanel from './pharmacist/FilaPanel';
 import UrgentesPanel from './pharmacist/UrgentesPanel';
 import UrgentesAceitasPanel from './pharmacist/UrgentesAceitasPanel';
@@ -72,8 +72,7 @@ const PharmacistDashboard = () => {
   const [consultaAlvo, setConsultaAlvo]       = useState(null);
   const [emAtendimento, setEmAtendimento]     = useState(null); // { id, tipo } | null
   const [togglingDisponivel, setTogglingDisponivel] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(false);
-  const [togglingPush, setTogglingPush] = useState(false);
+  const { pushEnabled, maybeRequestPush, togglePush } = usePushToggle(token);
 
   const status              = getPharmacistStatus(user?.pharmacistProfile);
   const isApproved          = status.key === 'ativo';
@@ -87,10 +86,8 @@ const PharmacistDashboard = () => {
   // Solicita permissão de notificação do navegador ao aprovar o farmacêutico
   useEffect(() => {
     if (!isApproved) return;
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, [isApproved]);
+    maybeRequestPush();
+  }, [isApproved, maybeRequestPush]);
 
   // Enquanto a conta está pendente, verifica a aprovação sozinho em segundo
   // plano — sem exigir que o farmacêutico clique em nada.
@@ -100,35 +97,11 @@ const PharmacistDashboard = () => {
     return () => clearInterval(id);
   }, [isApproved, refreshUser]);
 
-  // Sincroniza estado do toggle de push com a subscription real do navegador
-  useEffect(() => {
-    if (!isApproved || !isPushSupported()) return;
-    getCurrentPushSubscription().then((sub) => setPushEnabled(Boolean(sub))).catch(() => {});
-  }, [isApproved]);
-
-  // Se já está disponível para urgências e a permissão foi concedida, garante a subscription
+  // Se já está disponível para urgências, garante a subscription (caso a permissão já esteja concedida)
   useEffect(() => {
     if (!isApproved || !disponivelUrgencias) return;
-    if (Notification.permission !== 'granted') return;
-    subscribeToPush(token).then((sub) => { if (sub) setPushEnabled(true); }).catch(() => {});
-  }, [isApproved, disponivelUrgencias, token]);
-
-  const togglePush = async () => {
-    setTogglingPush(true);
-    try {
-      if (pushEnabled) {
-        await unsubscribeFromPush(token);
-        setPushEnabled(false);
-      } else {
-        if (Notification.permission === 'default') {
-          await Notification.requestPermission();
-        }
-        const sub = await subscribeToPush(token);
-        setPushEnabled(Boolean(sub));
-      }
-    } catch {}
-    setTogglingPush(false);
-  };
+    maybeRequestPush();
+  }, [isApproved, disponivelUrgencias, maybeRequestPush]);
 
   const toggleDisponivelUrgencias = async () => {
     setTogglingDisponivel(true);
@@ -141,11 +114,9 @@ const PharmacistDashboard = () => {
       });
       await refreshUser();
       if (!novoValor) {
-        await unsubscribeFromPush(token).catch(() => {});
-        setPushEnabled(false);
-      } else if (Notification.permission === 'granted') {
-        const sub = await subscribeToPush(token).catch(() => null);
-        if (sub) setPushEnabled(true);
+        if (pushEnabled) await togglePush();
+      } else {
+        await maybeRequestPush();
       }
     } catch {}
     setTogglingDisponivel(false);
@@ -224,18 +195,6 @@ const PharmacistDashboard = () => {
               onChange={toggleDisponivelUrgencias}
               disabled={togglingDisponivel}
             />
-            {isPushSupported() && (
-              <ToggleRow
-                icon={pushEnabled ? Bell : BellOff}
-                label="Notificações push"
-                title={pushEnabled
-                  ? 'Você recebe um alerta no celular/navegador quando surge uma urgência'
-                  : 'Ative para ser avisado de novas urgências mesmo com o app fechado'}
-                checked={pushEnabled}
-                onChange={togglePush}
-                disabled={togglingPush}
-              />
-            )}
           </div>
         )}
       </div>

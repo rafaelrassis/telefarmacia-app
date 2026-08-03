@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, User, ChevronDown, Menu, X, CheckCircle2, FileText, Wallet, Download } from 'lucide-react';
+import { Bell, BellOff, User, ChevronDown, Menu, X, CheckCircle2, FileText, Wallet, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useInstallPrompt } from '../../hooks/useInstallPrompt.js';
+import { usePushToggle } from '../../hooks/usePushToggle.js';
+import { isPushSupported } from '../../utils/push.js';
 import PerfilModal from './PerfilModal.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -28,9 +30,31 @@ const NOTIF_ICON = {
   estorno:         Wallet,
 };
 
-const NotifBell = ({ notifData, onOpen }) => {
+const NotifBell = ({ notifData, onOpen, pushEnabled, togglingPush, pushError, togglePush }) => {
+  const { token } = useAuth();
   const [open, setOpen] = useState(false);
+  const [testStatus, setTestStatus] = useState(null); // null | 'sending' | 'sent' | '<mensagem de erro>'
   const ref = useRef(null);
+
+  const handleSendTest = async () => {
+    setTestStatus('sending');
+    try {
+      const res = await fetch(`${API_URL}/api/push/test`, {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      setTestStatus(res.ok ? 'sent' : (data.error || 'Erro ao enviar notificação de teste.'));
+    } catch {
+      setTestStatus('Erro ao enviar notificação de teste.');
+    }
+  };
+
+  const PushIcon = pushEnabled ? Bell : BellOff;
+  const PUSH_ERROR_LABEL = {
+    denied:       'Bloqueado nas configurações do navegador',
+    'server-error': 'Não foi possível conectar ao servidor',
+  };
 
   const handleClick = () => {
     setOpen((v) => {
@@ -93,6 +117,47 @@ const NotifBell = ({ notifData, onOpen }) => {
               );
             })}
           </div>
+
+          {isPushSupported() && (
+            <div className="border-t border-line px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <PushIcon className={`w-4 h-4 shrink-0 ${pushEnabled ? 'text-brand' : 'text-muted'}`} strokeWidth={2} />
+                  <p className="text-xs font-medium text-ink truncate">Notificações push</p>
+                </div>
+                <button
+                  onClick={togglePush}
+                  disabled={togglingPush}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                    pushEnabled ? 'bg-brand' : 'bg-line'
+                  }`}
+                  role="switch"
+                  aria-checked={pushEnabled}
+                  aria-label="Notificações push"
+                >
+                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-canvas shadow ring-0 transition duration-200 ${
+                    pushEnabled ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+              {pushError && (
+                <p className="mt-1.5 text-[11px] text-error">{PUSH_ERROR_LABEL[pushError] ?? PUSH_ERROR_LABEL['server-error']}</p>
+              )}
+
+              {pushEnabled && (
+                <button
+                  onClick={handleSendTest}
+                  disabled={testStatus === 'sending'}
+                  className="mt-2 text-[11px] font-semibold text-brand-deep hover:text-brand disabled:opacity-50 transition"
+                >
+                  {testStatus === 'sent'
+                    ? 'Enviado ✓'
+                    : (testStatus && testStatus !== 'sending' ? testStatus : 'Enviar notificação teste')}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -138,6 +203,9 @@ const Navbar = () => {
   const [notifData, setNotifData] = useState({ naoLidas: 0, notificacoes: [] });
 
   const showNotifBell = (activeEnv === 'patient' || activeEnv === 'pharmacist') && Boolean(user);
+
+  // Hooks não podem ser condicionais — instanciado sempre, usado na renderização só se showNotifBell.
+  const { pushEnabled, togglingPush, pushError, togglePush } = usePushToggle(token);
 
   const fetchNotificacoes = useCallback(async () => {
     if (!token || !showNotifBell) return;
@@ -296,7 +364,16 @@ const Navbar = () => {
                 )}
 
                 {/* Sininho de notificações (paciente e farmacêutico) */}
-                {showNotifBell && <NotifBell notifData={notifData} onOpen={markNotificacoesLidas} />}
+                {showNotifBell && (
+                  <NotifBell
+                    notifData={notifData}
+                    onOpen={markNotificacoesLidas}
+                    pushEnabled={pushEnabled}
+                    togglingPush={togglingPush}
+                    pushError={pushError}
+                    togglePush={togglePush}
+                  />
+                )}
 
                 {/* Meu Perfil */}
                 <button
@@ -327,7 +404,16 @@ const Navbar = () => {
 
           {/* Sino + Hamburger (mobile) */}
           <div className="md:hidden flex items-center gap-2">
-            {showNotifBell && <NotifBell notifData={notifData} onOpen={markNotificacoesLidas} />}
+            {showNotifBell && (
+              <NotifBell
+                notifData={notifData}
+                onOpen={markNotificacoesLidas}
+                pushEnabled={pushEnabled}
+                togglingPush={togglingPush}
+                pushError={pushError}
+                togglePush={togglePush}
+              />
+            )}
             <button
               className="p-2 rounded-lg text-muted hover:bg-surface transition"
               onClick={() => setMenuOpen((v) => !v)}

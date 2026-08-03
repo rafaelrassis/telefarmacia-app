@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { sendPushToUser } from '../services/pushService.js';
 
 const prisma = new PrismaClient();
 
@@ -43,5 +44,24 @@ export const unsubscribe = async (req, res) => {
   } catch (err) {
     console.error('unsubscribe push error:', err);
     return res.status(500).json({ error: 'Erro ao remover subscription.' });
+  }
+};
+
+// POST /api/push/test
+export const sendTestPush = async (req, res) => {
+  try {
+    const subs = await prisma.pushSubscription.count({ where: { userId: req.user.id } });
+    if (subs === 0) {
+      return res.status(404).json({ error: 'Nenhuma subscription ativa para este usuário.' });
+    }
+    await sendPushToUser(req.user.id, {
+      title: '🔔 Notificação de teste',
+      body:  'Se você recebeu isso, as notificações push estão funcionando.',
+      url:   '/dashboard',
+    });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('sendTestPush error:', err);
+    return res.status(500).json({ error: 'Erro ao enviar notificação de teste.' });
   }
 };

@@ -10,7 +10,6 @@ import { useWallet } from '../hooks/useWallet';
 import { useSistemaAberto } from '../hooks/useSistemaAberto';
 import { useDependentes } from '../hooks/useDependentes';
 import { usePushToggle } from '../hooks/usePushToggle';
-import PushToggleBanner from './patient/PushToggleBanner';
 import DadosSaudeBanner from './patient/DadosSaudeBanner';
 import PerfilSelector from './patient/PerfilSelector';
 import ProximaConsultaCard from './patient/ProximaConsultaCard';
@@ -216,9 +215,6 @@ const PatientDashboard = () => {
         togglingPush={togglingPush}
         togglePush={togglePush}
       />
-
-
-      <PushToggleBanner pushEnabled={pushEnabled} togglingPush={togglingPush} togglePush={togglePush} />
     </div>
   );
 };
