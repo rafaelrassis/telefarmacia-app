@@ -61,7 +61,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Painel de trabalho — quase tela cheia, 3 zonas: header/corpo/footer fixos */}
-      <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-6xl h-full sm:h-[95vh] flex flex-col overflow-hidden">
+      <div className="relative bg-canvas rounded-2xl shadow-2xl w-full max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col overflow-hidden">
 
         {/* ── Header fixo ── */}
         <div className="shrink-0 border-b border-line bg-canvas">

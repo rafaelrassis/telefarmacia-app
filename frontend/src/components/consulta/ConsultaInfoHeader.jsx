@@ -73,7 +73,7 @@ const ConsultaInfoHeader = ({ consulta, tipo, triagem, statusCfg, elapsed, isVis
       {/* Linha de contato do paciente — só informativa (o botão de ação
           principal fica acima); dependente ou telefone alternativo. */}
       {consulta.paciente && (consulta.paciente.telefone || consulta.paciente.email) && (
-        <div className="flex items-center flex-wrap gap-2 text-xs text-muted">
+        <div className="hidden sm:flex items-center flex-wrap gap-2 text-xs text-muted">
           {consulta.paciente.email && (
             <span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{consulta.paciente.email}</span>
           )}

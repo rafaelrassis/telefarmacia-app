@@ -64,7 +64,7 @@ const ConsultaFooterActions = ({
 
     ) : isActive ? (
       /* Botões de ação principais */
-      <div className="flex justify-between items-center p-4 gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 gap-2">
         {/* Esquerda: Cancelar */}
         <div>
           {canCancelar && (
@@ -82,7 +82,7 @@ const ConsultaFooterActions = ({
         </div>
 
         {/* Direita: Salvar rascunho + Iniciar/Concluir */}
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
           {rascunhoMsg && (
             <span className="text-xs font-semibold text-success whitespace-nowrap inline-flex items-center gap-1">
               <Check className="w-3.5 h-3.5" />
@@ -94,7 +94,7 @@ const ConsultaFooterActions = ({
               onClick={handleSalvarRascunho}
               disabled={!!actionLoading || !podeEditar}
               title={!podeEditar ? 'Inicie o atendimento para salvar' : undefined}
-              className={`bg-surface text-ink border border-line px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`w-full sm:w-auto bg-surface text-ink border border-line px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap inline-flex items-center gap-1.5 ${
                 (actionLoading || !podeEditar) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               }`}
             >
@@ -105,7 +105,7 @@ const ConsultaFooterActions = ({
             <button
               onClick={handleIniciar}
               disabled={!!actionLoading}
-              className={`bg-brand text-white border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`w-full sm:w-auto bg-brand text-white border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
                 actionLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               }`}
             >
@@ -116,7 +116,7 @@ const ConsultaFooterActions = ({
             <button
               onClick={handleConcluir}
               disabled={!!actionLoading}
-              className={`bg-success text-white border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`w-full sm:w-auto bg-success text-white border-0 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1.5 ${
                 actionLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               }`}
             >
