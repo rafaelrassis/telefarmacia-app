@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useOutletContext } from 'react-router-dom';
 import { ShieldCheck, Lock, Zap, MessageCircle, Globe, Baby, Wind, Thermometer, HeartPulse, Pill, Stethoscope, CalendarClock, QrCode, FileText } from 'lucide-react';
 import HeroSection from '../components/home/HeroCarousel.jsx';
 import FAQSection from '../components/home/FAQSection.jsx';
 import Footer from '../components/home/Footer.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 /* ─────────────────────────────────────────────────────────────
    TRUST BAR
@@ -388,17 +389,26 @@ const CTASection = () => {
 /* ─────────────────────────────────────────────────────────────
    PAGE
 ───────────────────────────────────────────────────────────── */
-const LandingPage = () => (
-  <div className="bg-surface">
-    <HeroSection />
-    <TrustBar />
-    <SearchSection />
-    <SpecialtiesSection />
-    <HowItWorksSection />
-    <TestimonialsSection />
-    <CTASection />
-    <FAQSection />
-  </div>
-);
+const LandingPage = () => {
+  const { user, activeEnv, needsEnvSelection } = useAuth();
+
+  if (user) {
+    if (needsEnvSelection) return <Navigate to="/selecionar-perfil" replace />;
+    if (activeEnv) return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <div className="bg-surface">
+      <HeroSection />
+      <TrustBar />
+      <SearchSection />
+      <SpecialtiesSection />
+      <HowItWorksSection />
+      <TestimonialsSection />
+      <CTASection />
+      <FAQSection />
+    </div>
+  );
+};
 
 export default LandingPage;
