@@ -164,8 +164,8 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
         {/* ── Footer fixo: ações de ciclo de vida sempre visíveis ── */}
         {consulta && !loading && (
           <div className="shrink-0 border-t border-line bg-canvas">
-            {!isVisualizacao && (canDevolver || showDevolverConfirm) && !confirmCancel && (
-              <div className="px-4 sm:px-6 pt-3">
+            {!isVisualizacao && (showDevolverConfirm || (canDevolver && !confirmCancel)) && (
+              <div className={`px-4 sm:px-6 pt-3 ${!showDevolverConfirm ? 'hidden sm:block' : ''}`}>
                 <DevolverAction
                   canDevolver={canDevolver} isVisualizacao={isVisualizacao} actionLoading={actionLoading}
                   showDevolverConfirm={showDevolverConfirm} setShowDevolverConfirm={setShowDevolverConfirm}
@@ -175,8 +175,8 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
               </div>
             )}
 
-            {!isVisualizacao && isActive && !showDevolverConfirm && !confirmCancel && (
-              <div className="px-4 sm:px-6 pt-3">
+            {!isVisualizacao && (showSemContatoConfirm || (isActive && !showDevolverConfirm && !confirmCancel)) && (
+              <div className={`px-4 sm:px-6 pt-3 ${!showSemContatoConfirm ? 'hidden sm:block' : ''}`}>
                 <SemContatoAction
                   isActive={isActive} isVisualizacao={isVisualizacao} actionLoading={actionLoading}
                   showDevolverConfirm={showDevolverConfirm}
@@ -193,6 +193,8 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
               actionLoading={actionLoading} handleCancelar={handleCancelar}
               consulta={consulta} isActive={isActive} canCancelar={canCancelar}
               canSalvarRascunho={canSalvarRascunho} canIniciar={canIniciar} canConcluir={canConcluir}
+              canDevolver={canDevolver} canSemContato={isActive}
+              setShowDevolverConfirm={setShowDevolverConfirm} setShowSemContatoConfirm={setShowSemContatoConfirm}
               rascunhoMsg={rascunhoMsg} handleSalvarRascunho={handleSalvarRascunho}
               handleIniciar={handleIniciar} handleConcluir={handleConcluir}
               isEncerrada={isEncerrada} podeEditar={podeEditar}
