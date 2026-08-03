@@ -250,6 +250,24 @@ export const concluirConsulta = async (req, res) => {
       }
     }
 
+    // Gera o PDF de encaminhamento automaticamente quando o farmacêutico
+    // marcou "Necessita encaminhamento médico? Sim" na finalização.
+    // Mesma regra da receita: nunca derruba a conclusão em caso de falha;
+    // o botão "Gerar/Re-gerar encaminhamento" continua disponível depois.
+    if (finalizacao?.encaminhamento_medico === 'sim') {
+      try {
+        await gerarEncaminhamentoPdfInterno({
+          id, tipo, pharmacistId,
+          especialidade: finalizacao.encaminhamento_detalhe?.trim() || 'Encaminhamento médico',
+          resumoClinico: finalizacao.encaminhamento_detalhe?.trim() || null,
+        });
+      } catch (pdfErr) {
+        logger.error('Falha ao gerar PDF de encaminhamento automaticamente na conclusão', {
+          requestId: req.id, consultaId: id, tipo, message: pdfErr.message,
+        });
+      }
+    }
+
     // Notificação de documento + retorno sugerido
     try {
       const model = tipo === 'urgente' ? prisma.filaUrgente : prisma.filaAgendada;
@@ -1200,6 +1218,59 @@ async function buildPdf({ filepath, pacienteNome, dataHora, farmNome, farmCrf, i
 
 // ── Encaminhamento PDF ────────────────────────────────────────────────────────
 
+// Lógica de geração do PDF de encaminhamento, compartilhada entre o endpoint
+// manual (gerarEncaminhamentoPdf) e a geração automática ao concluir a
+// consulta (concluirConsulta) — mesmo padrão de gerarReceitaPdfInterno.
+async function gerarEncaminhamentoPdfInterno({ id, tipo, pharmacistId, especialidade, resumoClinico }) {
+  const table = tableName(tipo);
+
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT c.status, c."observacoes", c."encaminhamento_detalhe",
+            ${tipo === 'agendada' ? 'c."dataHora" as data_hora' : 'COALESCE(c."aceitoEm", c."criadoEm") as data_hora'},
+            u.name as "pacienteNome"
+     FROM "${table}" c
+     JOIN "User" u ON u.id = c."pacienteId"
+     WHERE c.id = $1 AND c."farmaceuticoId" = $2`,
+    id, pharmacistId
+  );
+  if (!rows.length) throw new Error('Consulta não encontrada.');
+  const row = rows[0];
+  if (row.status !== 'concluido') throw new Error('Conclua a consulta antes de gerar o encaminhamento.');
+
+  const [pharmProfile, pharmUser] = await Promise.all([
+    prisma.pharmacistProfile.findUnique({
+      where:  { userId: pharmacistId },
+      select: { crfNumber: true, crfUF: true },
+    }),
+    prisma.user.findUnique({ where: { id: pharmacistId }, select: { name: true } }),
+  ]);
+
+  const UPLOAD_DIR  = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
+  const receitasDir = join(UPLOAD_DIR, 'receitas');
+  mkdirSync(receitasDir, { recursive: true });
+
+  const filename = `encaminhamento-${id}.pdf`;
+  const filepath = join(receitasDir, filename);
+  const pdfUrl   = `/uploads/receitas/${filename}`;
+
+  await buildEncaminhamentoPdf({
+    filepath,
+    pacienteNome:  row.pacienteNome,
+    dataHora:      row.data_hora,
+    farmNome:      pharmUser?.name ?? '—',
+    farmCrf:       pharmProfile ? `${pharmProfile.crfUF}-${pharmProfile.crfNumber}` : '—',
+    especialidade: especialidade.trim(),
+    resumoClinico: resumoClinico?.trim() || row.encaminhamento_detalhe || '',
+    observacoes:   row.observacoes ?? '',
+  });
+
+  await prisma.$executeRawUnsafe(
+    `UPDATE "${table}" SET "encaminhamento_pdf_url" = $1 WHERE id = $2`, pdfUrl, id
+  );
+
+  return pdfUrl;
+}
+
 export const gerarEncaminhamentoPdf = async (req, res) => {
   if (req.user.role !== 'FARMACEUTICO') return res.status(403).json({ error: 'Acesso negado.' });
   const { id } = req.params;
@@ -1209,60 +1280,11 @@ export const gerarEncaminhamentoPdf = async (req, res) => {
   if (!especialidade?.trim()) return res.status(400).json({ error: 'Especialidade/serviço de destino é obrigatório.' });
 
   try {
-    const table = tableName(tipo);
-
-    const rows = await prisma.$queryRawUnsafe(
-      `SELECT c.status, c."observacoes", c."encaminhamento_detalhe",
-              ${tipo === 'agendada' ? 'c."dataHora" as data_hora' : 'COALESCE(c."aceitoEm", c."criadoEm") as data_hora'},
-              u.name as "pacienteNome"
-       FROM "${table}" c
-       JOIN "User" u ON u.id = c."pacienteId"
-       WHERE c.id = $1 AND c."farmaceuticoId" = $2`,
-      id, pharmacistId
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Consulta não encontrada.' });
-    const row = rows[0];
-    if (row.status !== 'concluido') {
-      return res.status(400).json({ error: 'Conclua a consulta antes de gerar o encaminhamento.' });
-    }
-
-    const [pharmProfile, pharmUser] = await Promise.all([
-      prisma.pharmacistProfile.findUnique({
-        where:  { userId: pharmacistId },
-        select: { crfNumber: true, crfUF: true },
-      }),
-      prisma.user.findUnique({ where: { id: pharmacistId }, select: { name: true } }),
-    ]);
-
-    const UPLOAD_DIR = process.env.UPLOAD_DIR || join(__dirname, '../../../uploads');
-    const receitasDir = join(UPLOAD_DIR, 'receitas');
-    mkdirSync(receitasDir, { recursive: true });
-
-    const filename = `encaminhamento-${id}.pdf`;
-    const filepath = join(receitasDir, filename);
-    const pdfUrl   = `/uploads/receitas/${filename}`;
-
-    await buildEncaminhamentoPdf({
-      filepath,
-      pacienteNome:  row.pacienteNome,
-      dataHora:      row.data_hora,
-      farmNome:      pharmUser?.name ?? '—',
-      farmCrf:       pharmProfile ? `${pharmProfile.crfUF}-${pharmProfile.crfNumber}` : '—',
-      especialidade: especialidade.trim(),
-      resumoClinico: resumoClinico?.trim() ?? row.encaminhamento_detalhe ?? '',
-      observacoes:   row.observacoes ?? '',
-    });
-
-    try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE "${table}" SET "encaminhamento_pdf_url" = $1 WHERE id = $2`, pdfUrl, id
-      );
-    } catch {}
-
+    const pdfUrl = await gerarEncaminhamentoPdfInterno({ id, tipo, pharmacistId, especialidade, resumoClinico });
     return res.status(200).json({ url: pdfUrl });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Erro ao gerar PDF de encaminhamento.' });
+    return res.status(500).json({ error: err.message === 'Consulta não encontrada.' ? err.message : 'Erro ao gerar PDF de encaminhamento.' });
   }
 };
 
