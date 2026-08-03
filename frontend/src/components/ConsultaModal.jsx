@@ -19,9 +19,6 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
     consulta, loading, error,
     motivo, setMotivo, observacoes, setObservacoes, obsError, setObsError,
     receita, receitaPdfUrl, encaminhamentoPdfUrl, anexoReceitaUrl,
-    showEncaminhForm, setShowEncaminhForm,
-    encaminhEspecialidade, setEncaminhEspecialidade,
-    encaminhResumo, setEncaminhResumo,
     actionLoading,
     confirmCancel, setConfirmCancel,
     motivoCancelamento, setMotivoCancelamento,
@@ -43,7 +40,7 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
     retornoDias, setRetornoDias, retornoObs, setRetornoObs,
     showTemplatePicker, setShowTemplatePicker,
     handleIniciar, handleConcluir, handleCancelar, handleDevolver, handleSemContato,
-    handleSalvarRascunho, handleAbrirDocumento, handleGerarPdf, handleGerarEncaminhamento,
+    handleSalvarRascunho, handleAbrirDocumento,
     addMed, removeMed, updateMed,
     isAssigned, canIniciar, canConcluir, canCancelar, canDevolver, canSalvarRascunho,
     isActive, isEncerrada, statusCfg, podeEditar, receitaEditable, receitaReadonly,
@@ -146,16 +143,11 @@ const ConsultaModal = ({ id, tipo, onClose, onUpdated, modo }) => {
                 receita={receita} addMed={addMed} removeMed={removeMed} updateMed={updateMed}
                 podeEditar={podeEditar} isAssigned={isAssigned} isVisualizacao={isVisualizacao}
                 receitaPdfUrl={receitaPdfUrl} handleAbrirDocumento={handleAbrirDocumento}
-                handleGerarPdf={handleGerarPdf} actionLoading={actionLoading}
               />
 
               <EncaminhamentoSection
                 consulta={consulta} isAssigned={isAssigned} isVisualizacao={isVisualizacao}
                 encaminhamentoPdfUrl={encaminhamentoPdfUrl} handleAbrirDocumento={handleAbrirDocumento}
-                showEncaminhForm={showEncaminhForm} setShowEncaminhForm={setShowEncaminhForm}
-                encaminhEspecialidade={encaminhEspecialidade} setEncaminhEspecialidade={setEncaminhEspecialidade}
-                encaminhResumo={encaminhResumo} setEncaminhResumo={setEncaminhResumo}
-                handleGerarEncaminhamento={handleGerarEncaminhamento} actionLoading={actionLoading}
               />
             </div>
           </div>

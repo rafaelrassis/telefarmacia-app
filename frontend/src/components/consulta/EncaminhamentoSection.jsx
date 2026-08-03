@@ -1,85 +1,28 @@
 import React from 'react';
-import { ClipboardList, RotateCcw, Loader2 } from 'lucide-react';
+import { ClipboardList, AlertTriangle } from 'lucide-react';
 
 const EncaminhamentoSection = ({
   consulta, isAssigned, isVisualizacao,
   encaminhamentoPdfUrl, handleAbrirDocumento,
-  showEncaminhForm, setShowEncaminhForm,
-  encaminhEspecialidade, setEncaminhEspecialidade,
-  encaminhResumo, setEncaminhResumo,
-  handleGerarEncaminhamento, actionLoading,
 }) => (
   <>
     {/* ── Encaminhamento ── */}
-    {consulta?.status === 'concluido' && isAssigned && !isVisualizacao && (
+    {consulta?.status === 'concluido' && consulta?.finalizacao?.encaminhamento_medico === 'sim' && isAssigned && !isVisualizacao && (
       <div className="border-t border-line pt-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-ink">Documento de Encaminhamento</p>
-          {encaminhamentoPdfUrl && (
-            <button
-              onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
-              className="text-xs text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-50 transition inline-flex items-center gap-1"
-            >
-              <ClipboardList className="w-3.5 h-3.5" />
-              Ver encaminhamento
-            </button>
-          )}
-        </div>
-        {!showEncaminhForm ? (
+        <p className="text-sm font-semibold text-ink mb-2">Documento de Encaminhamento</p>
+        {encaminhamentoPdfUrl ? (
           <button
-            onClick={() => setShowEncaminhForm(true)}
-            className="w-full px-4 py-2.5 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition inline-flex items-center justify-center gap-1.5"
+            onClick={() => handleAbrirDocumento(encaminhamentoPdfUrl)}
+            className="w-full px-4 py-2.5 text-center text-sm font-bold text-teal-700 border border-teal-200 rounded-xl hover:bg-teal-50 transition inline-flex items-center justify-center gap-1.5"
           >
-            {encaminhamentoPdfUrl ? (
-              <><RotateCcw className="w-4 h-4" />Re-gerar encaminhamento</>
-            ) : (
-              <><ClipboardList className="w-4 h-4" />Gerar encaminhamento</>
-            )}
+            <ClipboardList className="w-4 h-4" />
+            Ver encaminhamento
           </button>
         ) : (
-          <div className="space-y-3 bg-teal-50 border border-teal-200 rounded-xl p-4">
-            <div>
-              <label className="block text-xs font-semibold text-muted mb-1">
-                Especialidade / serviço de destino <span className="text-error">*</span>
-              </label>
-              <input
-                type="text"
-                value={encaminhEspecialidade}
-                onChange={(e) => setEncaminhEspecialidade(e.target.value)}
-                placeholder="Ex: Cardiologia, Endocrinologia, UBS..."
-                className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted mb-1">Resumo clínico (opcional)</label>
-              <textarea
-                value={encaminhResumo}
-                onChange={(e) => setEncaminhResumo(e.target.value)}
-                placeholder="Motivo do encaminhamento, histórico relevante..."
-                rows={3}
-                className="w-full border border-line rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowEncaminhForm(false)}
-                className="px-4 py-2 text-sm text-muted border border-line rounded-xl hover:bg-surface transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGerarEncaminhamento}
-                disabled={actionLoading === 'encaminh'}
-                className="flex-1 px-4 py-2 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 transition inline-flex items-center justify-center gap-1.5"
-              >
-                {actionLoading === 'encaminh' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />Gerando...</>
-                ) : (
-                  <><ClipboardList className="w-4 h-4" />Gerar PDF</>
-                )}
-              </button>
-            </div>
-          </div>
+          <p className="text-xs text-alert bg-alert-wash border border-alert/30 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            Documento de encaminhamento sendo gerado automaticamente. Atualize a página em instantes.
+          </p>
         )}
       </div>
     )}

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Pill, X, FileText, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
+import { Pill, X, FileText, AlertTriangle } from 'lucide-react';
 
 const ReceitaSection = ({
   receitaEditable, receitaReadonly,
   receita, addMed, removeMed, updateMed,
   podeEditar, isAssigned, isVisualizacao,
-  receitaPdfUrl, handleAbrirDocumento, handleGerarPdf, actionLoading,
+  receitaPdfUrl, handleAbrirDocumento,
 }) => {
   if (!receitaEditable && !receitaReadonly) return null;
 
@@ -95,35 +95,18 @@ const ReceitaSection = ({
           {receita.length > 0 && !receitaPdfUrl && isAssigned && !isVisualizacao && (
             <p className="text-xs text-alert bg-alert-wash border border-alert/30 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              PDF da receita pendente — a geração automática não funcionou. Gere manualmente abaixo.
+              PDF da receita sendo gerado automaticamente. Atualize a página em instantes.
             </p>
           )}
-          {(isAssigned || (isVisualizacao && receitaPdfUrl)) && (
+          {receitaPdfUrl && (
             <div className="flex gap-2 pt-1">
-              {receitaPdfUrl && (
-                <button
-                  onClick={() => handleAbrirDocumento(receitaPdfUrl)}
-                  className="flex-1 px-4 py-2.5 text-center text-sm font-bold text-brand-deep border border-brand/30 rounded-xl hover:bg-brand-wash transition inline-flex items-center justify-center gap-1.5"
-                >
-                  <FileText className="w-4 h-4" />
-                  Ver PDF
-                </button>
-              )}
-              {isAssigned && !isVisualizacao && (
-                <button
-                  onClick={handleGerarPdf}
-                  disabled={actionLoading === 'pdf'}
-                  className="flex-1 px-4 py-2.5 text-sm font-bold bg-brand text-white rounded-xl hover:bg-brand-deep disabled:opacity-50 transition inline-flex items-center justify-center gap-1.5"
-                >
-                  {actionLoading === 'pdf' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" />Gerando...</>
-                  ) : receitaPdfUrl ? (
-                    <><RotateCcw className="w-4 h-4" />Re-gerar PDF</>
-                  ) : (
-                    <><FileText className="w-4 h-4" />Gerar PDF</>
-                  )}
-                </button>
-              )}
+              <button
+                onClick={() => handleAbrirDocumento(receitaPdfUrl)}
+                className="flex-1 px-4 py-2.5 text-center text-sm font-bold text-brand-deep border border-brand/30 rounded-xl hover:bg-brand-wash transition inline-flex items-center justify-center gap-1.5"
+              >
+                <FileText className="w-4 h-4" />
+                Ver PDF
+              </button>
             </div>
           )}
         </div>

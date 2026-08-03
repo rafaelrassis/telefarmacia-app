@@ -18,9 +18,6 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
   const [receitaPdfUrl, setReceitaPdfUrl] = useState(null);
   const [encaminhamentoPdfUrl, setEncaminhamentoPdfUrl] = useState(null);
   const [anexoReceitaUrl, setAnexoReceitaUrl] = useState(null);
-  const [showEncaminhForm, setShowEncaminhForm]         = useState(false);
-  const [encaminhEspecialidade, setEncaminhEspecialidade] = useState('');
-  const [encaminhResumo, setEncaminhResumo]               = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmCancel, setConfirmCancel]             = useState(false);
   const [motivoCancelamento, setMotivoCancelamento]   = useState('');
@@ -64,7 +61,6 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
           setReceitaPdfUrl(data.receitaPdfUrl ?? null);
           setEncaminhamentoPdfUrl(data.encaminhamentoPdfUrl ?? null);
           setAnexoReceitaUrl(data.anexoReceitaUrl ?? null);
-          if (data.finalizacao?.encaminhamento_detalhe) setEncaminhResumo(data.finalizacao.encaminhamento_detalhe);
           setTriagem(data.triagem ?? null);
           if (data.finalizacao) {
             const f = data.finalizacao;
@@ -225,52 +221,6 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
     }
   };
 
-  const handleGerarPdf = async () => {
-    setError('');
-    setActionLoading('pdf');
-    try {
-      const res = await fetch(`${API_URL}/api/consulta/${id}/receita/pdf`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ tipo }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.url) {
-        setReceitaPdfUrl(data.url);
-        window.open(`${API_URL}${data.url}`, '_blank');
-      } else {
-        setError(data.error || 'Erro ao gerar PDF.');
-      }
-    } catch { setError('Falha ao gerar PDF.'); }
-    finally   { setActionLoading(null); }
-  };
-
-  // ── Encaminhamento PDF ─────────────────────────────────────────────────────
-  const handleGerarEncaminhamento = async () => {
-    if (!encaminhEspecialidade.trim()) {
-      setError('Informe a especialidade / serviço de destino.');
-      return;
-    }
-    setError('');
-    setActionLoading('encaminh');
-    try {
-      const res = await fetch(`${API_URL}/api/consulta/${id}/encaminhamento/pdf`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ tipo, especialidade: encaminhEspecialidade, resumoClinico: encaminhResumo }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.url) {
-        setEncaminhamentoPdfUrl(data.url);
-        setShowEncaminhForm(false);
-        window.open(`${API_URL}${data.url}`, '_blank');
-      } else {
-        setError(data.error || 'Erro ao gerar encaminhamento.');
-      }
-    } catch { setError('Falha ao gerar encaminhamento.'); }
-    finally   { setActionLoading(null); }
-  };
-
   // ── Receita ────────────────────────────────────────────────────────────────
   const addMed    = () => setReceita((p) => [...p, emptyMed()]);
   const removeMed = (i) => setReceita((p) => p.filter((_, idx) => idx !== i));
@@ -297,9 +247,6 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
     consulta, loading, error,
     motivo, setMotivo, observacoes, setObservacoes, obsError, setObsError,
     receita, receitaPdfUrl, encaminhamentoPdfUrl, anexoReceitaUrl,
-    showEncaminhForm, setShowEncaminhForm,
-    encaminhEspecialidade, setEncaminhEspecialidade,
-    encaminhResumo, setEncaminhResumo,
     actionLoading,
     confirmCancel, setConfirmCancel,
     motivoCancelamento, setMotivoCancelamento,
@@ -321,7 +268,7 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
     retornoDias, setRetornoDias, retornoObs, setRetornoObs,
     showTemplatePicker, setShowTemplatePicker,
     handleIniciar, handleConcluir, handleCancelar, handleDevolver, handleSemContato,
-    handleSalvarRascunho, handleAbrirDocumento, handleGerarPdf, handleGerarEncaminhamento,
+    handleSalvarRascunho, handleAbrirDocumento,
     addMed, removeMed, updateMed,
     isAssigned, canIniciar, canConcluir, canCancelar, canDevolver, canSalvarRascunho,
     isActive, isEncerrada, statusCfg, tipoBadge, podeEditar, receitaEditable, receitaReadonly,
