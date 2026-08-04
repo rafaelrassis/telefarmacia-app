@@ -99,6 +99,7 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
   // automática de concluirConsulta é tentar de novo (uma vez por consulta
   // aberta) sempre que a tela é carregada/atualizada e o PDF esperado ainda
   // não existe.
+  const isAssigned = consulta?.farmaceuticoId === user?.id;
   const retriedPdfRef = useRef({ receita: false, encaminhamento: false });
   useEffect(() => {
     if (!consulta || isVisualizacao || !isAssigned || consulta.status !== 'concluido') return;
@@ -267,7 +268,6 @@ export function useConsultaModal({ id, tipo, onClose, onUpdated, modo }) {
     setReceita((p) => p.map((m, idx) => (idx === i ? { ...m, [field]: val } : m)));
 
   // ── Flags ──────────────────────────────────────────────────────────────────
-  const isAssigned       = consulta?.farmaceuticoId === user?.id;
   const canIniciar       = isAssigned && consulta?.status === 'aceito';
   const canConcluir      = isAssigned && consulta?.status === 'em_atendimento';
   const canCancelar      = isAssigned && !['concluido', 'cancelado', 'expirado'].includes(consulta?.status ?? '');
