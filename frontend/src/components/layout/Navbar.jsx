@@ -6,6 +6,7 @@ import { useInstallPrompt } from '../../hooks/useInstallPrompt.js';
 import { usePushToggle } from '../../hooks/usePushToggle.js';
 import { isPushSupported } from '../../utils/push.js';
 import PerfilModal from './PerfilModal.jsx';
+import PushBlockedHelp from './PushBlockedHelp.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -52,7 +53,6 @@ const NotifBell = ({ notifData, onOpen, pushEnabled, togglingPush, pushError, to
 
   const PushIcon = pushEnabled ? Bell : BellOff;
   const PUSH_ERROR_LABEL = {
-    denied:       'Bloqueado nas configurações do navegador',
     'server-error': 'Não foi possível conectar ao servidor',
   };
 
@@ -141,7 +141,11 @@ const NotifBell = ({ notifData, onOpen, pushEnabled, togglingPush, pushError, to
                 </button>
               </div>
 
-              {pushError && (
+              {pushError === 'denied' && (
+                <PushBlockedHelp onRetry={togglePush} retrying={togglingPush} />
+              )}
+
+              {pushError && pushError !== 'denied' && (
                 <p className="mt-1.5 text-[11px] text-error">{PUSH_ERROR_LABEL[pushError] ?? PUSH_ERROR_LABEL['server-error']}</p>
               )}
 
