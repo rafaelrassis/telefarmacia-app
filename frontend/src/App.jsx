@@ -7,6 +7,7 @@ import RedefinirSenhaPage from './pages/RedefinirSenhaPage.jsx';
 import ConfirmarEmailPage from './pages/ConfirmarEmailPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SelecionarPerfilPage from './pages/SelecionarPerfilPage.jsx';
+import AjudaNotificacoesPage from './pages/AjudaNotificacoesPage.jsx';
 import InviteRegistro from './components/InviteRegistro.jsx';
 import PWAReloadPrompt from './components/PWAReloadPrompt.jsx';
 
@@ -25,6 +26,7 @@ function App() {
           <Route path="confirmar-email" element={<ConfirmarEmailPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="selecionar-perfil" element={<SelecionarPerfilPage />} />
+          <Route path="ajuda/notificacoes" element={<AjudaNotificacoesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
