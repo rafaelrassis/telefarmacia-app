@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 // Push bloqueado é permissão do navegador — não dá pra reverter via JS,
 // só orientar o usuário a desbloquear manualmente nas configurações do site.
@@ -108,16 +109,26 @@ const PushBlockedHelp = ({ onRetry, retrying }) => {
           <li key={i}>{passo}</li>
         ))}
       </ol>
-      {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          disabled={retrying}
-          className="mt-1 text-[11px] font-semibold text-brand-deep hover:text-brand disabled:opacity-50 transition"
+      <div className="flex items-center gap-3 pt-0.5">
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={retrying}
+            className="text-[11px] font-semibold text-brand-deep hover:text-brand disabled:opacity-50 transition"
+          >
+            {retrying ? 'Verificando…' : 'Já desbloqueei, tentar de novo'}
+          </button>
+        )}
+        <Link
+          to="/ajuda/notificacoes"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] font-semibold text-muted hover:text-brand-deep transition"
         >
-          {retrying ? 'Verificando…' : 'Já desbloqueei, tentar de novo'}
-        </button>
-      )}
+          Ver instruções completas
+        </Link>
+      </div>
     </div>
   );
 };
