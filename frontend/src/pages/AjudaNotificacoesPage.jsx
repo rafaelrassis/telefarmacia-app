@@ -6,24 +6,27 @@ const PASSOS = [
   {
     titulo: 'No Chrome (Android)',
     itens: [
-      'Toque no ícone de cadeado/informações ao lado do endereço do site',
-      'Toque em "Permissões" ou "Notificações"',
-      'Selecione "Permitir"',
-      'Recarregue a página',
+      'Toque no ícone de cadeado/informações à esquerda do endereço do site (não é o menu ⋮)',
+      'Toque em "Permissões"',
+      'Encontre "Notificações" e selecione "Permitir"',
     ],
   },
   {
-    titulo: 'No Safari (iPhone)',
+    titulo: 'No Safari (iPhone/iPad)',
+    nota: 'No iOS, notificações push só funcionam com o app instalado na Tela de Início — não funcionam pela aba do Safari (requer iOS 16.4 ou mais recente).',
     itens: [
-      'Ajustes do iPhone → Safari → Configurações de Sites → Notificações',
-      'Encontre o site do FarmaConsulta e permita',
+      'Toque em Compartilhar (ícone de quadrado com seta) e depois em "Adicionar à Tela de Início"',
+      'Abra o FarmaConsulta pelo ícone criado na Tela de Início (não pelo Safari)',
+      'Permita as notificações quando o app solicitar',
+      'Já negou antes? Vá em Ajustes → Notificações → FarmaConsulta e ative "Permitir Notificações"',
     ],
   },
   {
     titulo: 'No computador (Chrome/Edge)',
     itens: [
-      'Clique no cadeado ao lado da URL',
-      'Notificações → Permitir',
+      'Clique no ícone de cadeado/informações ao lado da URL',
+      'Clique em "Permissões do site"',
+      'Encontre "Notificações" e mude para "Permitir"',
       'Recarregue a página',
     ],
   },
@@ -55,6 +58,9 @@ const AjudaNotificacoesPage = () => (
           {PASSOS.map((passo) => (
             <div key={passo.titulo}>
               <p className="text-sm font-bold text-ink mb-1.5">{passo.titulo}</p>
+              {passo.nota && (
+                <p className="text-xs text-muted italic mb-1.5">{passo.nota}</p>
+              )}
               <ol className="list-decimal list-inside space-y-0.5 text-sm text-muted">
                 {passo.itens.map((item, i) => (
                   <li key={i}>{item}</li>

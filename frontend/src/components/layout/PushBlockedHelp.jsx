@@ -17,10 +17,10 @@ function detectarGuia() {
     return {
       nome: 'Safari (iPhone/iPad)',
       passos: [
-        'Abra o app Ajustes do aparelho.',
-        'Role até "Safari" e toque nele.',
-        'Toque em "Notificações de Sites" (ou "Configurações de Sites").',
-        'Encontre este site na lista e mude para "Permitir".',
+        'No iOS, notificações só funcionam com o app instalado na Tela de Início — não pela aba do Safari.',
+        'Toque em Compartilhar (ícone de quadrado com seta) e depois em "Adicionar à Tela de Início".',
+        'Abra o app pelo ícone na Tela de Início e permita as notificações quando solicitado.',
+        'Já negou antes? Vá em Ajustes → Notificações → FarmaConsulta e ative "Permitir Notificações".',
       ],
     };
   }
@@ -29,10 +29,9 @@ function detectarGuia() {
     return {
       nome: 'Chrome (Android)',
       passos: [
-        'Toque no cadeado (ou nos três pontos ⋮) ao lado do endereço do site.',
-        'Toque em "Permissões do site".',
-        'Toque em "Notificações".',
-        'Selecione "Permitir".',
+        'Toque no ícone de cadeado/informações à esquerda do endereço do site (não é o menu ⋮).',
+        'Toque em "Permissões".',
+        'Encontre "Notificações" e selecione "Permitir".',
       ],
     };
   }
@@ -42,8 +41,8 @@ function detectarGuia() {
       nome: 'Firefox',
       passos: [
         'Clique no ícone de cadeado ao lado do endereço do site.',
-        'Clique na seta ao lado de "Notificações".',
-        'Remova o bloqueio ou selecione "Permitir".',
+        'Clique na seta ao lado de "Enviar notificações".',
+        'Selecione "Permitir".',
         'Recarregue a página.',
       ],
     };
@@ -77,9 +76,10 @@ function detectarGuia() {
     return {
       nome: null,
       passos: [
-        'Abra o app Ajustes do aparelho.',
-        'Encontre o navegador usado e toque nele.',
-        'Procure por "Notificações" e permita para este site.',
+        'No iOS, notificações só funcionam com o app instalado na Tela de Início — não pelo navegador.',
+        'No navegador, toque em Compartilhar e depois em "Adicionar à Tela de Início".',
+        'Abra o app pelo ícone na Tela de Início e permita as notificações quando solicitado.',
+        'Já negou antes? Vá em Ajustes → Notificações → FarmaConsulta e ative "Permitir Notificações".',
       ],
     };
   }
