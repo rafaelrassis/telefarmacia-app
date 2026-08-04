@@ -1,0 +1,125 @@
+import React from 'react';
+
+// Push bloqueado é permissão do navegador — não dá pra reverter via JS,
+// só orientar o usuário a desbloquear manualmente nas configurações do site.
+function detectarGuia() {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+
+  const isIOS     = /iPhone|iPad|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+  const isSafari  = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+  const isChrome  = /Chrome|CriOS/.test(ua) && !/Edg|OPR/.test(ua);
+  const isFirefox = /Firefox|FxiOS/.test(ua);
+  const isEdge    = /Edg/.test(ua);
+
+  if (isIOS && isSafari) {
+    return {
+      nome: 'Safari (iPhone/iPad)',
+      passos: [
+        'Abra o app Ajustes do aparelho.',
+        'Role até "Safari" e toque nele.',
+        'Toque em "Notificações de Sites" (ou "Configurações de Sites").',
+        'Encontre este site na lista e mude para "Permitir".',
+      ],
+    };
+  }
+
+  if (isAndroid && isChrome) {
+    return {
+      nome: 'Chrome (Android)',
+      passos: [
+        'Toque no cadeado (ou nos três pontos ⋮) ao lado do endereço do site.',
+        'Toque em "Permissões do site".',
+        'Toque em "Notificações".',
+        'Selecione "Permitir".',
+      ],
+    };
+  }
+
+  if (isFirefox) {
+    return {
+      nome: 'Firefox',
+      passos: [
+        'Clique no ícone de cadeado ao lado do endereço do site.',
+        'Clique na seta ao lado de "Notificações".',
+        'Remova o bloqueio ou selecione "Permitir".',
+        'Recarregue a página.',
+      ],
+    };
+  }
+
+  if (isEdge) {
+    return {
+      nome: 'Edge',
+      passos: [
+        'Clique no ícone de cadeado ao lado do endereço do site.',
+        'Clique em "Permissões do site".',
+        'Encontre "Notificações" e selecione "Permitir".',
+        'Recarregue a página.',
+      ],
+    };
+  }
+
+  if (isChrome) {
+    return {
+      nome: 'Chrome (computador)',
+      passos: [
+        'Clique no ícone de cadeado ao lado do endereço do site.',
+        'Clique em "Permissões do site".',
+        'Mude "Notificações" de "Bloqueado" para "Permitir".',
+        'Recarregue a página.',
+      ],
+    };
+  }
+
+  if (isIOS) {
+    return {
+      nome: null,
+      passos: [
+        'Abra o app Ajustes do aparelho.',
+        'Encontre o navegador usado e toque nele.',
+        'Procure por "Notificações" e permita para este site.',
+      ],
+    };
+  }
+
+  return {
+    nome: null,
+    passos: [
+      'Toque no cadeado (ou ícone de ajustes) ao lado do endereço do site.',
+      'Procure por "Notificações" nas permissões do site.',
+      'Mude a opção para "Permitir".',
+      'Recarregue a página.',
+    ],
+  };
+}
+
+const PushBlockedHelp = ({ onRetry, retrying }) => {
+  const guia = detectarGuia();
+
+  return (
+    <div className="mt-1.5 rounded-lg border border-line bg-surface p-2.5 space-y-1.5">
+      <p className="text-[11px] text-error font-medium">Bloqueado nas configurações do navegador</p>
+      <p className="text-[11px] text-ink font-semibold">
+        {guia.nome ? `Como desbloquear no ${guia.nome}:` : 'Como desbloquear:'}
+      </p>
+      <ol className="text-[11px] text-muted list-decimal list-inside space-y-0.5">
+        {guia.passos.map((passo, i) => (
+          <li key={i}>{passo}</li>
+        ))}
+      </ol>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retrying}
+          className="mt-1 text-[11px] font-semibold text-brand-deep hover:text-brand disabled:opacity-50 transition"
+        >
+          {retrying ? 'Verificando…' : 'Já desbloqueei, tentar de novo'}
+        </button>
+      )}
+    </div>
+  );
+};
+
+export default PushBlockedHelp;
