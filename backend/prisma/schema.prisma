@@ -23,6 +23,9 @@ model User {
   emailVerified               DateTime?
   phone                       String?
   photoUrl                    String?
+  totpSecret                  String?
+  totpEnabled                 Boolean            @default(false)
+  totpBackupCodes             String[]           @default([])
   createdAt                   DateTime           @default(now())
   pharmacistProfile           PharmacistProfile?
   pacienteProfile             PacienteProfile?

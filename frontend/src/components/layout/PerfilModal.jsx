@@ -5,6 +5,7 @@ import Modal from '../ui/Modal.jsx';
 import TermoConsentimento from '../TermoConsentimento.jsx';
 import ExcluirContaModal from '../ExcluirContaModal.jsx';
 import AlterarSenhaForm from '../AlterarSenhaForm.jsx';
+import TotpSetupForm from '../TotpSetupForm.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -381,6 +382,9 @@ const PerfilModal = ({ onClose }) => {
             {/* Segurança — paciente e farmacêutico */}
             <div className={sec}><Lock className="w-3.5 h-3.5" /> Segurança</div>
             <AlterarSenhaForm />
+            <div className="mt-3">
+              <TotpSetupForm />
+            </div>
 
             {/* Consentimento — só paciente */}
             {!isFarm && (
