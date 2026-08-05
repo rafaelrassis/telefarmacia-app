@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { validateCrf } from '../utils/crfValidation.js';
 import { generateVerificationToken, verificationExpiresAt } from '../utils/emailVerificationToken.js';
 import { sendVerificationEmail } from '../services/emailService.js';
+import { signTotpTempToken } from './TotpController.js';
 
 const prisma = new PrismaClient();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -95,6 +96,12 @@ export const googleLogin = async (req, res) => {
       include: { pharmacistProfile: true, pacienteProfile: true },
     });
 
+    // TOTP ativado (usuário existente) — não emite o token final aqui, só
+    // depois de POST /api/auth/totp/verify (ver spec-totp-2fa-opcional.md).
+    if (user.totpEnabled) {
+      return res.status(200).json({ requiresTotp: true, tempToken: signTotpTempToken(user) });
+    }
+
     return res.status(200).json({
       token: signToken(user),
       user: { ...sanitizeUser(user), isAdmin: isAdminEmail(user.email) },
@@ -180,6 +187,12 @@ export const login = async (req, res) => {
         error: 'Confirme seu email antes de entrar.',
         code: 'EMAIL_NOT_VERIFIED',
       });
+    }
+
+    // TOTP ativado — não emite o token final aqui, só depois de
+    // POST /api/auth/totp/verify (ver spec-totp-2fa-opcional.md).
+    if (user.totpEnabled) {
+      return res.status(200).json({ requiresTotp: true, tempToken: signTotpTempToken(user) });
     }
 
     return res.status(200).json({

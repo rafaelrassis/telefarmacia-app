@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import PharmacistSignupWizard from './pharmacist/PharmacistSignupWizard.jsx';
 import EsqueciSenhaForm from './EsqueciSenhaForm.jsx';
 import ConfirmacaoPendenteAviso from './ConfirmacaoPendenteAviso.jsx';
+import TotpVerifyForm from './TotpVerifyForm.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -14,7 +15,7 @@ const PROFILE_OPTIONS = [
 ];
 
 // ── Formulário de e-mail/senha ───────────────────────────────────────────────
-const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
+const EmailForm = ({ mode, setMode, onSuccess, onPendingChange, onRequiresTotp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
@@ -67,6 +68,11 @@ const EmailForm = ({ mode, setMode, onSuccess, onPendingChange }) => {
       // nunca cai aqui).
       if (mode === 'register' && !data.user?.emailVerified) {
         setPendingEmail(email);
+        return;
+      }
+
+      if (data.requiresTotp) {
+        onRequiresTotp(data.tempToken);
         return;
       }
 
@@ -192,6 +198,9 @@ const Login = ({ onModeChange }) => {
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [emailPending, setEmailPending] = useState(false);
+  // tempToken da 2ª etapa do login com TOTP — vive só neste state, nunca vai
+  // para localStorage (ver TotpVerifyForm.jsx).
+  const [totpTempToken, setTotpTempToken] = useState('');
 
   useEffect(() => {
     onModeChange?.(mode);
@@ -214,6 +223,7 @@ const Login = ({ onModeChange }) => {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Erro ao autenticar.'); return; }
+      if (data.requiresTotp) { setTotpTempToken(data.tempToken); return; }
       handleAuthSuccess(data.token, data.user);
     } catch {
       setError('Erro de conexão. Tente novamente.');
@@ -248,7 +258,13 @@ const Login = ({ onModeChange }) => {
         </div>
       )}
 
-      {mode === 'register' && profile === 'farmaceutico' ? (
+      {totpTempToken ? (
+        <TotpVerifyForm
+          tempToken={totpTempToken}
+          onSuccess={handleAuthSuccess}
+          onVoltar={() => setTotpTempToken('')}
+        />
+      ) : mode === 'register' && profile === 'farmaceutico' ? (
         <div>
           <p className="text-xs bg-brand-wash text-brand-deep rounded-lg px-3 py-2.5 mb-5 leading-relaxed">
             Seu cadastro passa por verificação do CRF antes de você começar a atender. Você pode salvar e continuar depois.
@@ -304,7 +320,13 @@ const Login = ({ onModeChange }) => {
             </div>
           ) : (
             <>
-              <EmailForm mode={mode} setMode={setMode} onSuccess={handleAuthSuccess} onPendingChange={setEmailPending} />
+              <EmailForm
+                mode={mode}
+                setMode={setMode}
+                onSuccess={handleAuthSuccess}
+                onPendingChange={setEmailPending}
+                onRequiresTotp={setTotpTempToken}
+              />
               {mode === 'login' && !emailPending && (
                 <p className="text-center text-xs mt-3">
                   <button

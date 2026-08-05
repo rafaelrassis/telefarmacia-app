@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { TOTP_TEMP_TOKEN_SCOPE } from '../controllers/TotpController.js';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,13 @@ export const authMiddleware = async (req, res, next) => {
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch {
+    return res.status(403).json({ error: 'Token inválido ou expirado.' });
+  }
+
+  // O tempToken emitido na 1ª etapa do login com TOTP (escopo restrito, ver
+  // TotpController) nunca autentica a API normal — só serve para
+  // POST /totp/verify provar que a senha já foi validada.
+  if (decoded.scope === TOTP_TEMP_TOKEN_SCOPE) {
     return res.status(403).json({ error: 'Token inválido ou expirado.' });
   }
 
