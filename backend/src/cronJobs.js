@@ -438,6 +438,53 @@ export async function jobLembretesMedicacao() {
   }
 }
 
+// ── Job 8: assinaturas — trial expirado / inadimplência / cancelamento efetivo (diário) ──
+// Carência (dias) antes de marcar 'inadimplente' quando o ciclo termina sem
+// renovação confirmada via webhook do Mercado Pago — default 3 dias.
+
+export async function jobExpirarTrialAssinaturas() {
+  try {
+    const agora = new Date();
+    const { count } = await prisma.assinatura.updateMany({
+      where: { emTrial: true, trialFim: { lt: agora } },
+      data:  { emTrial: false },
+    });
+    if (count > 0) console.log(`[cron] ${count} trial(s) de assinatura expirado(s).`);
+  } catch (err) {
+    console.error('[cron] Erro no job de expiração de trial de assinatura:', err.message);
+  }
+}
+
+export async function jobMarcarAssinaturasInadimplentes() {
+  try {
+    const carenciaDias = await getConfig('assinatura_carencia_inadimplencia_dias', 3);
+    const limite = new Date(Date.now() - carenciaDias * 24 * 60 * 60 * 1000);
+
+    const { count } = await prisma.assinatura.updateMany({
+      where: { status: 'ativa', canceladaEm: null, cicloAtualFim: { lt: limite } },
+      data:  { status: 'inadimplente' },
+    });
+    if (count > 0) console.log(`[cron] ${count} assinatura(s) marcada(s) como inadimplente (carência ${carenciaDias}d).`);
+  } catch (err) {
+    console.error('[cron] Erro no job de inadimplência de assinaturas:', err.message);
+  }
+}
+
+// Efetiva o cancelamento (status: 'cancelada') quando o ciclo pago termina —
+// até lá o paciente mantém acesso normalmente (ver AssinaturaController.cancelarAssinaturaHandler).
+export async function jobFinalizarAssinaturasCanceladas() {
+  try {
+    const agora = new Date();
+    const { count } = await prisma.assinatura.updateMany({
+      where: { canceladaEm: { not: null }, cicloAtualFim: { lt: agora }, status: { not: 'cancelada' } },
+      data:  { status: 'cancelada' },
+    });
+    if (count > 0) console.log(`[cron] ${count} assinatura(s) cancelada(s) efetivada(s) ao fim do ciclo.`);
+  } catch (err) {
+    console.error('[cron] Erro no job de finalização de assinaturas canceladas:', err.message);
+  }
+}
+
 export const initCronJobs = () => {
   if (process.env.NODE_ENV === 'test') {
     console.log('[cron] NODE_ENV=test — jobs não agendados (invocar as funções diretamente nos testes).');
@@ -451,6 +498,9 @@ export const initCronJobs = () => {
   cron.schedule('*/15 * * * *', jobLembreteConsulta);
   cron.schedule('0 * * * *',    jobExcluirCadastrosNaoConfirmados);
   cron.schedule('*/5 * * * *',  jobLembretesMedicacao);
+  cron.schedule('0 3 * * *',    jobExpirarTrialAssinaturas);
+  cron.schedule('0 3 * * *',    jobMarcarAssinaturasInadimplentes);
+  cron.schedule('0 3 * * *',    jobFinalizarAssinaturasCanceladas);
 
-  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min) | cadastros não confirmados (hora em hora) | lembretes de medicação (5min).');
+  console.log('[cron] Jobs iniciados: urgentes aguardando/aceitas (5min) | agendadas órfãs (15min) | atendimentos longos (30min) | lembrete de consulta (15min) | cadastros não confirmados (hora em hora) | lembretes de medicação (5min) | assinaturas: trial/inadimplência/cancelamento (diário 03h).');
 };

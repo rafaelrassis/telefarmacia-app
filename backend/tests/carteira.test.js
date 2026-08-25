@@ -1,5 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
+
+// PIX agora é real (Mercado Pago) — mocka o serviço para não bater na API
+// externa nos testes; simula um pagamento sempre aprovado quando consultado.
+vi.mock('../src/services/mercadoPagoService.js', () => ({
+  criarPagamentoPix: vi.fn(async (valor, pacienteId, pagamentoId) => ({
+    id: `mp_pay_${pagamentoId}`,
+    status: 'pending',
+    qr_code: '00020126...mock-pix-copia-cola',
+    qr_code_base64: 'iVBORw0KGgo=',
+  })),
+  buscarPagamento: vi.fn(async () => ({ status: 'approved' })),
+}));
+
 import app from '../src/app.js';
 import { prisma } from './db.js';
 import {
@@ -8,7 +21,7 @@ import {
 } from './helpers.js';
 
 describe('carteira — recarga', () => {
-  it('recarga simulada (PIX) credita o saldo e gera TransacaoCarteira com saldoApos correto', async () => {
+  it('recarga via PIX credita o saldo e gera TransacaoCarteira com saldoApos correto', async () => {
     const paciente = await registerPaciente(app);
 
     const checkout = await request(app)
@@ -17,11 +30,13 @@ describe('carteira — recarga', () => {
       .send({ valor_pretendido: 100 });
     expect(checkout.status).toBe(201);
     expect(checkout.body.status).toBe('Pendente');
+    expect(checkout.body.qr_code).toBeTruthy();
 
     const confirmar = await request(app)
       .post(`/api/pagamentos/${checkout.body.pagamento_id}/confirmar`)
       .set('Authorization', `Bearer ${paciente.token}`);
     expect(confirmar.status).toBe(200);
+    expect(confirmar.body.success).toBe(true);
     expect(confirmar.body.novo_saldo_creditos).toBe(100);
 
     const saldo = await getSaldo(app, paciente.token);
@@ -46,11 +61,14 @@ describe('carteira — recarga', () => {
       .post(`/api/pagamentos/${checkout.body.pagamento_id}/confirmar`)
       .set('Authorization', `Bearer ${paciente.token}`);
     expect(primeira.status).toBe(200);
+    expect(primeira.body.success).toBe(true);
 
+    // Já pago — segunda chamada é idempotente (não erro, não credita de novo).
     const segunda = await request(app)
       .post(`/api/pagamentos/${checkout.body.pagamento_id}/confirmar`)
       .set('Authorization', `Bearer ${paciente.token}`);
-    expect(segunda.status).toBe(400);
+    expect(segunda.status).toBe(200);
+    expect(segunda.body.novo_saldo_creditos).toBe(100);
 
     const saldo = await getSaldo(app, paciente.token);
     expect(saldo).toBe(100);

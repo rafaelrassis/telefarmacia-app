@@ -17,6 +17,7 @@ import AvaliacaoPendenteCard from './patient/AvaliacaoPendenteCard';
 import RetornoSugeridoCard from './patient/RetornoSugeridoCard';
 import AgendamentoButtons from './patient/AgendamentoButtons';
 import CarteiraCard from './patient/CarteiraCard';
+import AssinaturaBadge from './patient/AssinaturaBadge';
 import AgendarConsultaModal from './patient/AgendarConsultaModal';
 import LembretesMedicacao from './patient/LembretesMedicacao';
 
@@ -127,6 +128,8 @@ const PatientDashboard = () => {
         </div>
         <CarteiraCard walletBalance={walletBalance} setWalletBalance={setWalletBalance} onOpenTopup={() => setShowWalletTopup(true)} />
       </div>
+
+      <AssinaturaBadge />
 
       <PerfilSelector {...dep} />
 

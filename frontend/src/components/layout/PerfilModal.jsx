@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Lock, MapPin, User, Pill, ClipboardList, ShieldCheck, TriangleAlert, CheckCircle2, Download, Trash2, Hourglass, Save } from 'lucide-react';
+import { Camera, Lock, MapPin, User, Pill, ClipboardList, ShieldCheck, TriangleAlert, CheckCircle2, Download, Trash2, Hourglass, Save, CalendarCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Modal from '../ui/Modal.jsx';
 import TermoConsentimento from '../TermoConsentimento.jsx';
 import ExcluirContaModal from '../ExcluirContaModal.jsx';
 import AlterarSenhaForm from '../AlterarSenhaForm.jsx';
 import TotpSetupForm from '../TotpSetupForm.jsx';
+import AssinaturaSection from '../AssinaturaSection.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -385,6 +386,14 @@ const PerfilModal = ({ onClose }) => {
             <div className="mt-3">
               <TotpSetupForm />
             </div>
+
+            {/* Assinatura — só paciente */}
+            {!isFarm && (
+              <>
+                <div className={sec}><CalendarCheck className="w-3.5 h-3.5" /> Assinatura mensal</div>
+                <AssinaturaSection />
+              </>
+            )}
 
             {/* Consentimento — só paciente */}
             {!isFarm && (

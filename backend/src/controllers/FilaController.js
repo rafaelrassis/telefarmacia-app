@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { logAction } from '../utils/logAction.js';
 import { criarNotificacao } from './NotificacaoController.js';
 import { notifyFarmaceuticosUrgente, notifyConsultaAceita } from '../services/pushService.js';
+import { getAssinaturaComVaga } from './AssinaturaController.js';
 
 const prisma = new PrismaClient();
 
@@ -120,37 +121,52 @@ export const agendarConsulta = async (req, res) => {
       if (!dep) return res.status(403).json({ error: 'Dependente não encontrado ou não pertence a esta conta.' });
     }
 
-    const carteira = await prisma.carteira.findUnique({ where: { pacienteId: patientId } });
-    if (!carteira || Number(carteira.saldo) < PRECO) {
-      return res.status(402).json({
-        error: `Saldo insuficiente. É necessário R$ ${PRECO.toFixed(2)} para agendar.`,
-      });
+    const assinatura = await getAssinaturaComVaga(patientId);
+    if (!assinatura) {
+      const carteira = await prisma.carteira.findUnique({ where: { pacienteId: patientId } });
+      if (!carteira || Number(carteira.saldo) < PRECO) {
+        return res.status(402).json({
+          error: `Saldo insuficiente. É necessário R$ ${PRECO.toFixed(2)} para agendar.`,
+        });
+      }
     }
 
     const fila = await prisma.$transaction(async (tx) => {
-      const c = await tx.carteira.update({
-        where: { pacienteId: patientId },
-        data:  { saldo: { decrement: PRECO } },
-      });
+      let creditoDebitado = PRECO;
+      if (assinatura) {
+        await tx.assinatura.update({
+          where: { id: assinatura.id },
+          data:  { consultasUsadasNoMes: { increment: 1 } },
+        });
+        creditoDebitado = 0;
+      }
       const nova = await tx.filaAgendada.create({
         data: {
           pacienteId: patientId,
           dataHora,
-          creditoDebitado: PRECO,
+          creditoDebitado,
           status: 'aguardando',
           ...(dependentId && { dependentId }),
         },
       });
-      await tx.transacaoCarteira.create({
-        data: {
-          carteiraId: c.id,
-          tipo:       'debito',
-          valor:      PRECO,
-          saldoApos:  c.saldo,
-          descricao:  'Consulta agendada',
-          consultaId: nova.id,
-        },
-      });
+      if (assinatura) {
+        // Coberta pela assinatura — nenhum débito na carteira.
+      } else {
+        const c = await tx.carteira.update({
+          where: { pacienteId: patientId },
+          data:  { saldo: { decrement: PRECO } },
+        });
+        await tx.transacaoCarteira.create({
+          data: {
+            carteiraId: c.id,
+            tipo:       'debito',
+            valor:      PRECO,
+            saldoApos:  c.saldo,
+            descricao:  'Consulta agendada',
+            consultaId: nova.id,
+          },
+        });
+      }
       if (triagem || whatsapp_contato || modalidade_atend) {
         const sets = [];
         const vals = [];
@@ -249,36 +265,49 @@ export const agendarUrgente = async (req, res) => {
       if (!dep) return res.status(403).json({ error: 'Dependente não encontrado ou não pertence a esta conta.' });
     }
 
-    const carteira = await prisma.carteira.findUnique({ where: { pacienteId: patientId } });
-    if (!carteira || Number(carteira.saldo) < PRECO) {
-      return res.status(402).json({
-        error: `Saldo insuficiente. É necessário R$ ${PRECO.toFixed(2)} para atendimento imediato.`,
-      });
+    const assinaturaUrg = await getAssinaturaComVaga(patientId);
+    if (!assinaturaUrg) {
+      const carteira = await prisma.carteira.findUnique({ where: { pacienteId: patientId } });
+      if (!carteira || Number(carteira.saldo) < PRECO) {
+        return res.status(402).json({
+          error: `Saldo insuficiente. É necessário R$ ${PRECO.toFixed(2)} para atendimento imediato.`,
+        });
+      }
     }
 
     const fila = await prisma.$transaction(async (tx) => {
-      const c = await tx.carteira.update({
-        where: { pacienteId: patientId },
-        data:  { saldo: { decrement: PRECO } },
-      });
+      let creditoDebitado = PRECO;
+      if (assinaturaUrg) {
+        await tx.assinatura.update({
+          where: { id: assinaturaUrg.id },
+          data:  { consultasUsadasNoMes: { increment: 1 } },
+        });
+        creditoDebitado = 0;
+      }
       const nova = await tx.filaUrgente.create({
         data: {
           pacienteId: patientId,
-          creditoDebitado: PRECO,
+          creditoDebitado,
           status: 'aguardando',
           ...(dependentId && { dependentId }),
         },
       });
-      await tx.transacaoCarteira.create({
-        data: {
-          carteiraId: c.id,
-          tipo:       'debito',
-          valor:      PRECO,
-          saldoApos:  c.saldo,
-          descricao:  'Consulta urgente',
-          consultaId: nova.id,
-        },
-      });
+      if (!assinaturaUrg) {
+        const c = await tx.carteira.update({
+          where: { pacienteId: patientId },
+          data:  { saldo: { decrement: PRECO } },
+        });
+        await tx.transacaoCarteira.create({
+          data: {
+            carteiraId: c.id,
+            tipo:       'debito',
+            valor:      PRECO,
+            saldoApos:  c.saldo,
+            descricao:  'Consulta urgente',
+            consultaId: nova.id,
+          },
+        });
+      }
       if (triagem || whatsapp_contato || modalidade_atend) {
         const sets = [];
         const vals = [];

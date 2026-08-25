@@ -167,7 +167,7 @@ const AdminPanel = () => {
           {tab === 'consultas'   && <ConsultasTab api={api} />}
           {tab === 'avaliacoes'  && <AvaliacoesAdminTab api={api} pharmacists={pharmacists} />}
           {tab === 'logs'        && <LogsTabContainer api={api} pharmacists={pharmacists} patients={patients} />}
-          {tab === 'financeiro'  && <FinanceiroTab api={api} downloadCsv={downloadCsv} {...finHook} />}
+          {tab === 'financeiro'  && <FinanceiroTab api={api} showToast={showToast} downloadCsv={downloadCsv} {...finHook} />}
           {tab === 'repasses'    && (
             <RepassesTab api={api} showToast={showToast} pharmacists={pharmacists} downloadCsv={downloadCsv} />
           )}
