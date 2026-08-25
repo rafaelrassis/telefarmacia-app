@@ -29,6 +29,10 @@ import {
   removeAdmin,
   getAvaliacoesAdmin,
   getResumoAvaliacoes,
+  getPlano,
+  setPlano,
+  getTrial,
+  setTrial,
 } from '../controllers/AdminController.js';
 import {
   listParceiros, createParceiro, updateParceiro, deleteParceiro,
@@ -95,6 +99,12 @@ router.get('/admin/avaliacoes/resumo',                ...guard, getResumoAvaliac
 
 // Ajuste manual de carteira (paciente)
 router.post('/admin/carteira/:pacienteId/ajuste',    ...guard, ajustarCarteira);
+
+// Assinatura mensal — plano e trial promocional
+router.get('/admin/plano',                           ...guard, getPlano);
+router.put('/admin/plano',                           ...guard, setPlano);
+router.get('/admin/trial',                            ...guard, getTrial);
+router.put('/admin/trial',                            ...guard, setTrial);
 
 // Gestão de administradores
 router.get('/admin/admins',                          ...guard, listAdmins);

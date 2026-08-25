@@ -816,6 +816,113 @@ export const exportFinanceiro = async (req, res) => {
   }
 };
 
+// ── Assinatura mensal — plano e trial promocional ────────────────────────────
+
+export const getPlano = async (req, res) => {
+  try {
+    const plano = await prisma.plano.findFirst({ where: { ativo: true }, orderBy: { criadoEm: 'desc' } });
+    if (!plano) return res.json({ nome: 'Plano Mensal', preco: 0, consultasIncluidas: 0, configurado: false });
+    return res.json({
+      id: plano.id,
+      nome: plano.nome,
+      preco: parseFloat(plano.preco),
+      consultasIncluidas: plano.consultasIncluidas,
+      configurado: true,
+    });
+  } catch (err) {
+    console.error('getPlano error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar plano de assinatura.' });
+  }
+};
+
+export const setPlano = async (req, res) => {
+  const preco = parseFloat(req.body.preco);
+  const consultasIncluidas = parseInt(req.body.consultasIncluidas, 10);
+  const nome = (req.body.nome ?? 'Plano Mensal').trim() || 'Plano Mensal';
+
+  if (isNaN(preco) || preco <= 0) return res.status(400).json({ error: 'Preço inválido.' });
+  if (isNaN(consultasIncluidas) || consultasIncluidas < 1 || consultasIncluidas > 100) {
+    return res.status(400).json({ error: 'Quantidade de consultas incluídas inválida (1–100).' });
+  }
+
+  try {
+    const existente = await prisma.plano.findFirst({ where: { ativo: true }, orderBy: { criadoEm: 'desc' } });
+    const plano = existente
+      ? await prisma.plano.update({
+          where: { id: existente.id },
+          data:  { nome, preco, consultasIncluidas },
+        })
+      : await prisma.plano.create({
+          data: { nome, preco, consultasIncluidas },
+        });
+
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'set_plano_assinatura', alvoTipo: 'config',
+      detalhes: { nome, preco, consultasIncluidas },
+    });
+
+    return res.json({
+      id: plano.id, nome: plano.nome, preco: parseFloat(plano.preco), consultasIncluidas: plano.consultasIncluidas,
+    });
+  } catch (err) {
+    console.error('setPlano error:', err);
+    return res.status(500).json({ error: 'Erro ao salvar plano de assinatura.' });
+  }
+};
+
+export const getTrial = async (req, res) => {
+  try {
+    const promo = await prisma.promoTrial.findFirst();
+    if (!promo) return res.json({ ativo: false, tipo: 'dias_gratis', dias: 7, percentual: null });
+    return res.json({
+      ativo: promo.ativo,
+      tipo: promo.tipo,
+      dias: promo.dias,
+      percentual: promo.percentual != null ? parseFloat(promo.percentual) : null,
+    });
+  } catch (err) {
+    console.error('getTrial error:', err);
+    return res.status(500).json({ error: 'Erro ao buscar configuração de trial.' });
+  }
+};
+
+export const setTrial = async (req, res) => {
+  const { ativo, tipo } = req.body;
+  const dias = parseInt(req.body.dias, 10);
+  const percentual = req.body.percentual === '' || req.body.percentual == null ? null : parseFloat(req.body.percentual);
+
+  if (typeof ativo !== 'boolean') return res.status(400).json({ error: 'ativo deve ser true ou false.' });
+  if (!['dias_gratis', 'desconto_percentual'].includes(tipo)) {
+    return res.status(400).json({ error: 'tipo inválido. Use "dias_gratis" ou "desconto_percentual".' });
+  }
+  if (isNaN(dias) || dias < 1 || dias > 90) return res.status(400).json({ error: 'Quantidade de dias inválida (1–90).' });
+  if (tipo === 'desconto_percentual') {
+    if (percentual == null || isNaN(percentual) || percentual <= 0 || percentual > 100) {
+      return res.status(400).json({ error: 'Percentual de desconto inválido (0–100).' });
+    }
+  }
+
+  try {
+    const existente = await prisma.promoTrial.findFirst();
+    const data = { ativo, tipo, dias, percentual: tipo === 'desconto_percentual' ? percentual : null };
+    const promo = existente
+      ? await prisma.promoTrial.update({ where: { id: existente.id }, data })
+      : await prisma.promoTrial.create({ data });
+
+    await logAdminAction(prisma, {
+      adminId: req.user?.id, acao: 'set_trial_assinatura', alvoTipo: 'config', detalhes: data,
+    });
+
+    return res.json({
+      ativo: promo.ativo, tipo: promo.tipo, dias: promo.dias,
+      percentual: promo.percentual != null ? parseFloat(promo.percentual) : null,
+    });
+  } catch (err) {
+    console.error('setTrial error:', err);
+    return res.status(500).json({ error: 'Erro ao salvar configuração de trial.' });
+  }
+};
+
 // ── POST /api/admin/carteira/:pacienteId/ajuste ──────────────────────────────
 
 export const ajustarCarteira = async (req, res) => {

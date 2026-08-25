@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Download, Save, RotateCcw } from 'lucide-react';
 import StatCard from './StatCard';
+import PlanoAssinaturaSection from './PlanoAssinaturaSection';
 
 const FinanceiroTab = ({
-  api, downloadCsv,
+  api, showToast, downloadCsv,
   finConfig, finLoading, loadFinanceiro,
   finPreco, setFinPreco, finComissao, setFinComissao,
   finMaxUrg, setFinMaxUrg, finTolerancia, setFinTolerancia,
@@ -327,6 +328,9 @@ const FinanceiroTab = ({
           </div>
         )}
       </div>
+
+      {/* ── Assinatura mensal + trial promocional ── */}
+      <PlanoAssinaturaSection api={api} showToast={showToast} />
     </div>
   );
 };

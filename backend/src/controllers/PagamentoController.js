@@ -1,13 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { criarPagamentoPix, buscarPagamento } from '../services/mercadoPagoService.js';
 
 const prisma = new PrismaClient();
 
 const PRECO_PADRAO = parseFloat(process.env.PRECO_CONSULTA_PADRAO || '50.00');
-
-function gerarQrMock(valor) {
-  const v = String(Math.round(valor * 100)).padStart(4, '0');
-  return `00020126360014br.gov.bcb.pix0114telefarmacia${v}5204000053039865802BR5913FarmaConsulta6009Sao Paulo62070503***6304ABCD`;
-}
 
 export const simularCheckout = async (req, res) => {
   try {
@@ -18,27 +14,46 @@ export const simularCheckout = async (req, res) => {
       return res.status(400).json({ error: 'Valor inválido.' });
     }
 
+    // Cria o registro pendente primeiro para termos o id como external_reference.
     const pagamento = await prisma.pagamento.create({
       data: {
         pacienteId: req.user.id,
         valor,
         status: 'Pendente',
-        qrCodeMock: gerarQrMock(valor),
+        qrCodeMock: '',
       },
+    });
+
+    let pix;
+    try {
+      pix = await criarPagamentoPix(valor, req.user.id, pagamento.id, req.user.email);
+    } catch (mpErr) {
+      console.error('[PagamentoController] Erro ao criar PIX no Mercado Pago:', mpErr.message);
+      await prisma.pagamento.delete({ where: { id: pagamento.id } });
+      return res.status(502).json({ error: 'Erro ao gerar cobrança PIX. Tente novamente.' });
+    }
+
+    await prisma.pagamento.update({
+      where: { id: pagamento.id },
+      data: { mpPaymentId: pix.id, qrCodeMock: pix.qr_code || '' },
     });
 
     return res.status(201).json({
       pagamento_id: pagamento.id,
       status: 'Pendente',
-      qr_code_mock: pagamento.qrCodeMock,
+      qr_code: pix.qr_code,
+      qr_code_base64: pix.qr_code_base64,
       valor: parseFloat(pagamento.valor),
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Erro ao simular checkout.' });
+    return res.status(500).json({ error: 'Erro ao gerar cobrança.' });
   }
 };
 
+// Fallback de polling manual — a confirmação oficial acontece via webhook
+// (ver WebhookController.processarPayment). Aqui apenas consultamos o status
+// real do pagamento no Mercado Pago; nunca aprovamos localmente sem checar.
 export const confirmarPagamento = async (req, res) => {
   try {
     const { id } = req.params;
@@ -47,11 +62,36 @@ export const confirmarPagamento = async (req, res) => {
     const pagamento = await prisma.pagamento.findUnique({ where: { id } });
     if (!pagamento) return res.status(404).json({ error: 'Pagamento não encontrado.' });
     if (pagamento.pacienteId !== pacienteId) return res.status(403).json({ error: 'Acesso negado.' });
-    if (pagamento.status !== 'Pendente') {
-      return res.status(400).json({ error: 'Pagamento já confirmado ou expirado.' });
+
+    if (pagamento.status === 'Pago') {
+      const carteira = await prisma.carteira.findUnique({ where: { pacienteId } });
+      return res.status(200).json({
+        success: true,
+        novo_saldo_creditos: carteira ? parseFloat(carteira.saldo) : 0,
+        status: 'Pago',
+      });
+    }
+
+    if (!pagamento.mpPaymentId) {
+      return res.status(400).json({ error: 'Pagamento ainda não processado.' });
+    }
+
+    let mpPayment;
+    try {
+      mpPayment = await buscarPagamento(pagamento.mpPaymentId);
+    } catch (mpErr) {
+      console.error('[PagamentoController] Erro ao consultar pagamento no Mercado Pago:', mpErr.message);
+      return res.status(502).json({ error: 'Erro ao consultar status do pagamento.' });
+    }
+
+    if (mpPayment.status !== 'approved') {
+      return res.status(200).json({ success: false, status: 'Pendente' });
     }
 
     const carteira = await prisma.$transaction(async (tx) => {
+      const atual = await tx.pagamento.findUnique({ where: { id } });
+      if (atual.status === 'Pago') return tx.carteira.findUnique({ where: { pacienteId } });
+
       await tx.pagamento.update({
         where: { id },
         data: { status: 'Pago', confirmedAt: new Date() },
@@ -69,7 +109,7 @@ export const confirmarPagamento = async (req, res) => {
           tipo:       'credito',
           valor:      pagamento.valor,
           saldoApos:  c.saldo,
-          descricao:  'Recarga via PIX',
+          descricao:  'Recarga via PIX (Mercado Pago)',
         },
       });
 

@@ -5,33 +5,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const VALORES = [50, 100, 150, 200];
 
-const MockQRCode = () => (
-  <svg width="140" height="140" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="160" height="160" fill="white"/>
-    <rect x="10" y="10" width="40" height="40" rx="2" fill="#1f2937"/>
-    <rect x="16" y="16" width="28" height="28" rx="1" fill="white"/>
-    <rect x="22" y="22" width="16" height="16" rx="1" fill="#1f2937"/>
-    <rect x="110" y="10" width="40" height="40" rx="2" fill="#1f2937"/>
-    <rect x="116" y="16" width="28" height="28" rx="1" fill="white"/>
-    <rect x="122" y="22" width="16" height="16" rx="1" fill="#1f2937"/>
-    <rect x="10" y="110" width="40" height="40" rx="2" fill="#1f2937"/>
-    <rect x="16" y="116" width="28" height="28" rx="1" fill="white"/>
-    <rect x="22" y="122" width="16" height="16" rx="1" fill="#1f2937"/>
-    {[60,66,72,78,84,90,96,102].map((x, i) => (
-      <React.Fragment key={x}>
-        <rect x={x} y="10" width="4" height="4" fill={i%2===0?"#1f2937":"white"}/>
-        <rect x={x} y="16" width="4" height="4" fill={i%3===0?"#1f2937":"white"}/>
-        <rect x="10" y={x} width="4" height="4" fill={i%2===0?"#1f2937":"white"}/>
-      </React.Fragment>
-    ))}
-    {[60,66,72,78,84,90,96,102].map((y, i) =>
-      [60,66,72,78,84,90,96,102].map((x, j) => (
-        <rect key={`${x}-${y}`} x={x} y={y} width="4" height="4" fill={(i+j)%2===0?"#1f2937":"white"}/>
-      ))
-    )}
-  </svg>
-);
-
 // ── Tela de recarga de créditos ───────────────────────────────────────────────
 const CheckoutPix = ({ onSuccess, onCancel }) => {
   const { token } = useAuth();
@@ -39,6 +12,7 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
   const [valor, setValor]       = useState(100);
   const [pagamentoId, setPagamentoId] = useState(null);
   const [qrCode, setQrCode]     = useState('');
+  const [qrCodeBase64, setQrCodeBase64] = useState('');
   const [copied, setCopied]     = useState(false);
   const [loading, setLoading]   = useState(false);
   const [novoSaldo, setNovoSaldo] = useState(null);
@@ -56,7 +30,8 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Erro ao gerar cobrança.'); return; }
       setPagamentoId(data.pagamento_id);
-      setQrCode(data.qr_code_mock);
+      setQrCode(data.qr_code || '');
+      setQrCodeBase64(data.qr_code_base64 || '');
       setStep('qr');
     } catch {
       setError('Erro de conexão.');
@@ -74,7 +49,8 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Erro ao confirmar.'); return; }
+      if (!res.ok) { setError(data.error || 'Erro ao verificar pagamento.'); return; }
+      if (!data.success) { setError('Pagamento ainda não identificado. Aguarde alguns segundos após pagar e tente novamente.'); return; }
       setNovoSaldo(data.novo_saldo_creditos);
       setStep('done');
     } catch {
@@ -121,7 +97,18 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
         <div className="p-6">
           <div className="flex justify-center mb-4">
             <div className="border-2 border-line rounded-xl p-3 inline-block">
-              <MockQRCode />
+              {qrCodeBase64 ? (
+                <img
+                  src={`data:image/png;base64,${qrCodeBase64}`}
+                  alt="QR Code PIX"
+                  width={140}
+                  height={140}
+                />
+              ) : (
+                <div className="w-[140px] h-[140px] flex items-center justify-center text-xs text-muted text-center px-2">
+                  QR Code indisponível — use o código copia e cola abaixo
+                </div>
+              )}
             </div>
           </div>
           <p className="text-xs text-center text-muted mb-4">
@@ -145,7 +132,7 @@ const CheckoutPix = ({ onSuccess, onCancel }) => {
             disabled={loading}
             className="w-full py-2.5 rounded-lg text-sm font-bold bg-success hover:opacity-90 text-white transition disabled:opacity-60 mb-2"
           >
-            {loading ? 'Confirmando...' : '✓ Confirmar pagamento'}
+            {loading ? 'Verificando...' : '✓ Já paguei, verificar'}
           </button>
 
           <button
