@@ -1,12 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Secao, Tabela, Code } from '../components/docs/DocsUI.jsx';
 
-// Referência técnica (API, env, operações) fica num chunk separado e só é
-// renderizada para administradores.
-const DocsTecnico = lazy(() => import('../components/docs/DocsTecnico.jsx'));
 
 const Lista = ({ itens }) => (
   <ul className="list-disc pl-5 space-y-1.5">
@@ -36,16 +33,10 @@ const INDICE = [
   ['dados', 'Modelo de dados'],
 ];
 
-const INDICE_TECNICO = [
-  ['api', 'Referência da API'],
-  ['ambiente', 'Variáveis de ambiente'],
-  ['operacoes', 'Operação e deploy'],
-];
-
 const DocumentacaoPage = () => {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
-  const indice = isAdmin ? [...INDICE, ...INDICE_TECNICO] : INDICE;
+  const indice = INDICE;
 
   return (
     <div className="bg-canvas min-h-[calc(100vh-64px)]">
@@ -108,7 +99,7 @@ const DocumentacaoPage = () => {
                   <p>Cadastro com envio de documentos (CRF) ou por convite. Só atende após aprovação do admin.</p>
                 </Card>
                 <Card titulo="Administrador">
-                  <p>Não é um papel no banco: é definido por lista de e-mails autorizados. Um usuário pode alternar entre ambientes.</p>
+                  <p>Acesso concedido pela equipe do FarmaConsulta. Um usuário pode alternar entre ambientes.</p>
                 </Card>
               </div>
               <p>
@@ -268,20 +259,15 @@ const DocumentacaoPage = () => {
                   ['Administração', 'SystemConfig, ConviteFarmaceutico, AdminAuditLog'],
                 ]}
               />
-              <p className="text-sm text-muted">
-                Parte dos dados clínicos da consulta (triagem, receita, finalização etc.) fica em colunas JSONB
-                adicionadas por scripts de migração manuais, fora do schema Prisma.
-              </p>
             </Secao>
 
-            {isAdmin ? (
-              <Suspense fallback={<p className="text-muted text-sm">Carregando referência técnica…</p>}>
-                <DocsTecnico />
-              </Suspense>
-            ) : (
+            {isAdmin && (
               <div className="flex gap-3 items-start bg-surface border border-line rounded-2xl p-5 text-sm text-muted">
                 <Lock className="w-4 h-4 mt-0.5 shrink-0" />
-                <p>A referência técnica (API, variáveis de ambiente e operação) é visível apenas para administradores.</p>
+                <p>
+                  Endpoints, variáveis de ambiente e detalhes internos estão no{' '}
+                  <Link to="/dashboard" className="text-brand-deep underline">Painel admin → Sistema → Doc. técnica</Link>.
+                </p>
               </div>
             )}
           </main>

@@ -156,3 +156,33 @@ describe('sistema — horários (semana completa, usado pela grade do calendári
     expect(res.body[0]).toHaveProperty('horaFim');
   });
 });
+
+describe('admin — documentação técnica', () => {
+  it('não-admin → 403 em /api/admin/docs', async () => {
+    const paciente = await registerPaciente(app);
+    const res = await request(app)
+      .get('/api/admin/docs')
+      .set('Authorization', `Bearer ${paciente.token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('sem token → 401/403 em /api/admin/docs', async () => {
+    const res = await request(app).get('/api/admin/docs');
+    expect([401, 403]).toContain(res.status);
+  });
+
+  it('admin → 200 com endpoints gerados em runtime e sem valores de env', async () => {
+    const adminToken = await getAdminToken(app);
+    const res = await request(app)
+      .get('/api/admin/docs')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toContain('no-store');
+    const rotas = res.body.endpoints.flatMap((g) => g.rotas);
+    expect(rotas).toContainEqual({ metodo: 'GET', path: '/api/admin/docs', acesso: 'admin' });
+    expect(rotas).toContainEqual(expect.objectContaining({ metodo: 'POST', path: '/api/auth/login' }));
+    const body = JSON.stringify(res.body);
+    if (process.env.JWT_SECRET) expect(body).not.toContain(process.env.JWT_SECRET);
+    if (process.env.DATABASE_URL) expect(body).not.toContain(process.env.DATABASE_URL);
+  });
+});

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
   LayoutDashboard, Clock, Stethoscope, Users, CalendarClock, Star,
   ScrollText, Wallet, Banknote, Mail, Handshake, ShieldCheck,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, BookLock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAuthedFetch } from '../hooks/useAuthedFetch';
@@ -22,6 +22,7 @@ import RepassesTab from './admin/RepassesTab';
 import ConvitesTab from './admin/ConvitesTab';
 import ParceirosTab from './admin/ParceirosTab';
 import AdminsTab from './admin/AdminsTab';
+import DocsTecnicoTab from './admin/DocsTecnicoTab';
 import { getPharmacistStatus } from '../utils/pharmacistFormat';
 
 const AdminPanel = () => {
@@ -68,13 +69,14 @@ const AdminPanel = () => {
     { id: 'parceiros',    label: 'Parceiros', icon: Handshake },
     { id: 'admins',       label: 'Admins', icon: ShieldCheck },
     { id: 'logs',         label: 'Logs', icon: ScrollText },
+    { id: 'docs',         label: 'Doc. técnica', icon: BookLock },
   ];
 
   const TAB_GROUPS = [
     { label: 'Operação',   ids: ['overview', 'horarios', 'consultas'] },
     { label: 'Pessoas',    ids: ['pharmacists', 'patients', 'avaliacoes'] },
     { label: 'Financeiro', ids: ['financeiro', 'repasses'] },
-    { label: 'Sistema',    ids: ['convites', 'parceiros', 'admins', 'logs'] },
+    { label: 'Sistema',    ids: ['convites', 'parceiros', 'admins', 'logs', 'docs'] },
   ];
 
   const tabById = Object.fromEntries(TABS.map((t) => [t.id, t]));
@@ -173,6 +175,7 @@ const AdminPanel = () => {
           )}
           {tab === 'convites'    && <ConvitesTab api={api} showToast={showToast} />}
           {tab === 'parceiros'   && <ParceirosTab api={api} showToast={showToast} />}
+          {tab === 'docs'        && <DocsTecnicoTab api={api} />}
           {tab === 'admins'      && <AdminsTab api={api} showToast={showToast} currentUserEmail={currentUserEmail} />}
         </div>
       </div>

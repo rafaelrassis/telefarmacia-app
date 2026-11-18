@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getDocsTecnico } from '../controllers/DocsController.js';
 import {
   getMetricas,
   listPharmacists,
@@ -145,5 +146,8 @@ router.delete('/admin/parceiros/:id',                ...guard, deleteParceiro);
 router.get('/admin/parceiros/metricas',              ...guard, getMetricasParceiros);
 router.get('/admin/config/onde-comprar',             ...guard, getOndeComprarConfig);
 router.patch('/admin/config/onde-comprar',           ...guard, toggleOndeComprar);
+
+// Documentação técnica (endpoints, env, internos) — só admin
+router.get('/admin/docs',                         ...guard, getDocsTecnico);
 
 export default router;
