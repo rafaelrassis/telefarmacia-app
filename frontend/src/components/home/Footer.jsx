@@ -34,6 +34,7 @@ const Footer = ({ onRegisterPharmacist }) => (
             )}
             <li><button onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition">Como funciona</button></li>
             <li><button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition">FAQ</button></li>
+            <li><Link to="/documentacao" className="hover:text-white transition">Documentação</Link></li>
           </ul>
         </div>
 
