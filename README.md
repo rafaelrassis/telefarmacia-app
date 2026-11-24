@@ -21,6 +21,12 @@ Conecta pacientes a farmacêuticos para consultas remotas (agendadas ou urgentes
 
 ---
 
+## Para desenvolvedores
+
+Antes do primeiro PR, leia [CLAUDE.md](./CLAUDE.md) (guardrails e armadilhas conhecidas) e [CONTRIBUTING.md](./CONTRIBUTING.md) (fluxo de contribuição).
+
+---
+
 ## Estrutura do repositório
 
 ```
