@@ -37,7 +37,7 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: EMAIL_ENABLED
-        value: "true"
+        value: "false"
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY
