@@ -12,9 +12,22 @@ const preApprovalClient = new PreApproval(client);
 const BACKEND_URL  = process.env.BACKEND_URL  || 'http://localhost:3000';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
 
+// Sem token configurado, não dá pra falar com o Mercado Pago de verdade —
+// cai no modo de teste e simula um PIX já aprovado, com saldo fake.
+const MODO_TESTE = !process.env.MERCADOPAGO_ACCESS_TOKEN;
+
 // ── PIX avulso (recarga de crédito) ──────────────────────────────────────────
 
 export async function criarPagamentoPix(valor, pacienteId, pagamentoId, payerEmail) {
+  if (MODO_TESTE) {
+    return {
+      id: `TEST-${pagamentoId}`,
+      status: 'approved',
+      qr_code: `00020126580014BR.GOV.BCB.PIX0136teste-${pagamentoId}5204000053039865406${Number(valor).toFixed(2)}5802BR6009TESTE6304TEST`,
+      qr_code_base64: null,
+    };
+  }
+
   const payment = await paymentClient.create({
     body: {
       transaction_amount: Number(valor),
@@ -39,6 +52,9 @@ export async function criarPagamentoPix(valor, pacienteId, pagamentoId, payerEma
 }
 
 export async function buscarPagamento(mpPaymentId) {
+  if (MODO_TESTE || String(mpPaymentId).startsWith('TEST-')) {
+    return { id: mpPaymentId, status: 'approved' };
+  }
   return paymentClient.get({ id: mpPaymentId });
 }
 
