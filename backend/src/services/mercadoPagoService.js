@@ -12,8 +12,7 @@ const preApprovalClient = new PreApproval(client);
 const BACKEND_URL  = process.env.BACKEND_URL  || 'http://localhost:3000';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
 
-// PIX avulso sempre em modo de teste por ora: simula um pagamento já
-// aprovado e credita saldo fake, sem depender da integração real do MP.
+// ── TOGGLE: true = PIX falso (aprova na hora, saldo fake, sem chamar o MP) ──
 const MODO_TESTE = true;
 
 // ── PIX avulso (recarga de crédito) ──────────────────────────────────────────
