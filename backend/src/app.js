@@ -34,6 +34,10 @@ import { authMiddleware } from './middlewares/authMiddleware.js';
 
 const app = express();
 
+// Render roda atrás de um proxy reverso; sem isso, express-rate-limit não
+// confia no X-Forwarded-For e o IP do cliente fica incorreto.
+app.set('trust proxy', 1);
+
 // API pura (nunca serve HTML) e uploads consumidos como <img>/<a> a partir do
 // domínio do frontend (origem diferente) — CSP não se aplica a JSON e a
 // política padrão de mesmo-origin do CORP bloquearia a exibição das imagens
