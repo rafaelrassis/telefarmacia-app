@@ -14,7 +14,15 @@ const getSender = () => ({
   email: process.env.SMTP_FROM_EMAIL,
 });
 
+// Toggle de emergência: com EMAIL_ENABLED=false, nenhum e-mail é enviado
+// (usado quando a API key do Brevo está indisponível/inválida).
+const emailEnabled = () => process.env.EMAIL_ENABLED !== 'false';
+
 const sendEmail = async ({ to, subject, html }) => {
+  if (!emailEnabled()) {
+    console.warn('[email] EMAIL_ENABLED=false — e-mail não enviado.');
+    return;
+  }
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
     console.warn('[email] BREVO_API_KEY não configurado — e-mail não enviado.');
