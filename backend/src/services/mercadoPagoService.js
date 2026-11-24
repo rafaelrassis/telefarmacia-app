@@ -12,9 +12,9 @@ const preApprovalClient = new PreApproval(client);
 const BACKEND_URL  = process.env.BACKEND_URL  || 'http://localhost:3000';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5174').split(',')[0].trim();
 
-// Sem token configurado, não dá pra falar com o Mercado Pago de verdade —
-// cai no modo de teste e simula um PIX já aprovado, com saldo fake.
-const MODO_TESTE = !process.env.MERCADOPAGO_ACCESS_TOKEN;
+// PIX avulso sempre em modo de teste por ora: simula um pagamento já
+// aprovado e credita saldo fake, sem depender da integração real do MP.
+const MODO_TESTE = true;
 
 // ── PIX avulso (recarga de crédito) ──────────────────────────────────────────
 
